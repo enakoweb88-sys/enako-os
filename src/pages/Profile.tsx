@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { 
   User, 
@@ -20,18 +20,18 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../lib/auth';
 
 export default function Profile() {
   const navigate = useNavigate();
-  const [role, setRole] = useState<string>(localStorage.getItem('enako_user_role') || 'ceo');
-  const [userName, setUserName] = useState<string>(localStorage.getItem('enako_user_name') || 'Executive');
-  const [userEmail, setUserEmail] = useState<string>(localStorage.getItem('enako_user_email') || `${userName.toLowerCase().replace(/\s+/g, '.')}@enako.global`);
+  const { user, logout } = useAuth();
+  const role = (user?.role ?? 'EMPLOYEE').toLowerCase();
+  const userName = user?.fullName ?? 'Executive';
+  const userEmail = user?.email ?? '';
 
-  const handleLogout = () => {
-    localStorage.removeItem('enako_user_role');
-    localStorage.removeItem('enako_user_name');
-    localStorage.removeItem('enako_user_email');
-    navigate('/login');
+  const handleLogout = async () => {
+    await logout();
+    navigate('/select-role');
   };
 
   const getRoleSpecificData = () => {

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { ArrowRight, Mail, Lock, Eye, EyeOff, ShieldCheck, AlertCircle, ChevronLeft } from 'lucide-react';
-import * as authService from '../services/authService';
+import { useAuth } from '../lib/auth';
 
 type Role = 'CEO' | 'MANAGER' | 'EMPLOYEE';
 
@@ -33,6 +33,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,13 +41,12 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await authService.login(email, password, selectedRole);
+      await login(email, password, selectedRole);
       navigate('/app/dashboard');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Login failed. Please try again.';
-      // If backend is unreachable, offer a descriptive error
       if (msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('networkerror')) {
-        setError('Cannot reach the server. Make sure the backend is running on port 5000.');
+        setError('Cannot reach the server. Check your connection or try again later.');
       } else {
         setError(msg);
       }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   FileText, 
@@ -16,43 +16,33 @@ import {
   X
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useAuth } from '../lib/auth';
 
 export default function Reports() {
-  const [role, setRole] = useState<string>('ceo');
+  const { user } = useAuth();
+  const role = (user?.role ?? 'EMPLOYEE').toLowerCase();
   const [reports, setReports] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [showGenModal, setShowGenModal] = useState(false);
   const [newReport, setNewReport] = useState({ title: '', type: 'PDF' });
 
-  useEffect(() => {
-    setRole(localStorage.getItem('enako_user_role') || 'ceo');
-    const stored = localStorage.getItem('enako_reports');
-    if (stored) {
-      setReports(JSON.parse(stored));
-    }
-  }, []);
-
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
     setIsGenerating(true);
-    
-    // Simulate generation delay
     setTimeout(() => {
       const report = {
         title: newReport.title,
         type: newReport.type.split(' ')[0],
         id: Date.now(),
-        size: '2.4 MB',
+        size: '—',
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
       };
-      const updated = [report, ...reports];
-      setReports(updated);
-      localStorage.setItem('enako_reports', JSON.stringify(updated));
+      setReports(prev => [report, ...prev]);
       setIsGenerating(false);
       setShowGenModal(false);
       setNewReport({ title: '', type: 'PDF' });
-    }, 2000);
+    }, 1500);
   };
 
   const filteredReports = reports.filter(r => 

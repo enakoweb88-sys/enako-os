@@ -1,29 +1,17 @@
-const API_BASE = 'http://localhost:5000/api/v1';
+import { clearSession, getStoredUser, storeSession } from '../lib/api';
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  fullName: string;
-  role: 'CEO' | 'MANAGER' | 'EMPLOYEE';
-  department: string | null;
-}
-
-interface AuthResponse {
-  user: AuthUser;
-  accessToken: string;
-  refreshToken: string;
-}
+export type { AuthUser } from '../lib/api';
 
 export async function login(
   email: string,
   password: string,
   role: 'CEO' | 'MANAGER' | 'EMPLOYEE',
-): Promise<AuthResponse> {
+) {
+  const API_BASE = (import.meta.env.VITE_API_URL as string) ?? 'http://localhost:5000/api/v1';
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, role }),
-    credentials: 'include',
   });
 
   if (!res.ok) {
@@ -38,39 +26,16 @@ export async function login(
     throw new Error(Array.isArray(message) ? message.join(', ') : message);
   }
 
-  const data: AuthResponse = await res.json();
-
-  /* Persist session */
-  localStorage.setItem('enako_access_token', data.accessToken);
-  localStorage.setItem('enako_refresh_token', data.refreshToken);
-  localStorage.setItem('enako_user', JSON.stringify(data.user));
-
-  /* Keep legacy keys that DashboardLayout reads */
-  localStorage.setItem('enako_user_role', data.user.role.toLowerCase());
-  localStorage.setItem('enako_user_name', data.user.fullName);
-  localStorage.setItem('enako_user_email', data.user.email);
-
+  const data = await res.json();
+  storeSession(data);
   return data;
 }
 
 export function logout(): void {
-  localStorage.removeItem('enako_access_token');
-  localStorage.removeItem('enako_refresh_token');
-  localStorage.removeItem('enako_user');
-  localStorage.removeItem('enako_user_role');
-  localStorage.removeItem('enako_user_name');
-  localStorage.removeItem('enako_user_email');
-  localStorage.removeItem('enako_selected_role');
+  clearSession();
 }
 
-export function getStoredUser(): AuthUser | null {
-  try {
-    const raw = localStorage.getItem('enako_user');
-    return raw ? (JSON.parse(raw) as AuthUser) : null;
-  } catch {
-    return null;
-  }
-}
+export { getStoredUser } from '../lib/api';
 
 export function getAccessToken(): string | null {
   return localStorage.getItem('enako_access_token');

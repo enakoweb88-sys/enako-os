@@ -16,18 +16,18 @@ import {
   Monitor
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useAuth } from '../lib/auth';
 
 export default function Settings() {
   const navigate = useNavigate();
-  const role = localStorage.getItem('enako_user_role') || 'ceo';
-  const userName = localStorage.getItem('enako_user_name') || 'Administrator';
-  const userEmail = localStorage.getItem('enako_user_email') || `${userName.toLowerCase().replace(/\s+/g, '.')}@enako.global`;
+  const { user, logout } = useAuth();
+  const role = (user?.role ?? 'EMPLOYEE').toLowerCase();
+  const userName = user?.fullName ?? 'Administrator';
+  const userEmail = user?.email ?? '';
 
-  const handleLogout = () => {
-    localStorage.removeItem('enako_user_role');
-    localStorage.removeItem('enako_user_name');
-    localStorage.removeItem('enako_user_email');
-    navigate('/login');
+  const handleLogout = async () => {
+    await logout();
+    navigate('/select-role');
   };
 
   if (role !== 'ceo' && role !== 'admin') {

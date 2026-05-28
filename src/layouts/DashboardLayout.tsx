@@ -1,10 +1,10 @@
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
   Users,
   CreditCard,
-  TrendingUp,
   ShieldCheck,
   Wallet,
   Target,
@@ -19,13 +19,13 @@ import {
   User,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { getStoredUser, logout } from '../services/authService';
+import { useAuth } from '../lib/auth';
+import { api } from '../lib/api';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard',      path: '/app/dashboard' },
   { icon: Users,           label: 'Employees',      path: '/app/employees' },
   { icon: CreditCard,      label: 'Transactions',   path: '/app/transactions' },
-  { icon: TrendingUp,      label: 'Investments',    path: '/app/investments' },
   { icon: ShieldCheck,     label: 'KYC Compliance', path: '/app/kyc' },
   { icon: Wallet,          label: 'Expenses',       path: '/app/expenses' },
   { icon: Target,          label: 'Goals & KPIs',   path: '/app/goals' },
@@ -39,23 +39,28 @@ const navItems = [
 export default function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  /* ── Auth state from stored user (falls back to localStorage legacy keys) ── */
-  const storedUser = getStoredUser();
-  const role = (storedUser?.role ?? localStorage.getItem('enako_user_role') ?? 'ceo').toLowerCase();
-  const fullName = storedUser?.fullName ?? localStorage.getItem('enako_user_name') ?? 'Executive';
-  const email = storedUser?.email ?? localStorage.getItem('enako_user_email') ?? '';
+  const role = (user?.role ?? 'EMPLOYEE').toLowerCase();
+  const fullName = user?.fullName ?? 'Executive';
+  const email = user?.email ?? '';
 
-  /* Avatar initials from full name */
   const initials = fullName
     .split(' ')
     .slice(0, 2)
-    .map((w) => w[0])
+    .map((w: string) => w[0])
     .join('')
     .toUpperCase();
 
-  const handleLogout = () => {
-    logout();
+  useEffect(() => {
+    api.notifications()
+      .then(notifs => setUnreadCount(notifs.filter((n: any) => !n.readAt).length))
+      .catch(() => {});
+  }, [location.pathname]);
+
+  const handleLogout = async () => {
+    await logout();
     navigate('/select-role');
   };
 
@@ -165,7 +170,11 @@ export default function DashboardLayout() {
             <div className="flex items-center gap-4 border-r border-outline-variant/30 pr-6">
               <button className="relative text-secondary hover:text-primary transition-colors">
                 <Bell className="w-6 h-6" />
-                <span className="absolute top-0 right-0 w-2 h-2 bg-error rounded-full border-2 border-white" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-error rounded-full border-2 border-white flex items-center justify-center text-[9px] font-black text-white px-0.5">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </button>
               <button className="text-secondary hover:text-primary transition-colors">
                 <HelpCircle className="w-6 h-6" />
