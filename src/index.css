@@ -63,3 +63,68 @@
   @apply backdrop-blur-xl bg-white/70;
 }
 
+/* ── Orbital Shield Animation Keyframes ── */
+@keyframes enako-orbit-1 {
+  from { transform: rotateX(72deg) rotateZ(0deg); }
+  to   { transform: rotateX(72deg) rotateZ(360deg); }
+}
+@keyframes enako-orbit-2 {
+  from { transform: rotateX(30deg) rotateY(15deg) rotateZ(0deg); }
+  to   { transform: rotateX(30deg) rotateY(15deg) rotateZ(-360deg); }
+}
+@keyframes enako-orbit-3 {
+  from { transform: rotateY(80deg) rotateX(10deg) rotateZ(0deg); }
+  to   { transform: rotateY(80deg) rotateX(10deg) rotateZ(360deg); }
+}
+@keyframes enako-orbit-4 {
+  from { transform: rotateX(50deg) rotateY(-20deg) rotateZ(0deg); }
+  to   { transform: rotateX(50deg) rotateY(-20deg) rotateZ(-360deg); }
+}
+@keyframes enako-shield-glow {
+  0%,100% { box-shadow: 0 0 0 4px rgba(37,99,235,0.12), 0 8px 32px rgba(37,99,235,0.18); }
+  50%     { box-shadow: 0 0 0 8px rgba(37,99,235,0.22), 0 8px 48px rgba(37,99,235,0.38); }
+}
+@keyframes enako-dot-float {
+  0%,100% { transform: translateY(0)   scale(1);   opacity: 0.65; }
+  50%     { transform: translateY(-9px) scale(1.3); opacity: 1; }
+}
+@keyframes enako-dot-pulse {
+  0%,100% { transform: scale(1);   opacity: 0.45; }
+  50%     { transform: scale(1.6); opacity: 1; }
+}
+@keyframes enako-sphere-breathe {
+  0%,100% { opacity: 0.55; transform: scale(1); }
+  50%     { opacity: 0.8;  transform: scale(1.03); }
+}
+@keyframes enako-fade-in-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.enako-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(37,99,235,0.28);
+  transform-style: preserve-3d;
+}
+.enako-ring-1 { animation: enako-orbit-1 9s  linear infinite; }
+.enako-ring-2 { animation: enako-orbit-2 13s linear infinite; }
+.enako-ring-3 { animation: enako-orbit-3 7s  linear infinite; }
+.enako-ring-4 { animation: enako-orbit-4 11s linear infinite; }
+
+.enako-shield-core { animation: enako-shield-glow 3s ease-in-out infinite; }
+
+.enako-dot-a { animation: enako-dot-float  3.2s ease-in-out infinite; }
+.enako-dot-b { animation: enako-dot-pulse  2.7s ease-in-out infinite; }
+.enako-dot-c { animation: enako-dot-float  4.1s ease-in-out infinite 0.6s; }
+.enako-dot-d { animation: enako-dot-pulse  3.5s ease-in-out infinite 1s; }
+.enako-dot-e { animation: enako-dot-float  2.9s ease-in-out infinite 0.3s; }
+
+.enako-sphere { animation: enako-sphere-breathe 4s ease-in-out infinite; }
+
+.enako-fade-up {
+  opacity: 0;
+  animation: enako-fade-in-up 0.7s ease forwards;
+}
+

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
+import { getStoredUser } from '../services/authService';
 import { 
   Plus, 
   Download, 
@@ -39,10 +40,18 @@ export default function Dashboard() {
   const [userName, setUserName] = useState<string>('');
 
   useEffect(() => {
-    const savedRole = localStorage.getItem('enako_user_role') || 'ceo';
-    const savedName = localStorage.getItem('enako_user_name') || 'Executive';
-    setRole(savedRole);
-    setUserName(savedName);
+    const user = getStoredUser();
+    const resolvedRole = (
+      user?.role ??
+      localStorage.getItem('enako_user_role') ??
+      'CEO'
+    ).toLowerCase();
+    const resolvedName =
+      user?.fullName ??
+      localStorage.getItem('enako_user_name') ??
+      'Executive';
+    setRole(resolvedRole);
+    setUserName(resolvedName);
   }, []);
 
   const renderDashboard = () => {
@@ -505,7 +514,9 @@ function EmployeeDashboard() {
                   </div>
                   <div className="flex items-center gap-2 text-secondary">
                      <Calendar className="w-4 h-4" />
-                     <span className="text-[10px] font-bold uppercase tracking-widest">May 2024</span>
+                     <span className="text-[10px] font-bold uppercase tracking-widest">
+                       {new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+                     </span>
                   </div>
                </div>
                <div className="space-y-6">

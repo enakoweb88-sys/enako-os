@@ -1,101 +1,117 @@
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { 
-  LayoutDashboard, 
-  Users, 
-  CreditCard, 
-  TrendingUp, 
-  ShieldCheck, 
-  Wallet, 
-  Target, 
-  Bell, 
-  BarChart3, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  CreditCard,
+  TrendingUp,
+  ShieldCheck,
+  Wallet,
+  Target,
+  Bell,
+  BarChart3,
+  Settings,
   LogOut,
   Search,
   HelpCircle,
   MessageSquare,
   UtensilsCrossed,
-  User
+  User,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { getStoredUser, logout } from '../services/authService';
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/app/dashboard' },
-  { icon: Users, label: 'Employees', path: '/app/employees' },
-  { icon: CreditCard, label: 'Transactions', path: '/app/transactions' },
-  { icon: TrendingUp, label: 'Investments', path: '/app/investments' },
-  { icon: ShieldCheck, label: 'KYC Compliance', path: '/app/kyc' },
-  { icon: Wallet, label: 'Expenses', path: '/app/expenses' },
-  { icon: Target, label: 'Goals & KPIs', path: '/app/goals' },
-  { icon: MessageSquare, label: 'Communications', path: '/app/chat' },
-  { icon: UtensilsCrossed, label: 'Staff Meals', path: '/app/meals' },
-  { icon: Bell, label: 'Announcements', path: '/app/announcements' },
-  { icon: BarChart3, label: 'Reports', path: '/app/reports' },
-  { icon: User, label: 'Profile', path: '/app/profile' },
+  { icon: LayoutDashboard, label: 'Dashboard',      path: '/app/dashboard' },
+  { icon: Users,           label: 'Employees',      path: '/app/employees' },
+  { icon: CreditCard,      label: 'Transactions',   path: '/app/transactions' },
+  { icon: TrendingUp,      label: 'Investments',    path: '/app/investments' },
+  { icon: ShieldCheck,     label: 'KYC Compliance', path: '/app/kyc' },
+  { icon: Wallet,          label: 'Expenses',       path: '/app/expenses' },
+  { icon: Target,          label: 'Goals & KPIs',   path: '/app/goals' },
+  { icon: MessageSquare,   label: 'Communications', path: '/app/chat' },
+  { icon: UtensilsCrossed, label: 'Staff Meals',    path: '/app/meals' },
+  { icon: Bell,            label: 'Announcements',  path: '/app/announcements' },
+  { icon: BarChart3,       label: 'Reports',        path: '/app/reports' },
+  { icon: User,            label: 'Profile',        path: '/app/profile' },
 ];
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const role = localStorage.getItem('enako_user_role') || 'ceo';
-  const userName = localStorage.getItem('enako_user_name') || 'Executive';
+
+  /* ── Auth state from stored user (falls back to localStorage legacy keys) ── */
+  const storedUser = getStoredUser();
+  const role = (storedUser?.role ?? localStorage.getItem('enako_user_role') ?? 'ceo').toLowerCase();
+  const fullName = storedUser?.fullName ?? localStorage.getItem('enako_user_name') ?? 'Executive';
+  const email = storedUser?.email ?? localStorage.getItem('enako_user_email') ?? '';
+
+  /* Avatar initials from full name */
+  const initials = fullName
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase();
 
   const handleLogout = () => {
-    localStorage.removeItem('enako_user_role');
-    localStorage.removeItem('enako_user_name');
-    localStorage.removeItem('enako_user_email');
-    navigate('/login');
+    logout();
+    navigate('/select-role');
   };
 
-  const filteredNavItems = navItems.filter(item => {
+  const filteredNavItems = navItems.filter((item) => {
     if (role === 'employee') {
-      // Employees only see operational tools and personal tracking
       return ['Dashboard', 'Expenses', 'Staff Meals', 'Communications', 'Announcements', 'Profile'].includes(item.label);
     }
     if (role === 'manager') {
-      // Managers oversee operations but lack deep executive analytics (Investments/Settings)
-      const restrictedForManagers = ['Investments', 'Settings'];
-      return !restrictedForManagers.includes(item.label);
+      return !['Investments', 'Settings'].includes(item.label);
     }
     return true; // CEO sees everything
   });
 
   return (
     <div className="min-h-screen bg-surface flex">
-      {/* Sidebar */}
+      {/* ── Sidebar ── */}
       <aside className="fixed left-0 top-0 bottom-0 w-64 bg-surface-container-low border-r border-outline-variant/30 z-50 flex flex-col">
         <div className="px-6 py-8">
-          <NavLink to="/" className="font-display text-2xl tracking-tighter font-bold text-primary block hover:opacity-80 transition-opacity">ENAKO OS</NavLink>
+          <NavLink to="/" className="font-display text-2xl tracking-tighter font-bold text-primary block hover:opacity-80 transition-opacity">
+            ENAKO OS
+          </NavLink>
         </div>
-        
+
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto pb-8 scrollbar-hide">
           {filteredNavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
-              className={({ isActive }) => cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group",
-                isActive 
-                  ? "bg-primary-container text-on-primary-container shadow-sm" 
-                  : "text-secondary hover:bg-surface-container-high/50"
-              )}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group',
+                  isActive
+                    ? 'bg-primary-container text-on-primary-container shadow-sm'
+                    : 'text-secondary hover:bg-surface-container-high/50',
+                )
+              }
             >
-              <item.icon className={cn(
-                "w-5 h-5",
-                location.pathname === item.path ? "text-on-primary-container" : "text-secondary group-hover:text-primary transition-colors"
-              )} />
+              <item.icon
+                className={cn(
+                  'w-5 h-5',
+                  location.pathname === item.path ? 'text-on-primary-container' : 'text-secondary group-hover:text-primary transition-colors',
+                )}
+              />
               <span className="text-[11px] font-bold uppercase tracking-wider">{item.label}</span>
             </NavLink>
           ))}
-          
+
           <div className="pt-4 border-t border-outline-variant/20 mt-4">
             <NavLink
               to="/app/settings"
-              className={({ isActive }) => cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group",
-                isActive ? "bg-primary-container text-on-primary-container" : "text-secondary hover:bg-surface-container-high/50"
-              )}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group',
+                  isActive ? 'bg-primary-container text-on-primary-container' : 'text-secondary hover:bg-surface-container-high/50',
+                )
+              }
             >
               <Settings className="w-5 h-5" />
               <span className="text-[11px] font-bold uppercase tracking-wider">Settings</span>
@@ -103,18 +119,23 @@ export default function DashboardLayout() {
           </div>
         </nav>
 
+        {/* User strip */}
         <div className="p-4 bg-surface-container mt-auto">
           <div className="flex items-center gap-3">
             <NavLink to="/app/profile" className="flex items-center gap-3 flex-1 min-w-0 group">
               <div className="w-10 h-10 rounded-full bg-primary-fixed overflow-hidden ring-2 ring-white flex items-center justify-center text-primary font-black text-sm uppercase group-hover:ring-primary/20 transition-all">
-                {userName.charAt(0)}
+                {initials}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-bold text-primary truncate uppercase tracking-wider group-hover:text-primary-container transition-colors">{userName}</p>
-                <p className="text-[10px] text-secondary uppercase font-bold tracking-tighter">{role}</p>
+                <p className="text-[11px] font-bold text-primary truncate uppercase tracking-wider group-hover:text-primary-container transition-colors">
+                  {fullName}
+                </p>
+                <p className="text-[10px] text-secondary uppercase font-bold tracking-tighter truncate">
+                  {email || role}
+                </p>
               </div>
             </NavLink>
-            <button 
+            <button
               onClick={handleLogout}
               className="text-secondary hover:text-primary transition-colors cursor-pointer"
               title="Sign Out"
@@ -125,26 +146,26 @@ export default function DashboardLayout() {
         </div>
       </aside>
 
-      {/* Main Content */}
+      {/* ── Main Content ── */}
       <main className="flex-1 ml-64 min-w-0 flex flex-col">
-        {/* Header */}
+        {/* Top Header */}
         <header className="sticky top-0 z-40 bg-surface/70 backdrop-blur-xl border-b border-outline-variant/30 flex justify-between items-center px-8 py-4">
           <div className="flex items-center flex-1 max-w-xl">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary w-5 h-5" />
-              <input 
+              <input
                 type="text"
-                placeholder="Search enterprise-wide data..."
+                placeholder="Search enterprise-wide data…"
                 className="w-full pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant/30 rounded-lg focus:ring-1 focus:ring-on-primary-container focus:border-on-primary-container text-sm transition-all outline-none"
               />
             </div>
           </div>
-          
+
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-4 border-r border-outline-variant/30 pr-6">
               <button className="relative text-secondary hover:text-primary transition-colors">
                 <Bell className="w-6 h-6" />
-                <span className="absolute top-0 right-0 w-2 h-2 bg-error rounded-full border-2 border-white"></span>
+                <span className="absolute top-0 right-0 w-2 h-2 bg-error rounded-full border-2 border-white" />
               </button>
               <button className="text-secondary hover:text-primary transition-colors">
                 <HelpCircle className="w-6 h-6" />
@@ -157,20 +178,16 @@ export default function DashboardLayout() {
           </div>
         </header>
 
-        {/* Content View */}
+        {/* Content */}
         <div className="flex-1 p-8">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             <Outlet />
           </motion.div>
         </div>
 
         {/* Footer */}
         <footer className="bg-surface-container-low border-t border-outline-variant/30 px-8 py-4 flex justify-between items-center mt-auto">
-          <p className="text-[11px] text-secondary">© 2024 ENAKO OS. Secure Enterprise Financial Operations.</p>
+          <p className="text-[11px] text-secondary">© 2025 ENAKO OS. Secure Enterprise Operations.</p>
           <div className="flex gap-6">
             <button className="text-[11px] font-bold text-secondary hover:text-primary transition-colors uppercase tracking-wider">API Docs</button>
             <button className="text-[11px] font-bold text-secondary hover:text-primary transition-colors uppercase tracking-wider">Compliance</button>
