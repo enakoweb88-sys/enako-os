@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck } from 'lucide-react';
 
 interface RoleCard {
   role: 'CEO' | 'MANAGER' | 'EMPLOYEE';
@@ -54,9 +53,7 @@ export default function RoleSelect() {
       {/* Minimal Nav */}
       <nav className="border-b border-gray-100 px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[#2563EB] flex items-center justify-center">
-            <ShieldCheck className="w-4 h-4 text-white" />
-          </div>
+          <img src="/logo.png" alt="ENAKO OS" className="w-8 h-8 rounded-lg object-contain" />
           <div>
             <span className="font-bold text-[14px] text-[#0f172a] tracking-tight leading-none block">ENAKO OS</span>
             <span className="text-[9px] text-gray-400 tracking-widest uppercase font-semibold leading-none block">Enterprise Operating System</span>
@@ -108,12 +105,12 @@ export default function RoleSelect() {
                 el.style.boxShadow = 'none';
               }}
             >
-              {/* Emoji Icon */}
+              {/* Logo Icon */}
               <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-5 transition-all duration-200"
-                style={{ background: card.bg, fontSize: 32 }}
+                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 transition-all duration-200 p-3"
+                style={{ background: card.bg }}
               >
-                {card.emoji}
+                <img src="/logo.png" alt="ENAKO OS" className="w-full h-full object-contain" />
               </div>
 
               {/* Title */}

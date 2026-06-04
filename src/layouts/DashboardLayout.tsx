@@ -79,8 +79,9 @@ export default function DashboardLayout() {
       {/* ── Sidebar ── */}
       <aside className="fixed left-0 top-0 bottom-0 w-64 bg-surface-container-low border-r border-outline-variant/30 z-50 flex flex-col">
         <div className="px-6 py-8">
-          <NavLink to="/" className="font-display text-2xl tracking-tighter font-bold text-primary block hover:opacity-80 transition-opacity">
-            ENAKO OS
+          <NavLink to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+            <img src="/logo.png" alt="ENAKO OS" className="w-8 h-8 rounded-md object-contain" />
+            <span className="font-display text-xl tracking-tighter font-bold text-primary">ENAKO OS</span>
           </NavLink>
         </div>
 

@@ -68,9 +68,7 @@ export default function Login() {
         <div className="relative z-10 max-w-xl text-center lg:text-left">
           {/* Logo */}
           <div className="flex items-center gap-3 text-white mb-12">
-            <div className="w-10 h-10 rounded-xl bg-[#2563EB] flex items-center justify-center">
-              <ShieldCheck className="w-6 h-6 text-white" />
-            </div>
+            <img src="/logo.png" alt="ENAKO OS" className="w-10 h-10 rounded-xl shadow-sm object-contain" />
             <h2 className="text-2xl font-bold tracking-tight font-display uppercase">ENAKO OS</h2>
           </div>
 
@@ -85,9 +83,9 @@ export default function Login() {
           {/* Image placeholder — enterprise server room */}
           <div className="w-full aspect-[4/3] rounded-xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden shadow-2xl relative">
             <img
-              src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=800&q=80"
-              alt="Enterprise data centre"
-              className="w-full h-full object-cover opacity-80"
+              src="/logo.png"
+              alt="ENAKO OS Logo"
+              className="w-full h-full object-contain opacity-90 p-8"
               loading="lazy"
             />
             {/* Security badge overlay */}
@@ -111,9 +109,7 @@ export default function Login() {
         >
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-12">
-            <div className="w-8 h-8 rounded-lg bg-[#2563EB] flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4 text-white" />
-            </div>
+            <img src="/logo.png" alt="ENAKO OS" className="w-8 h-8 rounded-lg shadow-sm object-contain" />
             <h2 className="text-primary text-xl font-bold font-display uppercase">ENAKO OS</h2>
           </div>
 
@@ -131,7 +127,7 @@ export default function Login() {
             className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border mb-8"
             style={{ borderColor: 'rgba(37,99,235,0.2)', background: 'rgba(37,99,235,0.05)' }}
           >
-            <span className="text-xl">{ROLE_EMOJIS[selectedRole]}</span>
+            <img src="/logo.png" alt="ENAKO OS" className="w-6 h-6 rounded object-contain" />
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Logging in as</p>
               <p className="font-bold text-[14px] text-[#2563EB] leading-tight">{selectedRole} — {ROLE_LABELS[selectedRole]}</p>

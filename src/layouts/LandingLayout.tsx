@@ -9,9 +9,7 @@ export default function LandingLayout() {
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-lg bg-[#2563EB] flex items-center justify-center shadow-sm">
-              <ShieldCheck className="w-5 h-5 text-white" />
-            </div>
+            <img src="/logo.png" alt="ENAKO OS" className="w-10 h-10 rounded-lg shadow-sm object-contain" />
             <div>
               <span className="font-bold text-[15px] text-[#0f172a] tracking-tight leading-none block">ENAKO OS</span>
               <span className="text-[9px] text-gray-400 tracking-widest uppercase font-semibold leading-none block mt-0.5">Enterprise Operating System</span>
