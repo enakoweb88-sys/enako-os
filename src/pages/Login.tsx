@@ -240,9 +240,9 @@ export default function Login() {
               🔑 Test Credentials (Dev)
             </summary>
             <div className="mt-3 space-y-2 font-mono text-secondary">
-              <p><span className="text-primary font-bold">CEO:</span> ceo@enako.os / EnakoOS@CEO2025</p>
-              <p><span className="text-primary font-bold">MGR:</span> manager@enako.os / EnakoOS@Mgr2025</p>
-              <p><span className="text-primary font-bold">EMP:</span> employee@enako.os / EnakoOS@Emp2025</p>
+              <p><span className="text-primary font-bold">CEO:</span> ceo@enako.com / Enako@2025!</p>
+              <p><span className="text-primary font-bold">MGR:</span> manager@enako.com / Manager@2025!</p>
+              <p><span className="text-primary font-bold">EMP:</span> employee@enako.com / Employee@2025!</p>
             </div>
           </details>
 
