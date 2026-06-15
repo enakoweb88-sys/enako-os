@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, ProtectedRoute } from './lib/auth';
+import { Toaster } from 'sonner';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import RoleSelect from './pages/RoleSelect';
@@ -15,6 +16,13 @@ import Goals from './pages/Goals';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
+import Tasks from './pages/Tasks';
+import Leads from './pages/Leads';
+import Tickets from './pages/Tickets';
+import Content from './pages/Content';
+import Leaves from './pages/Leaves';
+import ApiDocs from './pages/ApiDocs';
+import Help from './pages/Help';
 import DashboardLayout from './layouts/DashboardLayout';
 
 export default function App() {
@@ -68,10 +76,19 @@ export default function App() {
             <Route path="reports" element={<Reports />} />
             <Route path="settings" element={<Settings />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="tasks" element={<Tasks />} />
+            <Route path="leads" element={<Leads />} />
+            <Route path="tickets" element={<Tickets />} />
+            <Route path="support" element={<Navigate to="/app/tickets" replace />} />
+            <Route path="content" element={<Content />} />
+            <Route path="leaves" element={<Leaves />} />
+            <Route path="docs" element={<ApiDocs />} />
+            <Route path="help" element={<Help />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <Toaster position="top-right" richColors />
       </BrowserRouter>
     </AuthProvider>
   );

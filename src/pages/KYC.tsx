@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ShieldCheck, UserCheck, FileSearch, AlertTriangle, Search,
-  CheckCircle2, XCircle, Clock, X, RefreshCw, Eye,
+  CheckCircle2, XCircle, Clock, X, RefreshCw, Eye, Download, FileText, ChevronRight
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';
@@ -17,6 +17,7 @@ export default function KYC() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selected, setSelected] = useState<any>(null);
+  const [activeDocument, setActiveDocument] = useState<any>(null);
   const [reviewForm, setReviewForm] = useState({ status: '', rejectionReason: '' });
   const [submitting, setSubmitting] = useState(false);
 
@@ -38,6 +39,7 @@ export default function KYC() {
     try {
       await api.reviewKyc(selected.id, reviewForm);
       setSelected(null);
+      setActiveDocument(null);
       setReviewForm({ status: '', rejectionReason: '' });
       load();
     } catch (e: any) { alert(e.message); }
@@ -180,7 +182,7 @@ export default function KYC() {
                   </td>
                   <td className="px-8 py-6 text-right">
                     <button
-                      onClick={() => { setSelected(item); setReviewForm({ status: '', rejectionReason: '' }); }}
+                      onClick={() => { setSelected(item); setActiveDocument(item.documents?.[0] || null); setReviewForm({ status: '', rejectionReason: '' }); }}
                       className="p-2 bg-primary-fixed text-primary rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-primary hover:text-white"
                     >
                       <Eye className="w-4 h-4" />
@@ -198,108 +200,206 @@ export default function KYC() {
         {selected && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelected(null)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low sticky top-0">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-6xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 max-h-[90vh] flex flex-col">
+              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low shrink-0">
                 <div>
                   <h3 className="text-lg font-bold text-primary">{selected.applicantName}</h3>
                   <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mt-0.5">{selected.applicantType} · {selected.status}</p>
                 </div>
-                <button onClick={() => setSelected(null)}><X className="w-5 h-5 text-secondary" /></button>
+                <button onClick={() => setSelected(null)} className="p-2 hover:bg-outline-variant/20 rounded-full transition-colors"><X className="w-5 h-5 text-secondary" /></button>
               </div>
 
-              <div className="p-6 space-y-6">
-                {/* Applicant Info */}
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Email</p><p className="font-bold text-primary">{selected.email ?? '—'}</p></div>
-                  <div><p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Phone</p><p className="font-bold text-primary">{selected.phone ?? '—'}</p></div>
-                  <div><p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Submitted</p><p className="font-bold text-primary">{new Date(selected.createdAt).toLocaleString()}</p></div>
-                  <div><p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Reviewed By</p><p className="font-bold text-primary">{selected.reviewedBy?.fullName ?? '—'}</p></div>
-                </div>
-
-                {/* Payload */}
-                <div>
-                  <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2">Form Data</p>
-                  <div className="bg-surface-container-low rounded-xl p-4 text-xs font-mono overflow-auto max-h-48">
-                    {Object.entries(selected.payload ?? {}).map(([k, v]) => (
-                      <div key={k} className="flex gap-2 py-0.5">
-                        <span className="text-secondary min-w-[140px]">{k}:</span>
-                        <span className="text-primary font-bold">{String(v)}</span>
-                      </div>
-                    ))}
+              <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+                {/* Left Side: Form Data & Review */}
+                <div className="flex-1 border-r border-outline-variant/20 overflow-y-auto bg-white p-6 space-y-8">
+                  {/* Applicant Info */}
+                  <div className="grid grid-cols-2 gap-6 p-5 bg-primary-fixed/30 rounded-xl border border-primary-fixed/50">
+                    <div><p className="text-[10px] font-bold text-primary/70 uppercase tracking-widest mb-1">Email</p><p className="font-bold text-primary text-sm">{selected.email ?? '—'}</p></div>
+                    <div><p className="text-[10px] font-bold text-primary/70 uppercase tracking-widest mb-1">Phone</p><p className="font-bold text-primary text-sm">{selected.phone ?? '—'}</p></div>
+                    <div><p className="text-[10px] font-bold text-primary/70 uppercase tracking-widest mb-1">Submitted</p><p className="font-bold text-primary text-sm">{new Date(selected.createdAt).toLocaleString()}</p></div>
+                    <div><p className="text-[10px] font-bold text-primary/70 uppercase tracking-widest mb-1">Reviewed By</p><p className="font-bold text-primary text-sm">{selected.reviewedBy?.fullName ?? '—'}</p></div>
                   </div>
-                </div>
 
-                {/* Documents */}
-                {selected.documents?.length > 0 && (
+                  {/* Grouped Form Data */}
                   <div>
-                    <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2">Documents</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      {selected.documents.map((doc: any) => (
-                        <a key={doc.id} href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-surface-container-low rounded-xl border border-outline-variant/20 hover:border-primary transition-all">
-                          <FileSearch className="w-4 h-4 text-primary shrink-0" />
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-primary truncate">{doc.documentType}</p>
-                            <p className="text-[10px] text-secondary truncate">{doc.fileName}</p>
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                    <h4 className="text-[12px] font-bold text-primary uppercase tracking-[0.2em] mb-4">Application Details</h4>
+                    {(() => {
+                      const payload = selected.payload || {};
+                      const entityKeys = ['companyName', 'tradingName', 'registrationNumber', 'taxNumber', 'incorporationDate', 'companyType', 'industry', 'natureOfBusiness', 'annualRevenue'];
+                      const contactKeys = ['primaryContactName', 'companyEmail', 'primaryPhone', 'city', 'state', 'country', 'businessAddress'];
+                      const complianceKeys = ['hasAmlPolicy', 'hasComplianceOfficer', 'complianceOfficerName', 'conductsCdd', 'employeesTrained'];
+                      
+                      const groups = [
+                        { title: 'Entity Details', keys: entityKeys, icon: ShieldCheck },
+                        { title: 'Contact Information', keys: contactKeys, icon: UserCheck },
+                        { title: 'Compliance & AML', keys: complianceKeys, icon: AlertTriangle },
+                      ];
 
-                {/* Rejection reason if rejected */}
-                {selected.rejectionReason && (
-                  <div className="p-4 bg-red-50 rounded-xl border border-red-100">
-                    <p className="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-1">Rejection Reason</p>
-                    <p className="text-sm text-red-700">{selected.rejectionReason}</p>
-                  </div>
-                )}
+                      const mappedGroups = groups.map(g => ({ ...g, data: Object.entries(payload).filter(([k]) => g.keys.includes(k)) })).filter(g => g.data.length > 0);
+                      const otherData = Object.entries(payload).filter(([k]) => !entityKeys.includes(k) && !contactKeys.includes(k) && !complianceKeys.includes(k));
 
-                {/* Review form — only for non-final statuses */}
-                {(selected.status === 'PENDING' || selected.status === 'UNDER_REVIEW') && (
-                  <form onSubmit={handleReview} className="space-y-4 border-t border-outline-variant/20 pt-6">
-                    <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Update Status</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        { val: 'UNDER_REVIEW', label: 'Mark Under Review', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-                        ...(role === 'ceo' ? [{ val: 'APPROVED', label: 'Approve', color: 'bg-green-50 text-green-700 border-green-200' }] : []),
-                        { val: 'REJECTED', label: 'Reject', color: 'bg-red-50 text-red-700 border-red-200' },
-                      ].map(opt => (
-                        <button
-                          key={opt.val}
-                          type="button"
-                          onClick={() => setReviewForm(f => ({ ...f, status: opt.val }))}
-                          className={cn(
-                            'py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all',
-                            reviewForm.status === opt.val ? opt.color + ' ring-2 ring-offset-1 ring-current' : 'bg-surface-container text-secondary border-outline-variant/30',
+                      return (
+                        <div className="space-y-4">
+                          {mappedGroups.map((g, i) => (
+                            <div key={i} className="bg-surface-container-low rounded-xl p-5 border border-outline-variant/30">
+                              <h5 className="flex items-center gap-2 text-[10px] font-bold text-secondary uppercase tracking-widest mb-4 pb-3 border-b border-outline-variant/30">
+                                <g.icon className="w-4 h-4 text-primary" /> {g.title}
+                              </h5>
+                              <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                                {g.data.map(([k, v]) => (
+                                  <div key={k}>
+                                    <p className="text-[9px] font-bold text-secondary uppercase tracking-wider mb-1">{k.replace(/([A-Z])/g, ' $1').trim()}</p>
+                                    <p className="text-sm font-medium text-primary">{String(v)}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                          {otherData.length > 0 && (
+                            <div className="bg-surface-container-low rounded-xl p-5 border border-outline-variant/30">
+                              <h5 className="flex items-center gap-2 text-[10px] font-bold text-secondary uppercase tracking-widest mb-4 pb-3 border-b border-outline-variant/30">
+                                <FileText className="w-4 h-4 text-primary" /> Additional Data
+                              </h5>
+                              <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                                {otherData.map(([k, v]) => (
+                                  <div key={k}>
+                                    <p className="text-[9px] font-bold text-secondary uppercase tracking-wider mb-1">{k.replace(/([A-Z])/g, ' $1').trim()}</p>
+                                    <p className="text-sm font-medium text-primary truncate" title={String(v)}>{String(v)}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           )}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Rejection reason if rejected */}
+                  {selected.rejectionReason && (
+                    <div className="p-5 bg-red-50 rounded-xl border border-red-200 shadow-sm">
+                      <p className="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4" /> Rejection Reason
+                      </p>
+                      <p className="text-sm text-red-800 font-medium">{selected.rejectionReason}</p>
                     </div>
-                    {reviewForm.status === 'REJECTED' && (
-                      <div>
-                        <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Rejection Reason *</label>
-                        <textarea
-                          required
-                          value={reviewForm.rejectionReason}
-                          onChange={e => setReviewForm(f => ({ ...f, rejectionReason: e.target.value }))}
-                          rows={3}
-                          className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20 resize-none"
-                          placeholder="Explain the reason for rejection…"
-                        />
+                  )}
+
+                  {/* Review form */}
+                  {(selected.status === 'PENDING' || selected.status === 'UNDER_REVIEW') && (
+                    <form onSubmit={handleReview} className="p-6 bg-surface-container-low rounded-2xl border border-outline-variant/30 space-y-5">
+                      <h4 className="text-[12px] font-bold text-primary uppercase tracking-[0.2em]">Update Decision</h4>
+                      <div className="grid grid-cols-3 gap-3">
+                        {[
+                          { val: 'UNDER_REVIEW', label: 'Reviewing', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+                          ...(role === 'ceo' ? [{ val: 'APPROVED', label: 'Approve', color: 'bg-green-50 text-green-700 border-green-200' }] : []),
+                          { val: 'REJECTED', label: 'Reject', color: 'bg-red-50 text-red-700 border-red-200' },
+                        ].map(opt => (
+                          <button
+                            key={opt.val}
+                            type="button"
+                            onClick={() => setReviewForm(f => ({ ...f, status: opt.val }))}
+                            className={cn(
+                              'py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all',
+                              reviewForm.status === opt.val ? opt.color + ' ring-2 ring-offset-2 ring-current shadow-sm' : 'bg-white text-secondary border-outline-variant/30 hover:bg-surface-container',
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
                       </div>
-                    )}
-                    <button
-                      type="submit"
-                      disabled={!reviewForm.status || submitting}
-                      className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest disabled:opacity-50"
-                    >
-                      {submitting ? 'Updating…' : 'Submit Decision'}
-                    </button>
-                  </form>
-                )}
+                      <AnimatePresence>
+                        {reviewForm.status === 'REJECTED' && (
+                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                            <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest mt-2">Reason for Rejection *</label>
+                            <textarea
+                              required
+                              value={reviewForm.rejectionReason}
+                              onChange={e => setReviewForm(f => ({ ...f, rejectionReason: e.target.value }))}
+                              rows={3}
+                              className="w-full bg-white border border-red-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-red-200 resize-none shadow-sm"
+                              placeholder="Explain what is missing or invalid…"
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                      <button
+                        type="submit"
+                        disabled={!reviewForm.status || submitting}
+                        className="w-full py-3.5 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors shadow-md"
+                      >
+                        {submitting ? 'Updating…' : 'Submit Decision'}
+                      </button>
+                    </form>
+                  )}
+                </div>
+
+                {/* Right Side: Document Viewer */}
+                <div className="flex-1 bg-surface-container-low flex flex-col min-w-0">
+                  {selected.documents?.length > 0 ? (
+                    <>
+                      {/* Document Tabs */}
+                      <div className="flex overflow-x-auto p-4 gap-2 bg-white border-b border-outline-variant/20 shrink-0">
+                        {selected.documents.map((doc: any) => (
+                          <button
+                            key={doc.id}
+                            onClick={() => setActiveDocument(doc)}
+                            className={cn(
+                              'px-4 py-2.5 flex items-center gap-2 rounded-xl border text-[11px] font-bold uppercase tracking-widest transition-all whitespace-nowrap',
+                              activeDocument?.id === doc.id
+                                ? 'bg-primary text-white border-primary shadow-sm'
+                                : 'bg-surface-container-low text-secondary border-outline-variant/30 hover:bg-surface-container hover:text-primary'
+                            )}
+                          >
+                            <FileSearch className="w-4 h-4" />
+                            {doc.documentType}
+                          </button>
+                        ))}
+                      </div>
+                      
+                      {/* Inline Viewer */}
+                      <div className="flex-1 p-6 flex flex-col items-center justify-center relative overflow-hidden bg-surface-container-low">
+                        {activeDocument ? (
+                          <div className="w-full h-full bg-white rounded-2xl border border-outline-variant/30 shadow-sm overflow-hidden flex flex-col">
+                            <div className="p-4 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low shrink-0">
+                              <p className="text-xs font-bold text-primary truncate max-w-[70%]">{activeDocument.fileName}</p>
+                              <a href={activeDocument.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-[10px] font-bold text-primary bg-primary-fixed px-3 py-1.5 rounded-lg hover:bg-primary-fixed/80 transition-colors uppercase tracking-widest">
+                                <Download className="w-3 h-3" /> Download
+                              </a>
+                            </div>
+                            <div className="flex-1 overflow-auto bg-slate-50 flex items-center justify-center p-4">
+                              {/* Simple check if image, otherwise fallback to link/iframe */}
+                              {activeDocument.fileUrl.match(/\.(jpeg|jpg|gif|png|webp|svg|blob)$/i) || activeDocument.fileUrl.startsWith('blob:') ? (
+                                <img src={activeDocument.fileUrl} alt={activeDocument.documentType} className="max-w-full max-h-full object-contain rounded shadow-sm border border-outline-variant/20" />
+                              ) : activeDocument.fileUrl.match(/\.(pdf)$/i) ? (
+                                <iframe src={activeDocument.fileUrl} className="w-full h-full rounded border-none" title={activeDocument.fileName} />
+                              ) : (
+                                <div className="text-center space-y-4">
+                                  <FileText className="w-16 h-16 text-outline-variant mx-auto" />
+                                  <p className="text-sm font-medium text-secondary">Preview not available for this file type.</p>
+                                  <a href={activeDocument.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-block px-4 py-2 bg-primary text-white text-xs font-bold uppercase tracking-widest rounded-lg">
+                                    Open File
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center text-secondary">
+                            <FileSearch className="w-16 h-16 opacity-20 mx-auto mb-4" />
+                            <p className="text-sm font-medium">Select a document from the top bar to preview.</p>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-surface-container-low">
+                      <AlertTriangle className="w-12 h-12 text-yellow-500 mb-4 opacity-50" />
+                      <p className="text-sm font-bold text-primary">No Documents Uploaded</p>
+                      <p className="text-xs text-secondary mt-1 max-w-[200px]">This applicant did not provide any supporting files.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           </div>

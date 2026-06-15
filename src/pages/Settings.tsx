@@ -76,9 +76,9 @@ export default function Settings() {
            <div className="mt-12 p-8 bg-surface-container rounded-3xl border border-outline-variant/10">
               <div className="flex items-center gap-4 mb-4">
                 <AppWindow className="w-5 h-5 text-primary-container" />
-                <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">ENAKO OS V4.2.0</span>
+                <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">ENAKO OS V1.0.0</span>
               </div>
-              <p className="text-[10px] font-bold text-secondary uppercase tracking-widest leading-relaxed">Enterprise Edition • Licensed to Enako Global Ltd.</p>
+              <p className="text-[10px] font-bold text-secondary uppercase tracking-widest leading-relaxed">Enterprise Edition • Licensed to Enako Fintech Ltd.</p>
               <button 
                 onClick={handleLogout}
                 className="mt-8 text-[11px] font-bold text-error uppercase tracking-widest flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"

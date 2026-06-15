@@ -59,7 +59,7 @@ export default function Login() {
     <div className="flex min-h-screen w-full font-sans">
 
       {/* ── Left Panel: Visual & Brand ── */}
-      <section className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#000613] to-[#001f3f] relative overflow-hidden items-center justify-center p-8">
+      <section className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#0A0F2C] to-[#1B2A4A] relative overflow-hidden items-center justify-center p-8">
         <div className="absolute inset-0 opacity-20 pointer-events-none">
           <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-[#6f88ad] blur-[120px]" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#afc8f0] blur-[100px]" />
