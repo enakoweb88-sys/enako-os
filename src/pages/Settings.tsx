@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { 
   User, 
   Lock, 
@@ -25,9 +27,44 @@ export default function Settings() {
   const userName = user?.fullName ?? 'Administrator';
   const userEmail = user?.email ?? '';
 
+  const [activeTab, setActiveTab] = useState('Profile Account');
+  const [toggles, setToggles] = useState({
+    analytics: true,
+    mfa: true,
+    ai: false,
+  });
+
   const handleLogout = async () => {
     await logout();
     navigate('/select-role');
+  };
+
+  const handleToggle = (key: keyof typeof toggles, title: string) => {
+    setToggles((prev) => {
+      const newState = !prev[key];
+      if (newState) {
+        toast.success(`${title} enabled`);
+      } else {
+        toast.info(`${title} disabled`);
+      }
+      return { ...prev, [key]: newState };
+    });
+  };
+
+  const handleSave = () => {
+    toast.promise(new Promise((resolve) => setTimeout(resolve, 1500)), {
+      loading: 'Saving system profile...',
+      success: 'System profile updated successfully',
+      error: 'Failed to update system profile',
+    });
+  };
+
+  const handleDiscard = () => {
+    toast.info('Changes discarded');
+  };
+
+  const handleUpdateIdentity = () => {
+    toast.info('Identity update request initiated. Please check your email.');
   };
 
   if (role !== 'ceo' && role !== 'admin') {
@@ -39,6 +76,22 @@ export default function Settings() {
       </div>
     );
   }
+
+  const tabs = [
+    { name: 'Profile Account', icon: User },
+    { name: 'Security & Auth', icon: Shield },
+    { name: 'Notifications', icon: Bell },
+    { name: 'Subscription', icon: CreditCard },
+    { name: 'Data & Privacy', icon: Database },
+    { name: 'Integrations', icon: Cloud },
+  ];
+
+  const privacyToggles = [
+    { key: 'analytics' as const, title: 'Enable Analytics Tracking', desc: 'Allow Enako Labs to collect anonymized performance data to improve OS speed.' },
+    { key: 'mfa' as const, title: 'Two-Factor Authentication', desc: 'Require a biometric scan or hardware key for all transaction approvals.' },
+    { key: 'ai' as const, title: 'AI Workspace Optimization', desc: 'Automatically organize your dashboard based on your current deep work state.' },
+  ];
+
   return (
     <div className="max-w-5xl mx-auto space-y-12">
       <div>
@@ -49,26 +102,20 @@ export default function Settings() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
         <aside className="lg:col-span-4 h-fit sticky top-8">
            <nav className="space-y-2">
-             {[
-               { name: 'Profile Account', icon: User, active: true },
-               { name: 'Security & Auth', icon: Shield },
-               { name: 'Notifications', icon: Bell },
-               { name: 'Subscription', icon: CreditCard },
-               { name: 'Data & Privacy', icon: Database },
-               { name: 'Integrations', icon: Cloud },
-             ].map((item) => (
+             {tabs.map((item) => (
                <button 
                  key={item.name}
+                 onClick={() => setActiveTab(item.name)}
                  className={cn(
                    "w-full flex items-center justify-between px-6 py-4 rounded-2xl text-[11px] font-bold uppercase tracking-widest transition-all group",
-                   item.active ? "bg-primary text-white shadow-xl" : "text-secondary hover:bg-surface-container"
+                   activeTab === item.name ? "bg-primary text-white shadow-xl" : "text-secondary hover:bg-surface-container"
                  )}
                >
                  <div className="flex items-center gap-4">
                    <item.icon className="w-5 h-5" />
                    <span>{item.name}</span>
                  </div>
-                 {!item.active && <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all" />}
+                 {activeTab !== item.name && <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all" />}
                </button>
              ))}
            </nav>
@@ -108,7 +155,12 @@ export default function Settings() {
                     <div>
                        <p className="text-xl font-bold text-primary">{userName}</p>
                        <p className="text-[11px] font-bold text-secondary uppercase tracking-widest mt-1">Global {role} Node</p>
-                       <button className="mt-4 px-5 py-2 border border-outline-variant/30 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container transition-all">Update Identity</button>
+                       <button 
+                         onClick={handleUpdateIdentity}
+                         className="mt-4 px-5 py-2 border border-outline-variant/30 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container transition-all cursor-pointer"
+                       >
+                         Update Identity
+                       </button>
                     </div>
                  </div>
 
@@ -134,33 +186,45 @@ export default function Settings() {
                  Privacy & Platform OS
               </h3>
               <div className="space-y-6">
-                 {[
-                   { title: 'Enable Analytics Tracking', desc: 'Allow Enako Labs to collect anonymized performance data to improve OS speed.', active: true },
-                   { title: 'Two-Factor Authentication', desc: 'Require a biometric scan or hardware key for all transaction approvals.', active: true },
-                   { title: 'AI Workspace Optimization', desc: 'Automatically organize your dashboard based on your current deep work state.', active: false },
-                 ].map((toggle, i) => (
-                    <div key={i} className="flex items-center justify-between p-6 bg-surface-container-low/50 rounded-3xl border border-outline-variant/5">
-                       <div className="max-w-md">
-                          <p className="text-sm font-bold text-primary">{toggle.title}</p>
-                          <p className="text-xs text-secondary mt-1">{toggle.desc}</p>
-                       </div>
-                       <button className={cn(
-                         "w-12 h-6 rounded-full relative transition-all duration-300",
-                         toggle.active ? "bg-primary" : "bg-outline-variant"
-                       )}>
-                          <div className={cn(
-                            "absolute top-1 size-4 bg-white rounded-full transition-all duration-300 shadow-sm",
-                            toggle.active ? "left-7" : "left-1"
-                          )}></div>
-                       </button>
-                    </div>
-                 ))}
+                 {privacyToggles.map((toggle) => {
+                    const isActive = toggles[toggle.key];
+                    return (
+                      <div key={toggle.key} className="flex items-center justify-between p-6 bg-surface-container-low/50 rounded-3xl border border-outline-variant/5">
+                         <div className="max-w-md">
+                            <p className="text-sm font-bold text-primary">{toggle.title}</p>
+                            <p className="text-xs text-secondary mt-1">{toggle.desc}</p>
+                         </div>
+                         <button 
+                           onClick={() => handleToggle(toggle.key, toggle.title)}
+                           className={cn(
+                             "w-12 h-6 rounded-full relative transition-all duration-300 cursor-pointer",
+                             isActive ? "bg-primary" : "bg-outline-variant"
+                           )}
+                         >
+                            <div className={cn(
+                              "absolute top-1 size-4 bg-white rounded-full transition-all duration-300 shadow-sm",
+                              isActive ? "left-7" : "left-1"
+                            )}></div>
+                         </button>
+                      </div>
+                    );
+                 })}
               </div>
            </section>
 
            <div className="flex justify-end gap-4">
-              <button className="px-10 py-4 bg-surface-container-high text-secondary rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-surface-container transition-all">Discard Changes</button>
-              <button className="px-10 py-4 bg-primary text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest shadow-xl hover:shadow-2xl transition-all">Save System Profile</button>
+              <button 
+                onClick={handleDiscard}
+                className="px-10 py-4 bg-surface-container-high text-secondary rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-surface-container transition-all cursor-pointer"
+              >
+                Discard Changes
+              </button>
+              <button 
+                onClick={handleSave}
+                className="px-10 py-4 bg-primary text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest shadow-xl hover:shadow-2xl transition-all cursor-pointer"
+              >
+                Save System Profile
+              </button>
            </div>
         </main>
       </div>

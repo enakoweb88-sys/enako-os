@@ -1,4 +1,5 @@
 import { Outlet, NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEffect, useState, useRef } from 'react';
 import {
@@ -87,6 +88,7 @@ export default function DashboardLayout() {
 
   return (
     <div className="min-h-screen bg-surface flex">
+      <Toaster position="top-center" richColors />
       {/* ── Sidebar ── */}
       <aside className={cn("fixed left-0 top-0 bottom-0 bg-surface-container-low border-r border-outline-variant/30 z-50 flex flex-col transition-all duration-300", sidebarOpen ? "w-64" : "w-20")}>
         <div className="px-6 py-8 flex items-center justify-between">
