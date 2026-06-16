@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, TrendingUp, Search, FileText, ClipboardCheck, XCircle, X, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';

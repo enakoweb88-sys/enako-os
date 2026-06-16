@@ -1,4 +1,4 @@
-import { LifeBuoy, Book, MessageCircle, FileText } from 'lucide-react';
+import React, { LifeBuoy, Book, MessageCircle, FileText } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export default function Help() {

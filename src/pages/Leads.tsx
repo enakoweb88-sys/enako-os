@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Phone, Mail, UserCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';

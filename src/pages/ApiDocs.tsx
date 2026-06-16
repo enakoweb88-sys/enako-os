@@ -1,4 +1,4 @@
-import { FileJson, ArrowUpRight } from 'lucide-react';
+import React, { FileJson, ArrowUpRight } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export default function ApiDocs() {

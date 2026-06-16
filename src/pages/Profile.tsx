@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, 
   Mail, 
@@ -16,11 +16,15 @@ import {
   LogOut,
   UserCheck,
   Zap,
-  Target
+  Target,
+  X,
+  Lock,
+  PauseCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { toast } from 'sonner';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -29,9 +33,26 @@ export default function Profile() {
   const userName = user?.fullName ?? 'Executive';
   const userEmail = user?.email ?? '';
 
+  const [showCredModal, setShowCredModal] = useState(false);
+  const [showCertModal, setShowCertModal] = useState(false);
+  const [showPauseModal, setShowPauseModal] = useState(false);
+  const [pauseTimer, setPauseTimer] = useState(0);
+
   const handleLogout = async () => {
     await logout();
     navigate('/select-role');
+  };
+
+  const handlePause = () => {
+    setShowPauseModal(false);
+    toast.success('Operational flow paused.');
+    setPauseTimer(Date.now());
+  };
+
+  const handleCredChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    setShowCredModal(false);
+    toast.success('Credentials change request submitted to IT.');
   };
 
   const getRoleSpecificData = () => {
@@ -139,7 +160,7 @@ export default function Profile() {
           <section className="bg-white border border-outline-variant/30 p-10 rounded-[2.5rem] shadow-sm">
              <div className="flex justify-between items-center mb-8">
                 <h3 className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Contact & Identity</h3>
-                <button className="text-[10px] font-bold text-primary hover:underline uppercase tracking-widest">Request Credentials Change</button>
+                <button onClick={() => setShowCredModal(true)} className="text-[10px] font-bold text-primary hover:underline uppercase tracking-widest">Request Credentials Change</button>
              </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-6">
@@ -200,7 +221,7 @@ export default function Profile() {
                 </div>
               ))}
             </div>
-            <button className="w-full mt-8 py-4 border border-outline-variant/20 rounded-2xl text-[10px] font-bold text-secondary uppercase tracking-widest hover:border-primary/40 hover:text-primary transition-all">
+            <button onClick={() => setShowCertModal(true)} className="w-full mt-8 py-4 border border-outline-variant/20 rounded-2xl text-[10px] font-bold text-secondary uppercase tracking-widest hover:border-primary/40 hover:text-primary transition-all">
               View All Certifications
             </button>
           </section>
@@ -215,15 +236,95 @@ export default function Profile() {
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-primary-fixed/80">Work Session</p>
-                  <p className="text-lg font-mono font-bold mt-1">00:00:00</p>
+                  <p className="text-lg font-mono font-bold mt-1">
+                    {pauseTimer ? 'PAUSED' : '00:00:00'}
+                  </p>
                 </div>
-                <button className="w-full py-4 bg-white text-primary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:shadow-2xl hover:scale-[1.02] active:scale-95 transition-all">
-                  Pause Operational Flow
+                <button onClick={() => setShowPauseModal(true)} className="w-full py-4 bg-white text-primary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:shadow-2xl hover:scale-[1.02] active:scale-95 transition-all">
+                  {pauseTimer ? 'Resume Operational Flow' : 'Pause Operational Flow'}
                 </button>
              </div>
           </section>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showCredModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCredModal(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30">
+              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
+                <h3 className="text-lg font-bold text-primary flex items-center gap-2"><Lock className="w-5 h-5 text-secondary" /> Request Credentials Change</h3>
+                <button onClick={() => setShowCredModal(false)}><X className="w-5 h-5 text-secondary" /></button>
+              </div>
+              <form onSubmit={handleCredChange} className="p-6 space-y-4">
+                <p className="text-sm text-secondary mb-4">Please detail the reason for requesting a credentials reset. IT will review this request within 24 hours.</p>
+                <div>
+                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Reason for Reset</label>
+                  <select className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
+                    <option>Suspected Compromise</option>
+                    <option>Routine Security Rotation</option>
+                    <option>Lost 2FA Device</option>
+                    <option>Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Additional Notes</label>
+                  <textarea rows={3} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20 resize-none" placeholder="Provide context..." />
+                </div>
+                <button type="submit" className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4">
+                  Submit Request to IT
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
+        {showCertModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCertModal(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 flex flex-col max-h-[80vh]">
+              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
+                <h3 className="text-lg font-bold text-primary flex items-center gap-2"><Award className="w-5 h-5 text-secondary" /> Certifications & Badges</h3>
+                <button onClick={() => setShowCertModal(false)}><X className="w-5 h-5 text-secondary" /></button>
+              </div>
+              <div className="p-6 overflow-y-auto space-y-4">
+                {data.badges.map((badge: string, i: number) => (
+                  <div key={i} className="flex items-center gap-4 p-4 border border-outline-variant/30 rounded-2xl">
+                    <div className="size-12 rounded-xl bg-primary text-white flex items-center justify-center shadow-md shrink-0">
+                      <Award className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-primary">{badge}</h4>
+                      <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mt-1">Issued {new Date().getFullYear()}</p>
+                    </div>
+                  </div>
+                ))}
+                {data.badges.length === 0 && (
+                  <p className="text-center text-secondary text-sm">No certifications awarded yet.</p>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showPauseModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPauseModal(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 p-8 text-center">
+              <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <PauseCircle className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-bold text-primary mb-2">Pause Work Session?</h3>
+              <p className="text-sm text-secondary mb-8">This will pause your active operational timer and mark your status as 'Away' across the network.</p>
+              <div className="flex gap-4">
+                <button onClick={() => setShowPauseModal(false)} className="flex-1 py-3 bg-surface border border-outline-variant/30 text-secondary rounded-xl text-[11px] font-bold uppercase tracking-widest hover:bg-surface-container transition-all">Cancel</button>
+                <button onClick={handlePause} className="flex-1 py-3 bg-yellow-500 text-white rounded-xl text-[11px] font-bold uppercase tracking-widest hover:bg-yellow-600 transition-all">Pause Flow</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
