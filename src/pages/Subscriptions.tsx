@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, CreditCard, Calendar, Server, Search, DollarSign, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '../lib/utils';
 
 type Subscription = {
   id: string;
