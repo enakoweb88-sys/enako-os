@@ -14,6 +14,7 @@ import Transactions from './pages/Transactions';
 import KYC from './pages/KYC';
 import Goals from './pages/Goals';
 import Reports from './pages/Reports';
+import Subscriptions from './pages/Subscriptions';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import Tasks from './pages/Tasks';
@@ -74,6 +75,7 @@ export default function App() {
             <Route path="meals" element={<StaffMeals />} />
             <Route path="announcements" element={<Announcements />} />
             <Route path="reports" element={<Reports />} />
+            <Route path="subscriptions" element={<Subscriptions />} />
             <Route path="settings" element={<Settings />} />
             <Route path="profile" element={<Profile />} />
             <Route path="tasks" element={<Tasks />} />

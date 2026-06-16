@@ -25,6 +25,7 @@ const navItems = [
   { icon: UtensilsCrossed, label: 'Staff Meals',    path: '/app/meals', roles: ['ceo', 'manager', 'admin', 'employee'] },
   { icon: Bell,            label: 'Announcements',  path: '/app/announcements', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee'] },
   { icon: BarChart3,       label: 'Reports',        path: '/app/reports', roles: ['ceo', 'manager', 'finance', 'admin'] },
+  { icon: CreditCard,      label: 'Subscriptions',  path: '/app/subscriptions', roles: ['ceo', 'manager', 'finance', 'admin', 'employee'] },
   { icon: User,            label: 'Profile',        path: '/app/profile', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee'] },
 ];
 
