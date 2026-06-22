@@ -7,10 +7,12 @@ import { BDOfficerDashboard } from './dashboards/BDOfficerDashboard';
 import { DigitalDashboard } from './dashboards/DigitalDashboard';
 import { AdminDashboard } from './dashboards/AdminDashboard';
 import { SupportDashboard } from './dashboards/SupportDashboard';
+import { HeadDashboard } from './dashboards/HeadDashboard';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const role = user?.role?.toLowerCase() ?? 'employee';
+  const isHead = (user?.ledDepartments?.length ?? 0) > 0;
 
   const getDashboardTitle = () => {
     switch(role) {
@@ -45,7 +47,8 @@ export default function Dashboard() {
       {role === 'digital' && <DigitalDashboard />}
       {role === 'admin' && <AdminDashboard />}
       {role === 'support' && <SupportDashboard />}
-      {role === 'employee' && <EmployeeDashboard />}
+      {role === 'employee' && isHead && <HeadDashboard />}
+      {role === 'employee' && !isHead && <EmployeeDashboard />}
       {/* Fallback if role is unmapped but exists */}
       {!['ceo', 'manager', 'finance', 'bd', 'digital', 'admin', 'support', 'employee'].includes(role) && <EmployeeDashboard />}
     </div>

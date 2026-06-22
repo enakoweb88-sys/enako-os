@@ -18,4 +18,6 @@ export const employeesApi = {
     apiRequest<any>(`/employees/${id}/activate`, { method: 'PATCH' }),
   deleteEmployee: (id: string) =>
     apiRequest<any>(`/employees/${id}`, { method: 'DELETE' }),
+  resetEmployeePassword: (id: string, password: string) =>
+    apiRequest<any>(`/employees/${id}/reset-password`, { method: 'PATCH', body: JSON.stringify({ password }) }),
 };

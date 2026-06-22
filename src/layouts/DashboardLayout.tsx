@@ -13,32 +13,32 @@ import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard',      path: '/app/dashboard', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee'] },
-  { icon: Users,           label: 'Employees',      path: '/app/employees', roles: ['ceo', 'manager', 'admin'] },
-  { icon: CreditCard,      label: 'Transactions',   path: '/app/transactions', roles: ['ceo', 'manager', 'finance'] },
-  { icon: Wallet,          label: 'Expenses',       path: '/app/expenses', roles: ['ceo', 'manager', 'finance', 'employee'] },
-  { icon: ShieldCheck,     label: 'KYC Compliance', path: '/app/kyc', roles: ['ceo', 'manager', 'bd', 'support'] },
-  { icon: Target,          label: 'Goals & KPIs',   path: '/app/goals', roles: ['ceo', 'manager', 'bd', 'digital'] },
-  { icon: Megaphone,       label: 'Marketing',      path: '/app/marketing', roles: ['ceo', 'digital', 'bd'] },
-  { icon: MessageSquare,   label: 'Communications', path: '/app/chat', roles: ['ceo', 'manager', 'support', 'bd', 'digital', 'employee'] },
-  { icon: Headphones,      label: 'Support Tickets',path: '/app/tickets', roles: ['ceo', 'support'] },
-  { icon: UtensilsCrossed, label: 'Staff Meals',    path: '/app/meals', roles: ['ceo', 'manager', 'admin', 'employee'] },
-  { icon: Bell,            label: 'Announcements',  path: '/app/announcements', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee'] },
-  { icon: BarChart3,       label: 'Reports',        path: '/app/reports', roles: ['ceo', 'manager', 'finance', 'admin'] },
-  { icon: CreditCard,      label: 'Subscriptions',  path: '/app/subscriptions', roles: ['ceo', 'manager', 'finance', 'admin', 'employee'] },
-  { icon: User,            label: 'Profile',        path: '/app/profile', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee'] },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/app/dashboard', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee'] },
+  { icon: Users, label: 'Employees', path: '/app/employees', roles: ['ceo', 'manager', 'admin'] },
+  { icon: CreditCard, label: 'Transactions', path: '/app/transactions', roles: ['ceo', 'manager', 'finance'] },
+  { icon: Wallet, label: 'Expenses', path: '/app/expenses', roles: ['ceo', 'manager', 'finance', 'employee'] },
+  { icon: ShieldCheck, label: 'KYC Compliance', path: '/app/kyc', roles: ['ceo', 'manager', 'bd', 'support'] },
+  { icon: Target, label: 'Goals & KPIs', path: '/app/goals', roles: ['ceo', 'manager', 'bd', 'digital'] },
+  { icon: Megaphone, label: 'Marketing', path: '/app/marketing', roles: ['ceo', 'digital', 'bd'] },
+  { icon: MessageSquare, label: 'Communications', path: '/app/chat', roles: ['ceo', 'manager', 'support', 'bd', 'digital', 'employee'] },
+  { icon: Headphones, label: 'Support Tickets', path: '/app/tickets', roles: ['ceo', 'support'] },
+  { icon: UtensilsCrossed, label: 'Staff Meals', path: '/app/meals', roles: ['ceo', 'manager', 'admin', 'employee'] },
+  { icon: Bell, label: 'Announcements', path: '/app/announcements', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee'] },
+  { icon: BarChart3, label: 'Reports', path: '/app/reports', roles: ['ceo', 'manager', 'finance', 'admin'] },
+  { icon: CreditCard, label: 'Subscriptions', path: '/app/subscriptions', roles: ['ceo', 'manager', 'finance', 'admin', 'employee'] },
+  { icon: User, label: 'Profile', path: '/app/profile', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee'] },
 ];
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
-  
+
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotif, setShowNotif] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -60,7 +60,7 @@ export default function DashboardLayout() {
         setNotifications(notifs);
         setUnreadCount(notifs.filter((n: any) => !n.readAt).length);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [location.pathname]);
 
   const handleLogout = async () => {
@@ -184,11 +184,11 @@ export default function DashboardLayout() {
                 type="text"
                 value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); setShowSearch(e.target.value.length > 0); }}
-                onFocus={() => { if(searchQuery.length > 0) setShowSearch(true); }}
+                onFocus={() => { if (searchQuery.length > 0) setShowSearch(true); }}
                 placeholder="Search enterprise-wide data…"
                 className="w-full pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant/30 rounded-lg focus:ring-1 focus:ring-on-primary-container focus:border-on-primary-container text-sm transition-all outline-none"
               />
-              
+
               {/* Global Search Dropdown */}
               <AnimatePresence>
                 {showSearch && (
@@ -235,7 +235,7 @@ export default function DashboardLayout() {
               <button onClick={() => navigate('/app/help')} className="relative text-secondary hover:text-primary transition-colors">
                 <HelpCircle className="w-6 h-6" />
               </button>
-              
+
               {/* Notification Dropdown */}
               <AnimatePresence>
                 {showNotif && (
@@ -263,9 +263,7 @@ export default function DashboardLayout() {
                 )}
               </AnimatePresence>
 
-              <button className="text-secondary hover:text-primary transition-colors">
-                <HelpCircle className="w-6 h-6" />
-              </button>
+
             </div>
             <div className="flex flex-col items-end">
               <span className="text-[11px] font-bold text-primary uppercase tracking-wider">ENAKO OS CORE</span>
@@ -283,7 +281,7 @@ export default function DashboardLayout() {
 
         {/* Footer */}
         <footer className="bg-surface-container-low border-t border-outline-variant/30 px-8 py-4 flex justify-between items-center mt-auto">
-          <p className="text-[11px] text-secondary">© 2025 ENAKO OS. Secure Enterprise Operations.</p>
+          <p className="text-[11px] text-secondary">©2026 ENAKO OS. Secure Enterprise Operations.</p>
           <div className="flex gap-6">
             <Link to="/app/docs" className="text-[11px] font-bold text-secondary hover:text-primary transition-colors uppercase tracking-wider">API Docs</Link>
             <Link to="/app/kyc" className="text-[11px] font-bold text-secondary hover:text-primary transition-colors uppercase tracking-wider">Compliance</Link>

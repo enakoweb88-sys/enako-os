@@ -6,6 +6,7 @@ export type AuthUser = {
   fullName: string;
   role: RoleName;
   department?: string | null;
+  ledDepartments?: string[];
 };
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL as string) ?? 'http://localhost:5000/api/v1';

@@ -35,7 +35,7 @@ export default function LandingLayout() {
       {/* ── Footer ── */}
       <footer className="border-t border-gray-100 py-6">
         <p className="text-center text-sm text-gray-400 flex items-center justify-center gap-2">
-          © 2025 ENAKO. All rights reserved.
+          ©2026 ENAKO. All rights reserved.
           <span className="text-gray-300">·</span>
           <ShieldCheck className="w-4 h-4 text-gray-400 inline" />
           Internal Enterprise System
