@@ -9,7 +9,13 @@ export type AuthUser = {
   ledDepartments?: string[];
 };
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL as string) ?? 'http://localhost:5000/api/v1';
+const envApiUrl = import.meta.env.VITE_API_URL as string | undefined;
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_BASE_URL = (envApiUrl && envApiUrl !== 'undefined')
+  ? envApiUrl
+  : (isLocal 
+      ? 'http://localhost:5000/api/v1' 
+      : 'https://backend-production-e10c8.up.railway.app/api/v1');
 
 export function getAccessToken() {
   return localStorage.getItem('enako_access_token');
