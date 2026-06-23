@@ -14,6 +14,7 @@ export default function KYC() {
 
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selected, setSelected] = useState<any>(null);
@@ -26,7 +27,11 @@ export default function KYC() {
     try {
       const res = await api.kyc({ status: statusFilter || undefined, search: search || undefined, limit: 50 });
       setItems(res);
-    } catch (e: any) { console.error(e); }
+      setErrorMsg('');
+    } catch (e: any) { 
+      console.error(e); 
+      setErrorMsg(e.message || String(e));
+    }
     finally { setLoading(false); }
   }, [search, statusFilter]);
 
@@ -145,6 +150,8 @@ export default function KYC() {
             <tbody className="divide-y divide-outline-variant/10">
               {loading ? (
                 <tr><td colSpan={6} className="px-8 py-12 text-center text-sm text-secondary animate-pulse">Loading submissions…</td></tr>
+              ) : errorMsg ? (
+                <tr><td colSpan={6} className="px-8 py-12 text-center text-sm text-error bg-error/10">Error loading data: {errorMsg}</td></tr>
               ) : items.length === 0 ? (
                 <tr><td colSpan={6} className="px-8 py-12 text-center text-sm text-secondary">No verification requests found.</td></tr>
               ) : items.map(item => (
