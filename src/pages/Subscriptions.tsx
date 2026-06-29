@@ -1,73 +1,104 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, CreditCard, Calendar, Server, Search, DollarSign, X } from 'lucide-react';
+import { Plus, CreditCard, Calendar, Server, Search, DollarSign, X, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
+import { api } from '../lib/api';
+import { useAuth } from '../lib/auth';
 
 type Subscription = {
   id: string;
   name: string;
-  cost: number;
+  cost: string | number;
   cycle: 'Monthly' | 'Yearly';
   status: 'Active' | 'Paused' | 'Cancelled';
   nextBilling: string;
+  receiptUrl?: string;
 };
 
-const initialSubscriptions: Subscription[] = [
-  { id: '1', name: 'Amazon Web Services (AWS)', cost: 1250, cycle: 'Monthly', status: 'Active', nextBilling: '2026-07-01' },
-  { id: '2', name: 'Google Workspace', cost: 300, cycle: 'Monthly', status: 'Active', nextBilling: '2026-06-25' },
-  { id: '3', name: 'Slack Enterprise', cost: 4500, cycle: 'Yearly', status: 'Active', nextBilling: '2027-01-15' },
-  { id: '4', name: 'Vercel Pro', cost: 40, cycle: 'Monthly', status: 'Active', nextBilling: '2026-07-10' },
-  { id: '5', name: 'GitHub Enterprise', cost: 1200, cycle: 'Yearly', status: 'Active', nextBilling: '2026-11-20' },
-];
-
 export default function Subscriptions() {
-  const [subs, setSubs] = useState<Subscription[]>(initialSubscriptions);
+  const { user } = useAuth();
+  const role = user?.role?.toLowerCase() ?? 'employee';
+  
+  const [subs, setSubs] = useState<Subscription[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [newName, setNewName] = useState('');
   const [newCost, setNewCost] = useState('');
   const [newCycle, setNewCycle] = useState<'Monthly' | 'Yearly'>('Monthly');
+  const [newReceipt, setNewReceipt] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.subscriptions();
+      setSubs(res);
+    } catch (e: any) {
+      toast.error('Failed to load subscriptions');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   const filteredSubs = subs.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
 
   const monthlyTotal = subs.reduce((acc, curr) => {
     if (curr.status !== 'Active') return acc;
-    return acc + (curr.cycle === 'Monthly' ? curr.cost : curr.cost / 12);
+    const costNum = typeof curr.cost === 'string' ? parseFloat(curr.cost) : curr.cost;
+    return acc + (curr.cycle === 'Monthly' ? costNum : costNum / 12);
   }, 0);
 
-  const handleAdd = (e: React.FormEvent) => {
+  const activeCount = subs.filter(s => s.status === 'Active').length;
+
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim() || !newCost) {
       toast.error('Please fill in all required fields.');
       return;
     }
     
-    const newSub: Subscription = {
-      id: Math.random().toString(36).substring(7),
-      name: newName,
-      cost: parseFloat(newCost),
-      cycle: newCycle,
-      status: 'Active',
-      nextBilling: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    };
-
-    setSubs([...subs, newSub]);
-    setShowAddForm(false);
-    setNewName('');
-    setNewCost('');
-    setNewCycle('Monthly');
-    toast.success('Subscription added successfully');
+    setSubmitting(true);
+    try {
+      const nextBilling = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      await api.createSubscription({
+        name: newName,
+        cost: parseFloat(newCost),
+        cycle: newCycle,
+        nextBilling,
+        receiptUrl: newReceipt || undefined
+      });
+      
+      setShowAddForm(false);
+      setNewName('');
+      setNewCost('');
+      setNewCycle('Monthly');
+      setNewReceipt('');
+      toast.success('Subscription added successfully');
+      load();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to add subscription');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleCancel = (id: string, name: string) => {
-    setSubs(subs.map(s => s.id === id ? { ...s, status: 'Cancelled' } : s));
-    toast.info(`${name} subscription cancelled.`);
+  const handleCancel = async (id: string, name: string) => {
+    try {
+      await api.updateSubscription(id, { status: 'Cancelled' });
+      toast.info(`${name} subscription cancelled.`);
+      load();
+    } catch (e: any) {
+      toast.error('Failed to cancel subscription');
+    }
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-8 font-sans">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -99,7 +130,7 @@ export default function Subscriptions() {
           </div>
           <div>
             <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Active Services</p>
-            <p className="text-2xl font-bold text-primary mt-1">{subs.filter(s => s.status === 'Active').length}</p>
+            <p className="text-2xl font-bold text-primary mt-1">{activeCount}</p>
           </div>
         </div>
         <div className="bg-white p-6 rounded-3xl border border-outline-variant/30 shadow-sm flex items-center gap-6">
@@ -108,7 +139,7 @@ export default function Subscriptions() {
           </div>
           <div>
             <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Upcoming Renewals</p>
-            <p className="text-2xl font-bold text-primary mt-1">2</p>
+            <p className="text-2xl font-bold text-primary mt-1">{subs.filter(s => s.status === 'Active' && new Date(s.nextBilling).getTime() - Date.now() < 30 * 24 * 60 * 60 * 1000).length}</p>
           </div>
         </div>
       </div>
@@ -132,7 +163,10 @@ export default function Subscriptions() {
           </div>
         </div>
         
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto min-h-[300px]">
+          {loading ? (
+            <div className="flex justify-center items-center h-40 text-sm text-secondary animate-pulse">Loading subscriptions...</div>
+          ) : (
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-surface-container-lowest">
@@ -140,6 +174,7 @@ export default function Subscriptions() {
                 <th className="px-8 py-4 text-[10px] font-bold text-secondary uppercase tracking-widest border-b border-outline-variant/20">Cost</th>
                 <th className="px-8 py-4 text-[10px] font-bold text-secondary uppercase tracking-widest border-b border-outline-variant/20">Cycle</th>
                 <th className="px-8 py-4 text-[10px] font-bold text-secondary uppercase tracking-widest border-b border-outline-variant/20">Status</th>
+                <th className="px-8 py-4 text-[10px] font-bold text-secondary uppercase tracking-widest border-b border-outline-variant/20">Receipt</th>
                 <th className="px-8 py-4 text-[10px] font-bold text-secondary uppercase tracking-widest border-b border-outline-variant/20">Next Billing</th>
                 <th className="px-8 py-4 text-[10px] font-bold text-secondary uppercase tracking-widest border-b border-outline-variant/20 text-right">Actions</th>
               </tr>
@@ -158,7 +193,7 @@ export default function Subscriptions() {
                       <span className="font-bold text-primary text-sm">{sub.name}</span>
                     </td>
                     <td className="px-8 py-5 border-b border-outline-variant/10">
-                      <span className="font-medium text-secondary">${sub.cost.toLocaleString()}</span>
+                      <span className="font-medium text-secondary">${parseFloat(sub.cost as string).toLocaleString()}</span>
                     </td>
                     <td className="px-8 py-5 border-b border-outline-variant/10">
                       <span className="text-xs text-secondary">{sub.cycle}</span>
@@ -172,10 +207,19 @@ export default function Subscriptions() {
                       </span>
                     </td>
                     <td className="px-8 py-5 border-b border-outline-variant/10">
-                      <span className="text-sm text-secondary">{sub.nextBilling}</span>
+                      {sub.receiptUrl ? (
+                        <a href={sub.receiptUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1 text-xs">
+                          <LinkIcon className="w-3 h-3" /> View
+                        </a>
+                      ) : (
+                        <span className="text-xs text-outline">-</span>
+                      )}
+                    </td>
+                    <td className="px-8 py-5 border-b border-outline-variant/10">
+                      <span className="text-sm text-secondary">{new Date(sub.nextBilling).toLocaleDateString()}</span>
                     </td>
                     <td className="px-8 py-5 border-b border-outline-variant/10 text-right">
-                      {sub.status === 'Active' && (
+                      {(role === 'ceo' || role === 'manager') && sub.status === 'Active' && (
                         <button 
                           onClick={() => handleCancel(sub.id, sub.name)}
                           className="text-[10px] font-bold text-error uppercase hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
@@ -189,13 +233,14 @@ export default function Subscriptions() {
               </AnimatePresence>
               {filteredSubs.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-8 py-12 text-center text-secondary">
+                  <td colSpan={7} className="px-8 py-12 text-center text-secondary">
                     No subscriptions found matching your search.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+          )}
         </div>
       </div>
 
@@ -221,9 +266,10 @@ export default function Subscriptions() {
               
               <form onSubmit={handleAdd} className="space-y-6">
                 <div>
-                  <label className="block text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-2">Service Name</label>
+                  <label className="block text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-2">Service Name *</label>
                   <input 
                     type="text" 
+                    required
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                     className="w-full bg-surface-container-low border border-outline-variant/30 rounded-2xl px-5 py-3.5 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container"
@@ -234,11 +280,12 @@ export default function Subscriptions() {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-2">Cost (USD)</label>
+                    <label className="block text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-2">Cost (USD) *</label>
                     <div className="relative">
                       <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
                       <input 
                         type="number" 
+                        required
                         value={newCost}
                         onChange={(e) => setNewCost(e.target.value)}
                         className="w-full bg-surface-container-low border border-outline-variant/30 rounded-2xl pl-10 pr-4 py-3.5 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container"
@@ -261,6 +308,20 @@ export default function Subscriptions() {
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-2">Receipt URL (Optional)</label>
+                  <div className="relative">
+                    <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
+                    <input 
+                      type="url" 
+                      value={newReceipt}
+                      onChange={(e) => setNewReceipt(e.target.value)}
+                      className="w-full bg-surface-container-low border border-outline-variant/30 rounded-2xl pl-10 pr-4 py-3.5 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container"
+                      placeholder="https://..."
+                    />
+                  </div>
+                </div>
+
                 <div className="pt-4 flex justify-end gap-3">
                   <button 
                     type="button"
@@ -271,9 +332,10 @@ export default function Subscriptions() {
                   </button>
                   <button 
                     type="submit"
-                    className="px-6 py-3.5 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest shadow-xl hover:shadow-2xl transition-all"
+                    disabled={submitting}
+                    className="px-6 py-3.5 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest shadow-xl hover:shadow-2xl transition-all disabled:opacity-50"
                   >
-                    Save Subscription
+                    {submitting ? 'Saving...' : 'Save Subscription'}
                   </button>
                 </div>
               </form>

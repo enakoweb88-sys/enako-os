@@ -22,9 +22,14 @@ import { performanceApi } from './performance';
 import { dashboardApi } from './dashboard';
 import { auditLogsApi } from './auditLogs';
 
+import { subscriptionsApi } from './subscriptions';
+import { reportsApi } from './reports';
+
 export * from './core';
 
 export const api = {
+  ...subscriptionsApi,
+  ...reportsApi,
   ...authApi,
   ...analyticsApi,
   ...employeesApi,

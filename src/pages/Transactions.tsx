@@ -34,15 +34,25 @@ export default function Transactions() {
   const [txStatus, setTxStatus] = useState('All Status');
   const [txChannel, setTxChannel] = useState('All Channels');
 
+  const [dashboard, setDashboard] = useState<any>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.transactions({ search, limit: 50 });
+      const res = await api.transactions({ 
+        search, 
+        limit: 50,
+        dateRange,
+        type: txType,
+        status: txStatus,
+        channel: txChannel
+      });
       setItems(res.items);
       setTotals(res.totals);
+      setDashboard(res);
     } catch (e: any) { console.error(e); }
     finally { setLoading(false); }
-  }, [search]);
+  }, [search, dateRange, txType, txStatus, txChannel]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -73,24 +83,10 @@ export default function Transactions() {
     );
   }
 
-  // Mock data for new charts
-  const volumeData = [
-    { name: 'Mon', volume: 4500000 }, { name: 'Tue', volume: 5200000 },
-    { name: 'Wed', volume: 3800000 }, { name: 'Thu', volume: 6100000 },
-    { name: 'Fri', volume: 7500000 }, { name: 'Sat', volume: 4200000 },
-    { name: 'Sun', volume: 2100000 }
-  ];
-  const channelData = [
-    { name: 'MTN MoMo', value: 55 }, { name: 'Orange Money', value: 35 }, { name: 'Bank Transfer', value: 10 }
-  ];
+  const volumeData = dashboard?.volumeData ?? [];
+  const channelData = dashboard?.channelData ?? [];
+  const topRevenueSources = dashboard?.topRevenueSources ?? [];
   const COLORS = ['#f59e0b', '#f97316', '#3b82f6'];
-
-  const topRevenueSources = [
-    { name: 'Utility Bills', amount: 15400000, percent: 45 },
-    { name: 'Njangi Fees', amount: 8200000, percent: 25 },
-    { name: 'Transfers', amount: 5100000, percent: 15 },
-    { name: 'Other Services', amount: 4800000, percent: 15 },
-  ];
 
   return (
     <div className="space-y-8 pb-20">
@@ -119,18 +115,18 @@ export default function Transactions() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white border border-outline-variant/30 p-5 rounded-xl shadow-sm">
               <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Collections (Today)</p>
-              <p className="text-2xl font-bold font-mono text-green-600">{fmt(14500000)}</p>
-              <p className="text-xs text-secondary mt-1">1,245 transactions</p>
+              <p className="text-2xl font-bold font-mono text-green-600">{fmt(dashboard?.summary?.totalRevenue ?? 0)}</p>
+              <p className="text-xs text-secondary mt-1">Income transactions</p>
             </div>
             <div className="bg-white border border-outline-variant/30 p-5 rounded-xl shadow-sm">
               <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Disbursements (Today)</p>
-              <p className="text-2xl font-bold font-mono text-orange-600">{fmt(8200000)}</p>
-              <p className="text-xs text-secondary mt-1">84 transactions</p>
+              <p className="text-2xl font-bold font-mono text-orange-600">{fmt((dashboard?.summary?.totalVolume ?? 0) - (dashboard?.summary?.totalRevenue ?? 0))}</p>
+              <p className="text-xs text-secondary mt-1">Operational transactions</p>
             </div>
             <div className="bg-white border border-outline-variant/30 p-5 rounded-xl shadow-sm">
               <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Pending Status</p>
-              <p className="text-2xl font-bold font-mono text-yellow-600">{fmt(1500000)}</p>
-              <p className="text-xs text-secondary mt-1">42 transactions</p>
+              <p className="text-2xl font-bold font-mono text-yellow-600">{fmt(totals.find(t => t.status === 'PENDING')?._sum?.amount ?? 0)}</p>
+              <p className="text-xs text-secondary mt-1">{totals.find(t => t.status === 'PENDING')?._count ?? 0} transactions</p>
             </div>
           </div>
 
@@ -194,21 +190,21 @@ export default function Transactions() {
                 <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 flex justify-between items-center">
                   <div>
                     <p className="text-[10px] font-bold text-yellow-800 uppercase tracking-widest mb-1">MTN Float Balance</p>
-                    <p className="text-xl font-bold font-mono text-yellow-900">{fmt(4500000)}</p>
+                    <p className="text-xl font-bold font-mono text-yellow-900">{fmt(dashboard?.floatManagement?.mtn?.balance ?? 0)}</p>
                   </div>
                   <div className="text-right text-xs">
-                    <p className="text-green-600 font-bold">In: {fmt(1200000)}</p>
-                    <p className="text-red-600 font-bold">Out: {fmt(800000)}</p>
+                    <p className="text-green-600 font-bold">In: {fmt(dashboard?.floatManagement?.mtn?.in ?? 0)}</p>
+                    <p className="text-red-600 font-bold">Out: {fmt(dashboard?.floatManagement?.mtn?.out ?? 0)}</p>
                   </div>
                 </div>
                 <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 flex justify-between items-center">
                   <div>
                     <p className="text-[10px] font-bold text-orange-800 uppercase tracking-widest mb-1">Orange Float Balance</p>
-                    <p className="text-xl font-bold font-mono text-orange-900">{fmt(2800000)}</p>
+                    <p className="text-xl font-bold font-mono text-orange-900">{fmt(dashboard?.floatManagement?.orange?.balance ?? 0)}</p>
                   </div>
                   <div className="text-right text-xs">
-                    <p className="text-green-600 font-bold">In: {fmt(950000)}</p>
-                    <p className="text-red-600 font-bold">Out: {fmt(1100000)}</p>
+                    <p className="text-green-600 font-bold">In: {fmt(dashboard?.floatManagement?.orange?.in ?? 0)}</p>
+                    <p className="text-red-600 font-bold">Out: {fmt(dashboard?.floatManagement?.orange?.out ?? 0)}</p>
                   </div>
                 </div>
               </div>
@@ -359,20 +355,20 @@ export default function Transactions() {
               <div className="space-y-4">
                 <div>
                   <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Total Volume</p>
-                  <p className="text-xl font-bold font-mono">{fmt(32500000)}</p>
+                  <p className="text-xl font-bold font-mono">{fmt(dashboard?.summary?.totalVolume ?? 0)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Total Revenue</p>
-                  <p className="text-xl font-bold font-mono">{fmt(1840000)}</p>
+                  <p className="text-xl font-bold font-mono">{fmt(dashboard?.summary?.totalRevenue ?? 0)}</p>
                 </div>
                 <div className="flex justify-between border-t border-white/20 pt-3">
                   <div>
                     <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Success</p>
-                    <p className="text-sm font-bold">98.2%</p>
+                    <p className="text-sm font-bold">{dashboard?.summary?.successRate ?? 0}%</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Avg Value</p>
-                    <p className="text-sm font-bold">{fmt(12400)}</p>
+                    <p className="text-sm font-bold">{fmt(dashboard?.summary?.avgValue ?? 0)}</p>
                   </div>
                 </div>
               </div>
@@ -385,22 +381,21 @@ export default function Transactions() {
               <AlertCircle className="w-4 h-4" /> Failed Transactions
             </h3>
             <div className="space-y-3">
-              {[
-                { id: 'TX-991', customer: 'John D.', amount: 45000, reason: 'Insufficient Funds' },
-                { id: 'TX-992', customer: 'Acme Corp', amount: 120000, reason: 'Network Timeout' },
-                { id: 'TX-993', customer: 'Sarah W.', amount: 15000, reason: 'Invalid Account' },
-              ].map(tx => (
+              {(dashboard?.failedTransactions ?? []).map((tx: any) => (
                 <div key={tx.id} className="p-2.5 bg-red-50 rounded-lg border border-red-100 text-xs">
                   <div className="flex justify-between font-bold text-red-900 mb-1">
-                    <span>{tx.id}</span>
+                    <span>{tx.reference}</span>
                     <span>{fmt(tx.amount)}</span>
                   </div>
                   <div className="flex justify-between text-red-700">
-                    <span>{tx.customer}</span>
-                    <span className="text-[9px] uppercase">{tx.reason}</span>
+                    <span>{tx.entity}</span>
+                    <span className="text-[9px] uppercase">{tx.description ?? 'N/A'}</span>
                   </div>
                 </div>
               ))}
+              {dashboard?.failedTransactions?.length === 0 && (
+                <p className="text-[10px] font-bold text-secondary uppercase tracking-widest text-center py-2">No Failed TXs</p>
+              )}
             </div>
             <button className="w-full mt-3 text-[10px] font-bold text-red-600 hover:underline text-center uppercase tracking-widest">View All Failed</button>
           </div>
@@ -411,20 +406,20 @@ export default function Transactions() {
               <FileText className="w-4 h-4" /> Recent Activity Log
             </h3>
             <div className="space-y-3">
-              <div className="flex gap-2">
-                <div className="w-6 h-6 rounded bg-primary-fixed text-primary flex items-center justify-center font-bold text-[10px] shrink-0">AD</div>
-                <div>
-                  <p className="text-xs text-secondary"><span className="font-bold text-primary">Admin</span> approved withdrawal req <span className="font-mono text-primary">#WR-24</span></p>
-                  <p className="text-[9px] text-slate-400 mt-0.5">10 mins ago • 192.168.1.5</p>
+              {(dashboard?.recentActivity ?? []).map((log: any) => (
+                <div key={log.id} className="flex gap-2">
+                  <div className="w-6 h-6 rounded bg-primary-fixed text-primary flex items-center justify-center font-bold text-[10px] shrink-0">
+                    {log.user?.fullName?.substring(0, 2).toUpperCase() || 'SYS'}
+                  </div>
+                  <div>
+                    <p className="text-xs text-secondary"><span className="font-bold text-primary">{log.user?.fullName || 'System'}</span> {log.action} <span className="font-mono text-primary">{log.details}</span></p>
+                    <p className="text-[9px] text-slate-400 mt-0.5">{new Date(log.createdAt).toLocaleString()} • {log.ipAddress || '127.0.0.1'}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-2">
-                <div className="w-6 h-6 rounded bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-[10px] shrink-0">SYS</div>
-                <div>
-                  <p className="text-xs text-secondary"><span className="font-bold text-primary">System</span> flagged TX <span className="font-mono text-primary">#TX-882</span> for review</p>
-                  <p className="text-[9px] text-slate-400 mt-0.5">45 mins ago • 10.0.0.1</p>
-                </div>
-              </div>
+              ))}
+              {dashboard?.recentActivity?.length === 0 && (
+                <p className="text-[10px] font-bold text-secondary uppercase tracking-widest text-center py-2">No Recent Activity</p>
+              )}
             </div>
           </div>
 

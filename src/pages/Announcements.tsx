@@ -150,25 +150,6 @@ export default function Announcements() {
 
       {/* Right Sidebar */}
       <aside className="hidden lg:block lg:col-span-3 space-y-8">
-        <div className="bg-white border border-outline-variant p-6 rounded-2xl shadow-sm">
-          <div className="flex items-center justify-between mb-8 pb-4 border-b border-outline-variant/30">
-            <h3 className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Compliance Pulse</h3>
-            <ShieldCheck className="w-4 h-4 text-green-600" />
-          </div>
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-secondary uppercase tracking-widest">SYSTEM STATUS</span>
-              <span className="text-[10px] font-black text-green-700 bg-green-50 px-3 py-1 rounded-full uppercase">ONLINE</span>
-            </div>
-            <div className="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
-              <div className="h-full bg-green-600 w-full" />
-            </div>
-            <div className="flex justify-between items-center text-[10px] font-bold text-secondary font-mono">
-              <span className="uppercase tracking-widest">UPTIME</span>
-              <span className="text-primary">99.99%</span>
-            </div>
-          </div>
-        </div>
       </aside>
 
       <AnimatePresence>
