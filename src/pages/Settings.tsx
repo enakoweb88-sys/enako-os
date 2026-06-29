@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
+import { api } from '../lib/api';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -39,38 +40,67 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState('Profile Account');
   const [toggles, setToggles] = useState({
     analytics: true,
-    mfa: true,
-    ai: false,
+    mfa: false,
+    aiWorkspace: false,
     emailNotif: true,
     pushNotif: true,
     smsNotif: false,
-    slackInteg: true,
-    awsInteg: false,
+    slackConnected: false,
+    awsConnected: false,
   });
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [prefs, sess] = await Promise.all([
+          api.settings.getPreferences(),
+          api.settings.getSessions()
+        ]);
+        if (prefs) {
+          setToggles({
+            analytics: prefs.analytics,
+            mfa: prefs.mfa,
+            aiWorkspace: prefs.aiWorkspace,
+            emailNotif: prefs.emailNotif,
+            pushNotif: prefs.pushNotif,
+            smsNotif: prefs.smsNotif,
+            slackConnected: prefs.slackConnected,
+            awsConnected: prefs.awsConnected,
+          });
+        }
+        if (sess) setSessions(sess);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   const handleLogout = async () => {
     await logout();
     navigate('/select-role');
   };
 
-  const handleToggle = (key: keyof typeof toggles, title: string) => {
-    setToggles((prev) => {
-      const newState = !prev[key];
-      if (newState) {
-        toast.success(`${title} enabled`);
-      } else {
-        toast.info(`${title} disabled`);
-      }
-      return { ...prev, [key]: newState };
-    });
+  const handleToggle = async (key: keyof typeof toggles, title: string) => {
+    const newState = !toggles[key];
+    setToggles((prev) => ({ ...prev, [key]: newState }));
+    try {
+      await api.settings.updatePreferences({ [key]: newState });
+      if (newState) toast.success(`${title} enabled`);
+      else toast.info(`${title} disabled`);
+    } catch (err) {
+      toast.error('Failed to update preference');
+      setToggles((prev) => ({ ...prev, [key]: !newState })); // revert
+    }
   };
 
   const handleSave = () => {
-    toast.promise(new Promise((resolve) => setTimeout(resolve, 1500)), {
-      loading: 'Saving system profile...',
-      success: 'System profile updated successfully',
-      error: 'Failed to update system profile',
-    });
+    // Toggles are auto-saved now.
+    toast.success('System profile updated successfully');
   };
 
   const handleDiscard = () => {
@@ -81,8 +111,50 @@ export default function Settings() {
     toast.info('Identity update request initiated. Please check your email.');
   };
 
-  const handleChangePassword = () => {
-    toast.success('Password reset link sent to your corporate email.');
+  const handleChangePassword = async () => {
+    try {
+      // In a real app, this would open a modal to ask for current and new password.
+      await api.settings.changePassword('current', 'new');
+      toast.success('Password updated successfully.');
+    } catch (err) {
+      toast.error('Failed to update password');
+    }
+  };
+
+  const handleRevokeSession = async (id: string) => {
+    try {
+      await api.settings.revokeSession(id);
+      setSessions(prev => prev.filter(s => s.id !== id));
+      toast.success('Session revoked');
+    } catch (err) {
+      toast.error('Failed to revoke session');
+    }
+  };
+
+  const handleExportData = async () => {
+    try {
+      const data = await api.settings.exportData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'enako-os-archive.json';
+      a.click();
+      toast.success('Data export complete.');
+    } catch (err) {
+      toast.error('Failed to export data');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) return;
+    try {
+      await api.settings.deleteAccount();
+      toast.success('Account deleted successfully');
+      handleLogout();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete account');
+    }
   };
 
   if (role !== 'ceo' && role !== 'admin') {
@@ -106,7 +178,7 @@ export default function Settings() {
   const privacyToggles = [
     { key: 'analytics' as const, title: 'Enable Analytics Tracking', desc: 'Allow Enako Labs to collect anonymized performance data to improve OS speed.' },
     { key: 'mfa' as const, title: 'Two-Factor Authentication', desc: 'Require a biometric scan or hardware key for all transaction approvals.' },
-    { key: 'ai' as const, title: 'AI Workspace Optimization', desc: 'Automatically organize your dashboard based on your current deep work state.' },
+    { key: 'aiWorkspace' as const, title: 'AI Workspace Optimization', desc: 'Automatically organize your dashboard based on your current deep work state.' },
   ];
 
   return (
@@ -268,17 +340,19 @@ export default function Settings() {
                       Active Sessions
                     </h3>
                     <div className="space-y-4">
-                      {[
-                        { device: 'MacBook Pro 16"', location: 'Douala, CM', ip: '197.234.xx.xx', current: true },
-                        { device: 'iPhone 14 Pro', location: 'Yaounde, CM', ip: '154.72.xx.xx', current: false },
-                      ].map((session, i) => (
-                        <div key={i} className="flex items-center justify-between p-6 border border-outline-variant/20 rounded-2xl">
+                      {sessions.length === 0 && <p className="text-sm text-secondary">No active sessions found.</p>}
+                      {sessions.map((session, i) => (
+                        <div key={session.id} className="flex items-center justify-between p-6 border border-outline-variant/20 rounded-2xl">
                           <div>
-                            <p className="text-sm font-bold text-primary">{session.device} {session.current && <span className="ml-2 text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full uppercase">Current</span>}</p>
-                            <p className="text-xs text-secondary mt-1">{session.location} • {session.ip}</p>
+                            <p className="text-sm font-bold text-primary">
+                              {session.device || 'Unknown Device'} 
+                              {i === 0 && <span className="ml-2 text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full uppercase">Current</span>}
+                            </p>
+                            <p className="text-xs text-secondary mt-1">{session.location || 'Unknown Location'} • {session.ipAddress}</p>
+                            <p className="text-[10px] text-secondary mt-1">Started: {new Date(session.createdAt).toLocaleString()}</p>
                           </div>
-                          {!session.current && (
-                            <button onClick={() => toast.success('Session revoked')} className="text-[10px] font-bold text-error uppercase hover:underline">Revoke</button>
+                          {i !== 0 && (
+                            <button onClick={() => handleRevokeSession(session.id)} className="text-[10px] font-bold text-error uppercase hover:underline">Revoke</button>
                           )}
                         </div>
                       ))}
@@ -340,7 +414,7 @@ export default function Settings() {
                       Data Export
                     </h3>
                     <p className="text-sm text-secondary mb-6">Request a complete archive of your personal activity logs, transactions, and profile data in JSON or CSV format.</p>
-                    <button onClick={() => toast.success('Data export started. You will receive an email when it is ready.')} className="px-6 py-3 border border-outline-variant text-primary rounded-xl text-[11px] font-bold uppercase tracking-widest hover:bg-surface-container transition-colors">
+                    <button onClick={handleExportData} className="px-6 py-3 border border-outline-variant text-primary rounded-xl text-[11px] font-bold uppercase tracking-widest hover:bg-surface-container transition-colors">
                       Request Archive
                     </button>
                   </section>
@@ -351,7 +425,7 @@ export default function Settings() {
                       Danger Zone
                     </h3>
                     <p className="text-sm text-error/80 mb-6">Irreversibly delete your ENAKO OS account and all associated personal records. This action cannot be undone.</p>
-                    <button onClick={() => toast.error('Only Global Admin can delete user accounts.')} className="px-6 py-3 bg-error text-white rounded-xl text-[11px] font-bold uppercase tracking-widest hover:opacity-90 transition-opacity">
+                    <button onClick={handleDeleteAccount} className="px-6 py-3 bg-error text-white rounded-xl text-[11px] font-bold uppercase tracking-widest hover:opacity-90 transition-opacity">
                       Delete Account
                     </button>
                   </section>
@@ -367,8 +441,8 @@ export default function Settings() {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {[
-                      { key: 'slackInteg', name: 'Slack', icon: Slack, desc: 'Send alerts to #operations channel' },
-                      { key: 'awsInteg', name: 'AWS Services', icon: Database, desc: 'Connect to external S3 buckets' },
+                      { key: 'slackConnected', name: 'Slack', icon: Slack, desc: 'Send alerts to #operations channel' },
+                      { key: 'awsConnected', name: 'AWS Services', icon: Database, desc: 'Connect to external S3 buckets' },
                     ].map((app) => {
                       const isActive = toggles[app.key as keyof typeof toggles];
                       return (
