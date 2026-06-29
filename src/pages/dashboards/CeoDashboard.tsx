@@ -159,21 +159,21 @@ export function CEODashboard() {
             <div className="flex gap-4 text-sm">
               <div className="text-right">
                 <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Downloads</p>
-                <p className="font-bold text-primary text-lg">{fmt(appActivity?.downloads ?? 15420, false)}</p>
+                <p className="font-bold text-primary text-lg">{fmt(appActivity?.downloads ?? 0, false)}</p>
               </div>
               <div className="text-right border-l border-outline-variant/30 pl-4">
                 <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">MAU</p>
-                <p className="font-bold text-primary text-lg">{fmt(appActivity?.mau ?? 8200, false)}</p>
+                <p className="font-bold text-primary text-lg">{fmt(appActivity?.mau ?? 0, false)}</p>
               </div>
               <div className="text-right border-l border-outline-variant/30 pl-4">
                 <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">DAU</p>
-                <p className="font-bold text-primary text-lg">{fmt(appActivity?.dau ?? 2400, false)}</p>
+                <p className="font-bold text-primary text-lg">{fmt(appActivity?.dau ?? 0, false)}</p>
               </div>
             </div>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={appActivity?.chartData?.length ? appActivity.chartData : [{ name: 'Mon', downloads: 400, active: 240 }, { name: 'Tue', downloads: 300, active: 139 }, { name: 'Wed', downloads: 200, active: 980 }, { name: 'Thu', downloads: 278, active: 390 }, { name: 'Fri', downloads: 189, active: 480 }, { name: 'Sat', downloads: 239, active: 380 }, { name: 'Sun', downloads: 349, active: 430 }]}>
+              <LineChart data={appActivity?.chartData?.length ? appActivity.chartData : []}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} />

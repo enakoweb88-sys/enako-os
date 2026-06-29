@@ -24,6 +24,7 @@ import Content from './pages/Content';
 import Leaves from './pages/Leaves';
 import ApiDocs from './pages/ApiDocs';
 import Help from './pages/Help';
+import Investments from './pages/Investments';
 import DashboardLayout from './layouts/DashboardLayout';
 
 export default function App() {
@@ -83,7 +84,9 @@ export default function App() {
             <Route path="tickets" element={<Tickets />} />
             <Route path="support" element={<Navigate to="/app/tickets" replace />} />
             <Route path="content" element={<Content />} />
+            <Route path="marketing" element={<Content />} />
             <Route path="leaves" element={<Leaves />} />
+            <Route path="investments" element={<Investments />} />
             <Route path="docs" element={<ApiDocs />} />
             <Route path="help" element={<Help />} />
           </Route>
