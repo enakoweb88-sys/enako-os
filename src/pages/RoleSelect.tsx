@@ -1,7 +1,7 @@
 import React, { useNavigate } from 'react-router-dom';
 
 interface RoleCard {
-  role: 'CEO' | 'MANAGER' | 'EMPLOYEE';
+  role: 'CEO' | 'MANAGER' | 'EMPLOYEE' | 'OUTREACH_MANAGER';
   emoji: string;
   title: string;
   subtitle: string;
@@ -38,12 +38,21 @@ const ROLES: RoleCard[] = [
     color: '#059669',
     bg: 'rgba(5,150,105,0.06)',
   },
+  {
+    role: 'OUTREACH_MANAGER',
+    emoji: '🌍',
+    title: 'Outreach Manager',
+    subtitle: 'Community Impact',
+    description: 'Manage outreach programs, verify applications, publish blogs, and send newsletters.',
+    color: '#8B5CF6',
+    bg: 'rgba(139,92,246,0.06)',
+  },
 ];
 
 export default function RoleSelect() {
   const navigate = useNavigate();
 
-  const handleSelect = (role: 'CEO' | 'MANAGER' | 'EMPLOYEE') => {
+  const handleSelect = (role: 'CEO' | 'MANAGER' | 'EMPLOYEE' | 'OUTREACH_MANAGER') => {
     localStorage.setItem('enako_selected_role', role);
     navigate(`/login?role=${role}`);
   };
@@ -80,7 +89,7 @@ export default function RoleSelect() {
         </div>
 
         {/* Role Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full max-w-3xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 w-full max-w-5xl">
           {ROLES.map((card) => (
             <button
               key={card.role}

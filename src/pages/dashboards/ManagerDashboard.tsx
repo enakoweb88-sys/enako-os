@@ -7,7 +7,7 @@ import { api } from '../../lib/api';
 import {
   Users, Wallet, ClipboardCheck, Activity, Calendar, User, ArrowRight,
   Bell, FileText, Settings, ShieldCheck, CheckCircle2, Megaphone,
-  Briefcase
+  Briefcase, Globe
 } from 'lucide-react';
 
 function fmt(val: string | number | null | undefined, currency = true) {
@@ -205,6 +205,54 @@ export function ManagerDashboard() {
             </div>
           </div>
 
+        </div>
+      </div>
+
+      {/* ── Outreach Monitoring & Application Review ── */}
+      <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="font-display text-xl font-bold text-primary flex items-center gap-2">
+            <Globe className="w-5 h-5" /> Outreach Monitoring & Manager Review
+          </h3>
+          <div className="flex gap-4">
+            <div className="text-right">
+              <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Active Events</p>
+              <p className="font-bold text-primary text-lg">4</p>
+            </div>
+            <div className="text-right border-l border-outline-variant/30 pl-4">
+              <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Newsletter Subscribers</p>
+              <p className="font-bold text-primary text-lg">1,204</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h4 className="text-sm font-bold text-secondary">Forwarded Applications Awaiting Your Approval</h4>
+          
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-outline-variant/50 text-secondary text-sm">
+                <th className="pb-3 font-semibold">Applicant Name</th>
+                <th className="pb-3 font-semibold">Level</th>
+                <th className="pb-3 font-semibold">Date Verified</th>
+                <th className="pb-3 font-semibold">Status</th>
+                <th className="pb-3 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Mock Forwarded Applications */}
+              <tr className="border-b border-outline-variant/20 last:border-0">
+                <td className="py-4 font-bold text-primary">Jane Smith</td>
+                <td className="py-4 text-sm text-secondary">SECONDARY</td>
+                <td className="py-4 text-sm text-secondary">2026-06-28</td>
+                <td className="py-4"><span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold">VERIFIED_BY_OUTREACH</span></td>
+                <td className="py-4 text-right">
+                  <button onClick={() => toast.success('Application Approved. Automated bilingual email dispatched!')} className="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-primary/90 mr-2">Approve</button>
+                  <button onClick={() => toast.error('Application Rejected.')} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100">Reject</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 

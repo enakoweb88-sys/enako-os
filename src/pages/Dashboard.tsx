@@ -8,6 +8,7 @@ import { DigitalDashboard } from './dashboards/DigitalDashboard';
 import { AdminDashboard } from './dashboards/AdminDashboard';
 import { SupportDashboard } from './dashboards/SupportDashboard';
 import { HeadDashboard } from './dashboards/HeadDashboard';
+import { OutreachManagerDashboard } from './dashboards/OutreachManagerDashboard';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ export default function Dashboard() {
       case 'digital': return 'Digital Command Center';
       case 'admin': return 'HR & Admin Hub';
       case 'support': return 'Customer Support Center';
+      case 'outreach_manager': return 'Outreach & Community Impact';
       default: return 'My Workspace';
     }
   };
@@ -47,10 +49,11 @@ export default function Dashboard() {
       {role === 'digital' && <DigitalDashboard />}
       {role === 'admin' && <AdminDashboard />}
       {role === 'support' && <SupportDashboard />}
+      {role === 'outreach_manager' && <OutreachManagerDashboard />}
       {role === 'employee' && isHead && <HeadDashboard />}
       {role === 'employee' && !isHead && <EmployeeDashboard />}
       {/* Fallback if role is unmapped but exists */}
-      {!['ceo', 'manager', 'finance', 'bd', 'digital', 'admin', 'support', 'employee'].includes(role) && <EmployeeDashboard />}
+      {!['ceo', 'manager', 'finance', 'bd', 'digital', 'admin', 'support', 'outreach_manager', 'employee'].includes(role) && <EmployeeDashboard />}
     </div>
   );
 }

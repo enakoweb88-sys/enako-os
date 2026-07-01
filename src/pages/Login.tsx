@@ -4,22 +4,24 @@ import { motion } from 'motion/react';
 import { ArrowRight, Mail, Lock, Eye, EyeOff, ShieldCheck, AlertCircle, ChevronLeft } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 
-type Role = 'CEO' | 'MANAGER' | 'EMPLOYEE';
+type Role = 'CEO' | 'MANAGER' | 'EMPLOYEE' | 'OUTREACH_MANAGER';
 
 const ROLE_LABELS: Record<Role, string> = {
   CEO: 'Chief Executive Officer',
   MANAGER: 'Department Manager',
   EMPLOYEE: 'Staff Member',
+  OUTREACH_MANAGER: 'Outreach Manager'
 };
 
 const ROLE_EMOJIS: Record<Role, string> = {
   CEO: '👔',
   MANAGER: '📊',
   EMPLOYEE: '👤',
+  OUTREACH_MANAGER: '🌍'
 };
 
 function isValidRole(r: string | null): r is Role {
-  return r === 'CEO' || r === 'MANAGER' || r === 'EMPLOYEE';
+  return r === 'CEO' || r === 'MANAGER' || r === 'EMPLOYEE' || r === 'OUTREACH_MANAGER';
 }
 
 export default function Login() {
@@ -243,6 +245,7 @@ export default function Login() {
               <p><span className="text-primary font-bold">CEO:</span> ceo@enako.com / Enako@2025!</p>
               <p><span className="text-primary font-bold">MGR:</span> manager@enako.com / Manager@2025!</p>
               <p><span className="text-primary font-bold">EMP:</span> employee@enako.com / Employee@2025!</p>
+              <p><span className="text-primary font-bold">OUTREACH:</span> outreach@enako.com / Outreach@2025!</p>
             </div>
           </details>
 
