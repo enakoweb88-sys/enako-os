@@ -20,7 +20,7 @@ export default function OutreachNewsletters() {
               <textarea className="w-full h-40 bg-surface-container-low border border-outline-variant/30 rounded-lg px-4 py-3 text-sm focus:outline-none resize-none" placeholder="Write your newsletter content here..." />
             </div>
             <div className="flex justify-end pt-4 border-t border-outline-variant/50">
-              <button onClick={handleSendNewsletter} className="bg-primary text-white px-6 py-2 rounded-lg font-bold hover:bg-primary/90">Send to 1,204 Subscribers</button>
+              <button onClick={handleSendNewsletter} className="bg-primary text-white px-6 py-2 rounded-lg font-bold hover:bg-primary/90">Send to 0 Subscribers</button>
             </div>
           </div>
         </div>
@@ -29,15 +29,15 @@ export default function OutreachNewsletters() {
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
               <span className="text-secondary font-semibold">Active Subscribers</span>
-              <span className="font-bold text-primary">1,204</span>
+              <span className="font-bold text-primary">0</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-secondary font-semibold">Open Rate</span>
-              <span className="font-bold text-primary">68%</span>
+              <span className="font-bold text-primary">0%</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-secondary font-semibold">New This Month</span>
-              <span className="font-bold text-primary">+145</span>
+              <span className="font-bold text-primary">0</span>
             </div>
           </div>
         </div>

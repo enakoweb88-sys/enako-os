@@ -3,10 +3,10 @@ import { Globe, PenTool, FileText, Users } from 'lucide-react';
 
 export default function OutreachOverview() {
   const stats = [
-    { label: 'Active Events', value: '4', icon: Globe },
-    { label: 'Pending Applications', value: '18', icon: FileText },
-    { label: 'Blog Posts', value: '24', icon: PenTool },
-    { label: 'Newsletter Subscribers', value: '1,204', icon: Users },
+    { label: 'Active Events', value: '0', icon: Globe },
+    { label: 'Pending Applications', value: '0', icon: FileText },
+    { label: 'Blog Posts', value: '0', icon: PenTool },
+    { label: 'Newsletter Subscribers', value: '0', icon: Users },
   ];
 
   return (

@@ -7,6 +7,7 @@ export type AuthUser = {
   role: RoleName;
   department?: string | null;
   ledDepartments?: string[];
+  avatarUrl?: string;
 };
 
 const envApiUrl = import.meta.env.VITE_API_URL as string | undefined;

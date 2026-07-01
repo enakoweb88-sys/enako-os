@@ -1,8 +1,6 @@
 export default function OutreachEvents() {
-  const events = [
-    { id: 1, title: '2026 Primary Scholarship', type: 'SCHOLARSHIP', status: 'OPEN', applicants: 142, closeDate: '2026-08-30' },
-    { id: 2, title: 'Clean Water Fundraiser', type: 'FUNDRAISER', status: 'OPEN', raised: '450,000 XAF', target: '1,000,000 XAF' }
-  ];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const events: any[] = [];
 
   return (
     <div className="p-6 pb-20">

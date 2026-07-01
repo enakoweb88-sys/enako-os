@@ -155,7 +155,11 @@ export default function DashboardLayout() {
         <div className={cn("p-4 bg-surface-container mt-auto flex", sidebarOpen ? "items-center gap-3" : "flex-col gap-3 items-center justify-center")}>
           <NavLink to="/app/profile" className={cn("flex items-center group flex-1 min-w-0", sidebarOpen ? "gap-3" : "justify-center")} title={!sidebarOpen ? fullName : undefined}>
             <div className="w-10 h-10 shrink-0 rounded-full bg-primary-fixed overflow-hidden ring-2 ring-white flex items-center justify-center text-primary font-black text-sm uppercase group-hover:ring-primary/20 transition-all">
-              {initials}
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                initials
+              )}
             </div>
             {sidebarOpen && (
               <div className="flex-1 min-w-0">

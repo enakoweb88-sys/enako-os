@@ -2,10 +2,8 @@ import { Filter } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function OutreachApplications() {
-  const applications = [
-    { id: 101, name: 'John Doe', level: 'UNIVERSITY', status: 'PENDING', date: '2026-07-01' },
-    { id: 102, name: 'Jane Smith', level: 'SECONDARY', status: 'VERIFIED_BY_OUTREACH', date: '2026-06-28' }
-  ];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const applications: any[] = [];
 
   const handleVerify = (id: number) => {
     toast.success(`Application #${id} verified and forwarded to Executive Review.`);

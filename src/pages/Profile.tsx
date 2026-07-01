@@ -105,8 +105,47 @@ export default function Profile() {
         
         <div className="px-12 pb-12 -mt-16 relative">
           <div className="flex flex-col md:flex-row items-end gap-8">
-            <div className="size-32 rounded-[2rem] bg-primary border-8 border-white shadow-2xl flex items-center justify-center text-white text-5xl font-black">
-              {userName.charAt(0)}
+            <div className="relative group size-32 rounded-[2rem] bg-primary border-8 border-white shadow-2xl flex items-center justify-center text-white text-5xl font-black overflow-hidden cursor-pointer" onClick={() => document.getElementById('avatar-upload')?.click()}>
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span>{userName.charAt(0)}</span>
+              )}
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-[10px] uppercase tracking-wider font-bold">Upload</span>
+              </div>
+              <input 
+                type="file" 
+                id="avatar-upload" 
+                className="hidden" 
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 2 * 1024 * 1024) return toast.error('Image must be under 2MB');
+                  
+                  const reader = new FileReader();
+                  reader.onload = async (ev) => {
+                    const base64 = ev.target?.result as string;
+                    try {
+                      const apiModule = await import('../lib/api');
+                      const updatedUser = await apiModule.api.updateMe({ avatarUrl: base64 });
+                      
+                      const storedStr = localStorage.getItem('enako_user');
+                      if (storedStr) {
+                        const parsed = JSON.parse(storedStr);
+                        localStorage.setItem('enako_user', JSON.stringify({ ...parsed, ...updatedUser }));
+                      }
+
+                      toast.success('Profile picture updated!');
+                      setTimeout(() => window.location.reload(), 1500);
+                    } catch (err: any) {
+                      toast.error(err.message || 'Upload failed');
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                }}
+              />
             </div>
             
             <div className="flex-1 pb-4">
