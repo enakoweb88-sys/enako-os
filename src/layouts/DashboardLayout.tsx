@@ -6,27 +6,35 @@ import {
   LayoutDashboard, Users, CreditCard, ShieldCheck, Wallet, Target,
   Bell, BarChart3, Settings, LogOut, Search, HelpCircle,
   MessageSquare, UtensilsCrossed, User, Briefcase, Megaphone,
-  Headphones, ClipboardList, TrendingUp, Menu, ChevronLeft, ChevronRight
+  Headphones, ClipboardList, TrendingUp, Menu, ChevronLeft, ChevronRight,
+  PenTool, Calendar, FileText, Mail
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 
 const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/app/dashboard', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee'] },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/app/dashboard', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
   { icon: Users, label: 'Employees', path: '/app/employees', roles: ['ceo', 'manager', 'admin'] },
   { icon: CreditCard, label: 'Transactions', path: '/app/transactions', roles: ['ceo', 'manager', 'finance'] },
   { icon: Wallet, label: 'Expenses', path: '/app/expenses', roles: ['ceo', 'manager', 'finance', 'employee'] },
   { icon: ShieldCheck, label: 'KYC Compliance', path: '/app/kyc', roles: ['ceo', 'manager', 'bd', 'support'] },
   { icon: Target, label: 'Goals & KPIs', path: '/app/goals', roles: ['ceo', 'manager', 'bd', 'digital'] },
   { icon: Megaphone, label: 'Marketing', path: '/app/marketing', roles: ['ceo', 'digital', 'bd'] },
-  { icon: MessageSquare, label: 'Communications', path: '/app/chat', roles: ['ceo', 'manager', 'support', 'bd', 'digital', 'employee'] },
+  { icon: MessageSquare, label: 'Communications', path: '/app/chat', roles: ['ceo', 'manager', 'support', 'bd', 'digital', 'employee', 'outreach_manager'] },
   { icon: Headphones, label: 'Support Tickets', path: '/app/tickets', roles: ['ceo', 'support'] },
   { icon: UtensilsCrossed, label: 'Staff Meals', path: '/app/meals', roles: ['ceo', 'manager', 'admin', 'employee'] },
-  { icon: Bell, label: 'Announcements', path: '/app/announcements', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee'] },
+  { icon: Bell, label: 'Announcements', path: '/app/announcements', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
   { icon: BarChart3, label: 'Reports', path: '/app/reports', roles: ['ceo', 'manager', 'finance', 'admin'] },
   { icon: CreditCard, label: 'Subscriptions', path: '/app/subscriptions', roles: ['ceo', 'manager', 'finance', 'admin', 'employee'] },
-  { icon: User, label: 'Profile', path: '/app/profile', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee'] },
+  
+  // Outreach Manager specifics
+  { icon: PenTool, label: 'Blog & Content', path: '/app/outreach/cms', roles: ['outreach_manager'] },
+  { icon: Calendar, label: 'Events & Fundraisers', path: '/app/outreach/events', roles: ['outreach_manager'] },
+  { icon: FileText, label: 'Applications', path: '/app/outreach/applications', roles: ['outreach_manager'] },
+  { icon: Mail, label: 'Newsletters', path: '/app/outreach/newsletters', roles: ['outreach_manager'] },
+
+  { icon: User, label: 'Profile', path: '/app/profile', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
 ];
 
 export default function DashboardLayout() {

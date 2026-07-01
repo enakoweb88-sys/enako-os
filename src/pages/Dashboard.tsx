@@ -8,7 +8,7 @@ import { DigitalDashboard } from './dashboards/DigitalDashboard';
 import { AdminDashboard } from './dashboards/AdminDashboard';
 import { SupportDashboard } from './dashboards/SupportDashboard';
 import { HeadDashboard } from './dashboards/HeadDashboard';
-import { OutreachManagerDashboard } from './dashboards/OutreachManagerDashboard';
+import OutreachOverview from './dashboards/outreach/OutreachOverview';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -49,7 +49,7 @@ export default function Dashboard() {
       {role === 'digital' && <DigitalDashboard />}
       {role === 'admin' && <AdminDashboard />}
       {role === 'support' && <SupportDashboard />}
-      {role === 'outreach_manager' && <OutreachManagerDashboard />}
+      {role === 'outreach_manager' && <OutreachOverview />}
       {role === 'employee' && isHead && <HeadDashboard />}
       {role === 'employee' && !isHead && <EmployeeDashboard />}
       {/* Fallback if role is unmapped but exists */}

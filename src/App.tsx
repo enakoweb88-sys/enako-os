@@ -27,6 +27,12 @@ import Help from './pages/Help';
 import Investments from './pages/Investments';
 import DashboardLayout from './layouts/DashboardLayout';
 
+// Outreach Manager Pages
+import OutreachEvents from './pages/dashboards/outreach/OutreachEvents';
+import OutreachApplications from './pages/dashboards/outreach/OutreachApplications';
+import OutreachCMS from './pages/dashboards/outreach/OutreachCMS';
+import OutreachNewsletters from './pages/dashboards/outreach/OutreachNewsletters';
+
 export default function App() {
   return (
     <AuthProvider>
@@ -89,6 +95,28 @@ export default function App() {
             <Route path="investments" element={<Investments />} />
             <Route path="docs" element={<ApiDocs />} />
             <Route path="help" element={<Help />} />
+
+            {/* Outreach Routes */}
+            <Route path="outreach/events" element={
+              <ProtectedRoute roles={['OUTREACH_MANAGER']}>
+                <OutreachEvents />
+              </ProtectedRoute>
+            } />
+            <Route path="outreach/applications" element={
+              <ProtectedRoute roles={['OUTREACH_MANAGER']}>
+                <OutreachApplications />
+              </ProtectedRoute>
+            } />
+            <Route path="outreach/cms" element={
+              <ProtectedRoute roles={['OUTREACH_MANAGER']}>
+                <OutreachCMS />
+              </ProtectedRoute>
+            } />
+            <Route path="outreach/newsletters" element={
+              <ProtectedRoute roles={['OUTREACH_MANAGER']}>
+                <OutreachNewsletters />
+              </ProtectedRoute>
+            } />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
