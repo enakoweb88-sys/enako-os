@@ -1,13 +1,41 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Globe, PenTool, FileText, Users } from 'lucide-react';
+import { Globe, PenTool, FileText, Users, Heart } from 'lucide-react';
+import { outreachAPI } from '../../../lib/api';
 
 export default function OutreachOverview() {
+  const [statsData, setStatsData] = useState<any>(null);
+  const [donations, setDonations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [statsRes, donationsRes] = await Promise.all([
+          outreachAPI.getStats(),
+          outreachAPI.getDonations()
+        ]);
+        setStatsData(statsRes);
+        setDonations(donationsRes);
+      } catch (err) {
+        console.error('Failed to fetch outreach data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
   const stats = [
-    { label: 'Active Events', value: '0', icon: Globe },
-    { label: 'Pending Applications', value: '0', icon: FileText },
-    { label: 'Blog Posts', value: '0', icon: PenTool },
-    { label: 'Newsletter Subscribers', value: '0', icon: Users },
+    { label: 'Active Events', value: statsData?.activeEvents || 0, icon: Globe },
+    { label: 'Pending Applications', value: statsData?.pendingApplications || 0, icon: FileText },
+    { label: 'Total Donations (XAF)', value: (statsData?.totalDonations || 0).toLocaleString(), icon: Heart },
+    { label: 'Total Donors', value: statsData?.donationCount || 0, icon: Users },
   ];
+
+  if (loading) {
+    return <div className="p-6 text-slate-500">Loading overview...</div>;
+  }
 
   return (
     <div className="space-y-8 pb-20 p-6">
@@ -25,6 +53,48 @@ export default function OutreachOverview() {
             <p className="text-3xl font-bold font-display text-primary">{stat.value}</p>
           </motion.div>
         ))}
+      </div>
+
+      <div className="bg-white rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-outline-variant/30">
+          <h3 className="font-bold text-lg text-primary">Recent Donations</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-surface-container/50">
+              <tr>
+                <th className="px-5 py-3 text-left text-xs font-bold text-secondary uppercase tracking-wider">Date</th>
+                <th className="px-5 py-3 text-left text-xs font-bold text-secondary uppercase tracking-wider">Donor</th>
+                <th className="px-5 py-3 text-left text-xs font-bold text-secondary uppercase tracking-wider">Amount</th>
+                <th className="px-5 py-3 text-left text-xs font-bold text-secondary uppercase tracking-wider">Sector</th>
+                <th className="px-5 py-3 text-left text-xs font-bold text-secondary uppercase tracking-wider">Method</th>
+                <th className="px-5 py-3 text-left text-xs font-bold text-secondary uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-outline-variant/30">
+              {donations.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-5 py-8 text-center text-secondary text-sm">No donations found.</td>
+                </tr>
+              ) : (
+                donations.map((d) => (
+                  <tr key={d.id} className="hover:bg-surface-container/30 transition-colors">
+                    <td className="px-5 py-4 text-sm text-primary">{new Date(d.createdAt).toLocaleDateString()}</td>
+                    <td className="px-5 py-4 text-sm font-bold text-primary">{d.fullName} <br/><span className="text-xs font-normal text-secondary">{d.email}</span></td>
+                    <td className="px-5 py-4 text-sm font-bold text-green-600">{Number(d.amount).toLocaleString()} XAF</td>
+                    <td className="px-5 py-4 text-sm text-secondary uppercase text-[10px] tracking-widest">{d.sector.replace(/-/g, ' ')}</td>
+                    <td className="px-5 py-4 text-sm text-secondary">{d.method}</td>
+                    <td className="px-5 py-4">
+                      <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">
+                        {d.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

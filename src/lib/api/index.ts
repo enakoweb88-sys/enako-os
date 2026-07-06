@@ -26,6 +26,8 @@ import { subscriptionsApi } from './subscriptions';
 import { reportsApi } from './reports';
 
 export * from './core';
+export * from './roles';
+export * from './outreach';
 
 export const api = {
   ...subscriptionsApi,
