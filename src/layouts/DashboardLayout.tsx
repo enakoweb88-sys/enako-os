@@ -20,7 +20,7 @@ const navItems = [
   { icon: Wallet, label: 'Expenses', path: '/app/expenses', roles: ['ceo', 'manager', 'finance', 'employee'] },
   { icon: ShieldCheck, label: 'KYC Compliance', path: '/app/kyc', roles: ['ceo', 'manager', 'bd', 'support'] },
   { icon: Target, label: 'Goals & KPIs', path: '/app/goals', roles: ['ceo', 'manager', 'bd', 'digital'] },
-  { icon: Megaphone, label: 'Marketing', path: '/app/marketing', roles: ['ceo', 'digital', 'bd'] },
+  // Marketing is added dynamically
   { icon: MessageSquare, label: 'Communications', path: '/app/chat', roles: ['ceo', 'manager', 'support', 'bd', 'digital', 'employee', 'outreach_manager'] },
   { icon: Headphones, label: 'Support Tickets', path: '/app/tickets', roles: ['ceo', 'support'] },
   { icon: UtensilsCrossed, label: 'Staff Meals', path: '/app/meals', roles: ['ceo', 'manager', 'admin', 'employee'] },
@@ -82,8 +82,15 @@ export default function DashboardLayout() {
     setShowNotif(false);
   };
 
+  const isDigitalMarketer = user?.department?.name === 'Digital Marketer' && role === 'employee';
   const filteredNavItems = navItems.filter((item) => item.roles.includes(role));
 
+  if (isDigitalMarketer) {
+    const chatIndex = filteredNavItems.findIndex(i => i.path === '/app/chat');
+    if (chatIndex !== -1) {
+      filteredNavItems.splice(chatIndex, 0, { icon: Megaphone, label: 'Marketing', path: '/app/marketing', roles: [] });
+    }
+  }
   // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

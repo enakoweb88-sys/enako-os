@@ -54,7 +54,7 @@ export function ManagerDashboard() {
 
   const managerStats = [
     { label: 'Active Employees', value: fmt(overview?.employees?.active, false), icon: Users },
-    { label: 'Pending Expenses', value: fmt(overview?.expenses?._count, false), icon: Wallet },
+    { label: 'Pending Expenses', value: fmt(overview?.expenses?.pending?._count, false), icon: Wallet },
     { label: 'Open Tasks', value: fmt(overview?.tasks?.open, false), icon: ClipboardCheck },
     { label: 'KYC Pending', value: fmt(overview?.kyc?.pending, false), icon: Activity },
   ];

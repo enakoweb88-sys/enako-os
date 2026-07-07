@@ -11,19 +11,26 @@ export default function Goals() {
   const role = user?.role?.toLowerCase() ?? 'employee';
 
   const [goals, setGoals] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', targetValue: '', unit: '', dueDate: '' });
+  const [form, setForm] = useState({ title: '', description: '', targetValue: '', unit: '', dueDate: '', scope: 'COMPANY', departmentId: '', ownerId: '' });
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.goals();
       setGoals(res);
+      if (role !== 'employee') {
+        const [emps, depts] = await Promise.all([api.employees({ limit: 1000 }), api.departments()]);
+        setEmployees(emps.items || []);
+        setDepartments(depts);
+      }
     } catch (e: any) { console.error(e); }
     finally { setLoading(false); }
-  }, []);
+  }, [role]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -37,9 +44,12 @@ export default function Goals() {
         targetValue: form.targetValue ? Number(form.targetValue) : undefined,
         unit: form.unit || undefined,
         dueDate: form.dueDate || undefined,
+        scope: form.scope,
+        departmentId: form.scope === 'DEPARTMENT' ? form.departmentId : undefined,
+        ownerId: form.scope === 'PERSONAL' ? form.ownerId : undefined,
       });
       setShowModal(false);
-      setForm({ title: '', description: '', targetValue: '', unit: '', dueDate: '' });
+      setForm({ title: '', description: '', targetValue: '', unit: '', dueDate: '', scope: 'COMPANY', departmentId: '', ownerId: '' });
       load();
     } catch (e: any) { alert(e.message); }
     finally { setSubmitting(false); }
@@ -119,8 +129,14 @@ export default function Goals() {
                     <div>
                       <div className="flex items-center gap-3">
                         <h3 className="text-lg font-bold text-primary">{goal.title}</h3>
-                        {goal.department && (
+                        {goal.scope === 'DEPARTMENT' && goal.department && (
                           <span className="bg-surface-container px-3 py-0.5 rounded-full text-[9px] font-bold text-secondary uppercase tracking-widest">{goal.department.name}</span>
+                        )}
+                        {goal.scope === 'PERSONAL' && goal.owner && (
+                          <span className="bg-surface-container px-3 py-0.5 rounded-full text-[9px] font-bold text-secondary uppercase tracking-widest">{goal.owner.fullName}</span>
+                        )}
+                        {goal.scope === 'COMPANY' && (
+                          <span className="bg-surface-container px-3 py-0.5 rounded-full text-[9px] font-bold text-secondary uppercase tracking-widest">Company</span>
                         )}
                       </div>
                       {goal.description && <p className="text-xs text-secondary mt-1">{goal.description}</p>}
@@ -196,6 +212,32 @@ export default function Goals() {
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Description</label>
                   <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20 resize-none" placeholder="Optional description…" />
                 </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Scope *</label>
+                  <select value={form.scope} onChange={e => setForm({ ...form, scope: e.target.value, departmentId: '', ownerId: '' })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
+                    <option value="COMPANY">Company</option>
+                    <option value="DEPARTMENT">Department</option>
+                    <option value="PERSONAL">Personal</option>
+                  </select>
+                </div>
+                {form.scope === 'DEPARTMENT' && (
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Target Department *</label>
+                    <select required value={form.departmentId} onChange={e => setForm({ ...form, departmentId: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
+                      <option value="">Select Department...</option>
+                      {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                  </div>
+                )}
+                {form.scope === 'PERSONAL' && (
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Target Employee *</label>
+                    <select required value={form.ownerId} onChange={e => setForm({ ...form, ownerId: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
+                      <option value="">Select Employee...</option>
+                      {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.fullName}</option>)}
+                    </select>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Target Value</label>

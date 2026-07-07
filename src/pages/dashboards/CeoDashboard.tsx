@@ -61,8 +61,8 @@ export function CEODashboard() {
     },
     {
       label: 'Approved Expenses',
-      value: fmt(overview?.expenses?._sum?.amount),
-      sub: `${overview?.expenses?._count ?? 0} claims`,
+      value: fmt(overview?.expenses?.approved?._sum?.amount),
+      sub: `${overview?.expenses?.approved?._count ?? 0} claims`,
       icon: Wallet,
     },
     {

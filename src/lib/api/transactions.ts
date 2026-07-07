@@ -20,4 +20,6 @@ export const transactionsApi = {
     apiRequest<any>(`/transactions/${id}/settle`, { method: 'PATCH' }),
   flagTransaction: (id: string, reason?: string) =>
     apiRequest<any>(`/transactions/${id}/flag`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
+  setFloatBalance: (channel: string, balance: number) =>
+    apiRequest<any>('/transactions/float', { method: 'POST', body: JSON.stringify({ channel, balance }) }),
 };

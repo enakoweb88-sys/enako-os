@@ -25,8 +25,12 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showFloatModal, setShowFloatModal] = useState(false);
+  const [showChargesModal, setShowChargesModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ entity: '', type: 'Operational', amount: '', description: '' });
+  const [form, setForm] = useState({ entity: '', type: 'Receive', channel: 'Bank Transfer', amount: '', description: '' });
+  const [floatForm, setFloatForm] = useState({ channel: 'MTN', balance: '' });
+  const [chargesForm, setChargesForm] = useState({ id: '', charges: '' });
 
   // Filters state
   const [dateRange, setDateRange] = useState('This Week');
@@ -62,15 +66,45 @@ export default function Transactions() {
     try {
       await api.createTransaction({ ...form, amount: Number(form.amount) });
       setShowModal(false);
-      setForm({ entity: '', type: 'Operational', amount: '', description: '' });
+      setForm({ entity: '', type: 'Receive', channel: 'Bank Transfer', amount: '', description: '' });
       load();
     } catch (e: any) { alert(e.message); }
     finally { setSubmitting(false); }
   };
 
-  const handleSettle = async (id: string) => {
-    try { await api.setTransactionStatus(id, 'SETTLED'); load(); }
-    catch (e: any) { alert(e.message); }
+  const handleSettle = async (id: string, type: string) => {
+    if (type === 'Send') {
+      setChargesForm({ id, charges: '' });
+      setShowChargesModal(true);
+    } else {
+      try { await api.setTransactionStatus(id, 'SETTLED'); load(); }
+      catch (e: any) { alert(e.message); }
+    }
+  };
+
+  const submitCharges = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await api.apiRequest(`/transactions/${chargesForm.id}/status/SETTLED`, { 
+        method: 'PATCH', 
+        body: JSON.stringify({ charges: Number(chargesForm.charges) }) 
+      });
+      setShowChargesModal(false);
+      load();
+    } catch (e: any) { alert(e.message); }
+    finally { setSubmitting(false); }
+  };
+
+  const handleUpdateFloat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await api.setFloatBalance(floatForm.channel, Number(floatForm.balance));
+      setShowFloatModal(false);
+      load();
+    } catch (e: any) { alert(e.message); }
+    finally { setSubmitting(false); }
   };
 
   if (role === 'employee') {
@@ -183,9 +217,16 @@ export default function Transactions() {
           <div className="grid grid-cols-12 gap-6">
             {/* Float Management */}
             <div className="col-span-12 lg:col-span-6 bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm">
-              <h3 className="font-display text-lg font-bold text-primary mb-6 flex items-center gap-2">
-                <Building className="w-5 h-5" /> Float Management
-              </h3>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-display text-lg font-bold text-primary flex items-center gap-2">
+                  <Building className="w-5 h-5" /> Float Management
+                </h3>
+                {role === 'ceo' && (
+                  <button onClick={() => setShowFloatModal(true)} className="text-[9px] font-bold uppercase tracking-widest text-primary bg-primary-container/20 px-3 py-1.5 rounded-lg hover:bg-primary-container/40">
+                    Update Float
+                  </button>
+                )}
+              </div>
               <div className="space-y-4">
                 <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 flex justify-between items-center">
                   <div>
@@ -251,9 +292,10 @@ export default function Transactions() {
                 <thead className="bg-surface-container-low/50">
                   <tr>
                     <th className="px-6 py-4 text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Reference & Entity</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Type</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Type/Channel</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Status</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-secondary uppercase tracking-[0.2em] text-right">Amount</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-secondary uppercase tracking-[0.2em] text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/10">
@@ -274,18 +316,34 @@ export default function Transactions() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4"><span className="text-xs font-medium text-primary">{tx.type}</span></td>
+                      <td className="px-6 py-4">
+                        <span className="text-xs font-medium text-primary block">{tx.type}</span>
+                        {tx.channel && <span className="text-[9px] font-bold text-secondary uppercase tracking-widest">{tx.channel}</span>}
+                      </td>
                       <td className="px-6 py-4">
                         <span className={cn(
                           'px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border',
                           tx.status === 'SETTLED' ? 'bg-green-50 text-green-700 border-green-100' :
                           tx.status === 'FLAGGED' ? 'bg-red-50 text-red-700 border-red-100' :
+                          tx.status === 'FAILED' ? 'bg-red-50 text-red-700 border-red-100' :
                           'bg-yellow-50 text-yellow-700 border-yellow-100',
                         )}>{tx.status}</span>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <p className="font-mono font-bold text-sm text-primary">{fmt(tx.amount)}</p>
                         <p className="text-[9px] font-bold text-secondary uppercase mt-1">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {tx.status === 'PENDING' && role === 'ceo' && (
+                          <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => handleSettle(tx.id, tx.type)} className="p-1 text-green-600 hover:bg-green-50 rounded" title="Mark Complete">
+                              <CheckCircle2 className="w-4 h-4" />
+                            </button>
+                            <button onClick={async () => { await api.setTransactionStatus(tx.id, 'FAILED'); load(); }} className="p-1 text-red-600 hover:bg-red-50 rounded" title="Mark Failed">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -448,12 +506,19 @@ export default function Transactions() {
                   <div>
                     <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Type *</label>
                     <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
-                      <option>Operational</option>
-                      <option>Income</option>
-                      <option>Expense</option>
-                      <option>Transfer</option>
+                      <option>Receive</option>
+                      <option>Send</option>
                     </select>
                   </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Payment Channel *</label>
+                  <select value={form.channel} onChange={e => setForm({ ...form, channel: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
+                    <option>MTN</option>
+                    <option>Orange</option>
+                    <option>Bank Transfer</option>
+                    <option>Cash</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Description</label>
@@ -461,6 +526,56 @@ export default function Transactions() {
                 </div>
                 <button type="submit" disabled={submitting} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 flex items-center justify-center gap-2">
                   {submitting ? 'Processing...' : 'Submit Transaction'}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
+        {showFloatModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowFloatModal(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30">
+              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
+                <h3 className="text-lg font-bold text-primary">Update Float Balance</h3>
+                <button onClick={() => setShowFloatModal(false)}><X className="w-5 h-5 text-secondary" /></button>
+              </div>
+              <form onSubmit={handleUpdateFloat} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Channel *</label>
+                  <select value={floatForm.channel} onChange={e => setFloatForm({ ...floatForm, channel: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
+                    <option>MTN</option>
+                    <option>Orange</option>
+                    <option>Bank</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Current Balance (XAF) *</label>
+                  <input required type="number" value={floatForm.balance} onChange={e => setFloatForm({ ...floatForm, balance: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="0" min="0" />
+                </div>
+                <button type="submit" disabled={submitting} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 flex items-center justify-center gap-2">
+                  {submitting ? 'Updating...' : 'Set Balance'}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
+        {showChargesModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowChargesModal(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30">
+              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
+                <h3 className="text-lg font-bold text-primary">Complete Send Transaction</h3>
+                <button onClick={() => setShowChargesModal(false)}><X className="w-5 h-5 text-secondary" /></button>
+              </div>
+              <form onSubmit={submitCharges} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Transfer Charges (XAF) *</label>
+                  <input required type="number" value={chargesForm.charges} onChange={e => setChargesForm({ ...chargesForm, charges: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="e.g. 150" min="0" />
+                </div>
+                <button type="submit" disabled={submitting} className="w-full py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 flex items-center justify-center gap-2">
+                  {submitting ? 'Processing...' : 'Confirm & Mark Completed'}
                 </button>
               </form>
             </motion.div>
