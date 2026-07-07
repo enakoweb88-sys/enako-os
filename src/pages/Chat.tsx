@@ -23,6 +23,7 @@ export default function Chat() {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Members panel state
@@ -79,6 +80,11 @@ export default function Chat() {
     sock.on('message:created', (payload: any) => {
       if (payload.channel === activeChannel) {
         setMessages(prev => [...prev, payload]);
+      } else {
+        setUnreadCounts(prev => ({
+          ...prev,
+          [payload.channel]: (prev[payload.channel] || 0) + 1
+        }));
       }
     });
     return () => { sock.off('message:created'); };
@@ -214,14 +220,25 @@ export default function Chat() {
               {channels.map(ch => (
                 <button
                   key={ch.id}
-                  onClick={() => { setActiveChannel(ch.name); setShowMembers(false); }}
+                  onClick={() => { 
+                    setActiveChannel(ch.name); 
+                    setShowMembers(false); 
+                    setUnreadCounts(prev => ({ ...prev, [ch.name]: 0 }));
+                  }}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all text-left',
+                    'w-full flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all text-left',
                     activeChannel === ch.name ? 'bg-white shadow-sm text-primary font-bold' : 'text-secondary hover:bg-surface-container-high',
                   )}
                 >
-                  <Hash className="w-4 h-4" />
-                  <span className="text-xs font-bold uppercase tracking-wider truncate">{ch.name}</span>
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <Hash className="w-4 h-4 shrink-0" />
+                    <span className="text-xs font-bold uppercase tracking-wider truncate">{ch.name}</span>
+                  </div>
+                  {unreadCounts[ch.name] > 0 && (
+                    <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
+                      {unreadCounts[ch.name]}
+                    </span>
+                  )}
                 </button>
               ))}
               {channels.length === 0 && (
