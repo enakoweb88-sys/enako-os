@@ -262,9 +262,13 @@ export default function Chat() {
             const isMe = m.senderId === user?.id;
             return (
               <div key={m.id ?? idx} className={cn('flex gap-4', isMe && 'flex-row-reverse')}>
-                <div className="size-10 rounded-xl bg-primary-container flex items-center justify-center text-white font-bold text-sm shrink-0">
-                  {initials}
-                </div>
+                {m.sender?.avatarUrl ? (
+                  <img src={m.sender.avatarUrl} alt="Avatar" className="size-10 rounded-xl object-cover shrink-0" />
+                ) : (
+                  <div className="size-10 rounded-xl bg-primary-container flex items-center justify-center text-white font-bold text-sm shrink-0">
+                    {initials}
+                  </div>
+                )}
                 <div className={cn('max-w-[70%] space-y-1', isMe && 'items-end flex flex-col')}>
                   <div className={cn('flex items-baseline gap-2', isMe && 'flex-row-reverse')}>
                     <span className="font-bold text-sm text-primary">{name}</span>
@@ -352,9 +356,13 @@ export default function Chat() {
               {members.map(member => (
                 <div key={member.id} className="flex items-center justify-between group">
                   <div className="flex items-center gap-3">
-                    <div className="size-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary text-xs font-bold shrink-0">
-                      {member.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
-                    </div>
+                    {member.avatarUrl ? (
+                      <img src={member.avatarUrl} alt="Avatar" className="size-8 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="size-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                        {member.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-primary truncate">{member.fullName}</p>
                       <p className="text-[10px] text-secondary uppercase">{member.role?.name}</p>

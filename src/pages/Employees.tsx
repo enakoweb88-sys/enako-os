@@ -156,9 +156,13 @@ export default function Employees() {
         <div className="bg-white border border-outline-variant/30 rounded-3xl shadow-sm overflow-hidden flex flex-col md:flex-row">
           {/* Sidebar Area */}
           <div className="w-full md:w-80 bg-surface-container-low border-r border-outline-variant/20 p-8 flex flex-col items-center text-center">
-            <div className="size-32 rounded-3xl bg-primary-fixed flex items-center justify-center font-bold text-primary text-4xl shadow-inner border border-primary/20 mb-6">
-              {data.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
-            </div>
+            {data.avatarUrl ? (
+              <img src={data.avatarUrl} alt="Avatar" className="w-full h-full object-cover rounded-3xl" />
+            ) : (
+              <div className="size-32 rounded-3xl bg-primary-fixed flex items-center justify-center font-bold text-primary text-4xl shadow-inner border border-primary/20 mb-6">
+                {data.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+              </div>
+            )}
             
             {editMode ? (
               <input value={data.fullName} onChange={e => setEditForm({...data, fullName: e.target.value})} className="w-full text-center font-display text-2xl font-bold text-primary bg-surface border border-outline-variant/30 rounded-lg p-2 mb-2" />
@@ -474,9 +478,13 @@ export default function Employees() {
                 <tr key={emp.id} className="hover:bg-surface-container-low/30 transition-colors group">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
-                      <div className="size-10 rounded-xl bg-primary-fixed flex items-center justify-center font-bold text-primary text-sm">
-                        {emp.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
-                      </div>
+                      {emp.avatarUrl ? (
+                        <img src={emp.avatarUrl} alt="Avatar" className="size-10 rounded-xl object-cover" />
+                      ) : (
+                        <div className="size-10 rounded-xl bg-primary-fixed flex items-center justify-center font-bold text-primary text-sm">
+                          {emp.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
                       <div>
                         <p className="text-sm font-bold text-primary">{emp.fullName}</p>
                         <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mt-0.5">{emp.title ?? '—'}</p>
@@ -540,7 +548,7 @@ export default function Employees() {
         {showModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-xl bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-outline-variant/30">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-xl bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-outline-variant/30 flex flex-col max-h-[90vh]">
               <div className="p-8 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
                 <div>
                   <h3 className="text-xl font-bold text-primary">Deploy New Operative</h3>
@@ -550,7 +558,7 @@ export default function Employees() {
                   <X className="w-6 h-6 text-secondary" />
                 </button>
               </div>
-              <form onSubmit={handleCreate} className="p-8 space-y-4">
+              <form onSubmit={handleCreate} className="p-8 space-y-4 overflow-y-auto">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
                     <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Full Name *</label>
@@ -584,9 +592,25 @@ export default function Employees() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Leads Departments</label>
-                    <select multiple value={form.ledDepartments} onChange={e => setForm({ ...form, ledDepartments: Array.from(e.target.selectedOptions, (option: any) => option.value) })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20 h-[52px]">
-                      {['Operations', 'Engineering', 'Finance', 'Compliance', 'Management', 'HR', 'Digital Marketer'].map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
+                    <div className="bg-surface border border-outline-variant/30 rounded-xl p-3 max-h-32 overflow-y-auto space-y-2">
+                      {['Operations', 'Engineering', 'Finance', 'Compliance', 'Management', 'HR', 'Digital Marketer'].map(d => (
+                        <label key={d} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-surface-container-low p-1 rounded">
+                          <input 
+                            type="checkbox" 
+                            checked={form.ledDepartments.includes(d)}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setForm({
+                                ...form,
+                                ledDepartments: checked ? [...form.ledDepartments, d] : form.ledDepartments.filter(dep => dep !== d)
+                              });
+                            }}
+                            className="rounded border-outline-variant/30 text-primary focus:ring-primary"
+                          />
+                          {d} Head
+                        </label>
+                      ))}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Employment Type</label>
