@@ -85,11 +85,16 @@ export default function StaffMeals() {
         </div>
         <div className="flex gap-3">
           {role !== 'employee' && (
-            <button onClick={() => setShowModal(true)} className="bg-primary text-white px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 hover:shadow-lg transition-all">
-              <ClipboardPen className="w-4 h-4" /> Log Entry
-            </button>
+            <>
+              <button onClick={() => window.print()} className="bg-surface-container-high text-primary px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-outline-variant/30 transition-all print:hidden">
+                Download PDF
+              </button>
+              <button onClick={() => setShowModal(true)} className="bg-primary text-white px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 hover:shadow-lg transition-all print:hidden">
+                <ClipboardPen className="w-4 h-4" /> Log Entry
+              </button>
+            </>
           )}
-          <button onClick={load} className="p-2.5 border border-outline-variant/30 rounded-xl text-secondary hover:bg-surface-container transition-all">
+          <button onClick={load} className="p-2.5 border border-outline-variant/30 rounded-xl text-secondary hover:bg-surface-container transition-all print:hidden">
             <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
           </button>
         </div>
@@ -129,7 +134,7 @@ export default function StaffMeals() {
 
         {/* Employee quick-log (employee role) */}
         {role === 'employee' && (
-          <div className="col-span-12 lg:col-span-4 bg-primary-fixed border border-outline-variant p-8 rounded-2xl shadow-sm">
+          <div className="col-span-12 lg:col-span-4 bg-primary-fixed border border-outline-variant p-8 rounded-2xl shadow-sm print:hidden">
             <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-8 block">QUICK CHECK-IN</span>
             <div className="space-y-4 mb-8">
               <p className="text-secondary text-sm">Click below to log today's meal entry.</p>
@@ -149,7 +154,7 @@ export default function StaffMeals() {
         )}
 
         {/* Dispute panel */}
-        <div className="col-span-12 lg:col-span-4 bg-primary-fixed text-primary p-8 rounded-2xl border border-outline-variant shadow-sm relative overflow-hidden">
+        <div className="col-span-12 lg:col-span-4 bg-primary-fixed text-primary p-8 rounded-2xl border border-outline-variant shadow-sm relative overflow-hidden print:hidden">
           <div className="absolute -right-4 -top-4 opacity-10"><UtensilsCrossed size={140} /></div>
           <div className="relative z-10">
             <span className="text-[10px] font-bold opacity-70 block mb-6 uppercase tracking-[0.2em]">SYSTEM STATUS</span>

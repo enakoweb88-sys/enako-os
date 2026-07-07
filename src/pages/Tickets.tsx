@@ -5,13 +5,27 @@ import { cn } from '../lib/utils';
 import { api } from '../lib/api';
 import { toast } from 'sonner';
 
+// Define type for ticket to avoid any
+type Ticket = {
+  id: string;
+  subject: string;
+  description: string;
+  customer: string;
+  clientEmail: string;
+  status: string;
+  createdAt: string;
+  replies: any[];
+};
+
 export default function Tickets() {
   const [data, setData] = useState<any>({ counts: {}, items: [] });
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [viewTicket, setViewTicket] = useState<any>(null);
+  const [viewTicket, setViewTicket] = useState<Ticket | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ subject: '', description: '', priority: 'Normal' });
+  const [replyMessage, setReplyMessage] = useState('');
+  const [replying, setReplying] = useState(false);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +40,36 @@ export default function Tickets() {
       toast.error(e.message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!viewTicket || !replyMessage.trim()) return;
+    setReplying(true);
+    try {
+      const url = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1');
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${url}/tickets/${viewTicket.id}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ message: replyMessage })
+      });
+      if (!res.ok) throw new Error('Failed to send reply');
+      const reply = await res.json();
+      
+      setViewTicket(prev => prev ? { 
+        ...prev, 
+        status: 'Resolved',
+        replies: [...(prev.replies || []), reply]
+      } : null);
+      setReplyMessage('');
+      toast.success('Reply sent successfully');
+      load();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setReplying(false);
     }
   };
 
@@ -206,25 +250,46 @@ export default function Tickets() {
                   <div className="space-y-4">
                     <div className="flex gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary-container text-white flex items-center justify-center text-xs font-bold shrink-0">
-                        {viewTicket.clientEmail.substring(0, 2).toUpperCase()}
+                        {viewTicket.clientEmail.substring(0, 2).toUpperCase() || '?'}
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-primary">{viewTicket.clientEmail}</p>
+                        <p className="text-xs font-bold text-primary">{viewTicket.customer || viewTicket.clientEmail}</p>
                         <p className="text-sm text-secondary mt-1">Ticket was opened via support portal.</p>
                         <p className="text-[9px] text-outline mt-1 uppercase">{new Date(viewTicket.createdAt).toLocaleString()}</p>
                       </div>
                     </div>
+                    {viewTicket.replies?.map((r: any) => (
+                      <div key={r.id} className="flex gap-3">
+                        <div className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
+                          r.isAdmin ? "bg-primary text-white" : "bg-primary-container text-white"
+                        )}>
+                          {r.isAdmin ? 'EN' : viewTicket.clientEmail.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div className="flex-1 bg-surface-container-low rounded-xl p-3">
+                          <p className="text-xs font-bold text-primary mb-1">{r.isAdmin ? 'ENAKO Support' : (viewTicket.customer || viewTicket.clientEmail)}</p>
+                          <p className="text-sm text-on-surface whitespace-pre-wrap">{r.message}</p>
+                          <p className="text-[9px] text-outline mt-2 uppercase">{new Date(r.createdAt).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
 
               <div className="p-4 border-t border-outline-variant/30 bg-surface-container-low">
-                <div className="flex items-end gap-3 bg-white border border-outline-variant/30 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary transition-all">
-                  <textarea rows={1} className="flex-1 bg-transparent border-none focus:ring-0 text-sm resize-none placeholder-outline outline-none min-h-[40px] p-2" placeholder="Write a reply..." />
-                  <button className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:opacity-90 shrink-0 mb-0.5">
+                <form onSubmit={handleReply} className="flex items-end gap-3 bg-white border border-outline-variant/30 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary transition-all">
+                  <textarea 
+                    value={replyMessage}
+                    onChange={e => setReplyMessage(e.target.value)}
+                    rows={1} 
+                    className="flex-1 bg-transparent border-none focus:ring-0 text-sm resize-none placeholder-outline outline-none min-h-[40px] p-2" 
+                    placeholder="Write a reply..." 
+                  />
+                  <button type="submit" disabled={replying || !replyMessage.trim()} className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:opacity-90 shrink-0 mb-0.5 disabled:opacity-50">
                     <Send className="w-4 h-4" />
                   </button>
-                </div>
+                </form>
               </div>
             </motion.div>
           </div>
