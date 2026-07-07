@@ -416,6 +416,7 @@ export default function KYC() {
                             </div>
                             <div className="flex-1 overflow-auto bg-slate-50 flex items-center justify-center p-4">
                               {isImageUrl(activeDocument) ? (
+                                <>
                                 <img
                                   src={getFileUrl(activeDocument.fileUrl)}
                                   alt={activeDocument.documentType}
@@ -434,6 +435,8 @@ export default function KYC() {
                                     Download Instead
                                   </button>
                                 </div>
+                                </>
+
                               ) : isPdfUrl(activeDocument) ? (
                                 <iframe src={getFileUrl(activeDocument.fileUrl)} className="w-full h-full rounded border-none" title={activeDocument.fileName} />
                               ) : (
