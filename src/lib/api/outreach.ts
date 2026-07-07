@@ -1,12 +1,6 @@
-import { api } from './core';
+import { apiRequest } from './core';
 
 export const outreachAPI = {
-  getDonations: async () => {
-    const { data } = await api.get('/outreach/donations');
-    return data;
-  },
-  getStats: async () => {
-    const { data } = await api.get('/outreach/stats');
-    return data;
-  },
+  getDonations: () => apiRequest<any>('/outreach/donations'),
+  getStats: () => apiRequest<any>('/outreach/stats'),
 };
