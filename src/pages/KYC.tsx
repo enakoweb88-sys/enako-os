@@ -29,6 +29,7 @@ const isPdfUrl = (doc: any) => {
 };
 
 const handleDownload = async (doc: any) => {
+  if (!doc.fileUrl) return;
   try {
     const url = getFileUrl(doc.fileUrl);
     const response = await fetch(url);
@@ -395,11 +396,13 @@ export default function KYC() {
                               'px-4 py-2.5 flex items-center gap-2 rounded-xl border text-[11px] font-bold uppercase tracking-widest transition-all whitespace-nowrap',
                               activeDocument?.id === doc.id
                                 ? 'bg-primary text-white border-primary shadow-sm'
-                                : 'bg-surface-container-low text-secondary border-outline-variant/30 hover:bg-surface-container hover:text-primary'
+                                : 'bg-surface-container-low text-secondary border-outline-variant/30 hover:bg-surface-container hover:text-primary',
+                              !doc.fileUrl && 'opacity-60'
                             )}
                           >
                             <FileSearch className="w-4 h-4" />
                             {doc.documentType}
+                            {!doc.fileUrl && <span className="text-[8px] ml-1 opacity-70">⚠</span>}
                           </button>
                         ))}
                       </div>
@@ -407,49 +410,65 @@ export default function KYC() {
                       {/* Inline Viewer */}
                       <div className="flex-1 p-6 flex flex-col items-center justify-center relative overflow-hidden bg-surface-container-low">
                         {activeDocument ? (
-                          <div className="w-full h-full bg-white rounded-2xl border border-outline-variant/30 shadow-sm overflow-hidden flex flex-col">
-                            <div className="p-4 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low shrink-0">
-                              <p className="text-xs font-bold text-primary truncate max-w-[70%]">{activeDocument.fileName}</p>
-                              <button onClick={() => handleDownload(activeDocument)} className="flex items-center gap-1.5 text-[10px] font-bold text-primary bg-primary-fixed px-3 py-1.5 rounded-lg hover:bg-primary-fixed/80 transition-colors uppercase tracking-widest">
-                                <Download className="w-3 h-3" /> Download
-                              </button>
+                          !activeDocument.fileUrl ? (
+                            /* No file URL — metadata-only record */
+                            <div className="text-center space-y-4">
+                              <div className="w-20 h-20 bg-yellow-50 rounded-2xl flex items-center justify-center mx-auto border border-yellow-200">
+                                <AlertTriangle className="w-10 h-10 text-yellow-500" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-primary">{activeDocument.fileName}</p>
+                                <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mt-1">{activeDocument.documentType}</p>
+                              </div>
+                              <p className="text-xs text-secondary max-w-[280px] mx-auto">
+                                This document record was submitted but the file was not uploaded successfully. The applicant may need to re-submit this document.
+                              </p>
                             </div>
-                            <div className="flex-1 overflow-auto bg-slate-50 flex items-center justify-center p-4">
-                              {isImageUrl(activeDocument) ? (
-                                <>
-                                <img
-                                  src={getFileUrl(activeDocument.fileUrl)}
-                                  alt={activeDocument.documentType}
-                                  className="max-w-full max-h-full object-contain rounded shadow-sm border border-outline-variant/20"
-                                  onError={(e) => {
-                                    const target = e.currentTarget;
-                                    target.style.display = 'none';
-                                    const fallback = target.nextElementSibling as HTMLElement;
-                                    if (fallback) fallback.style.display = 'flex';
-                                  }}
-                                />
-                                <div className="hidden flex-col items-center text-center space-y-4">
-                                  <FileText className="w-16 h-16 text-outline-variant" />
-                                  <p className="text-sm font-medium text-secondary">Image could not be loaded.</p>
-                                  <button onClick={() => handleDownload(activeDocument)} className="inline-block px-4 py-2 bg-primary text-white text-xs font-bold uppercase tracking-widest rounded-lg">
-                                    Download Instead
-                                  </button>
-                                </div>
-                                </>
-
-                              ) : isPdfUrl(activeDocument) ? (
-                                <iframe src={getFileUrl(activeDocument.fileUrl)} className="w-full h-full rounded border-none" title={activeDocument.fileName} />
-                              ) : (
-                                <div className="text-center space-y-4">
-                                  <FileText className="w-16 h-16 text-outline-variant mx-auto" />
-                                  <p className="text-sm font-medium text-secondary">Preview not available for this file type.</p>
-                                  <button onClick={() => handleDownload(activeDocument)} className="inline-block px-4 py-2 bg-primary text-white text-xs font-bold uppercase tracking-widest rounded-lg">
-                                    Download File
-                                  </button>
-                                </div>
-                              )}
+                          ) : (
+                            /* Has file URL — show viewer */
+                            <div className="w-full h-full bg-white rounded-2xl border border-outline-variant/30 shadow-sm overflow-hidden flex flex-col">
+                              <div className="p-4 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low shrink-0">
+                                <p className="text-xs font-bold text-primary truncate max-w-[70%]">{activeDocument.fileName}</p>
+                                <button onClick={() => handleDownload(activeDocument)} className="flex items-center gap-1.5 text-[10px] font-bold text-primary bg-primary-fixed px-3 py-1.5 rounded-lg hover:bg-primary-fixed/80 transition-colors uppercase tracking-widest">
+                                  <Download className="w-3 h-3" /> Download
+                                </button>
+                              </div>
+                              <div className="flex-1 overflow-auto bg-slate-50 flex items-center justify-center p-4">
+                                {isImageUrl(activeDocument) ? (
+                                  <>
+                                  <img
+                                    src={getFileUrl(activeDocument.fileUrl)}
+                                    alt={activeDocument.documentType}
+                                    className="max-w-full max-h-full object-contain rounded shadow-sm border border-outline-variant/20"
+                                    onError={(e) => {
+                                      const target = e.currentTarget;
+                                      target.style.display = 'none';
+                                      const fallback = target.nextElementSibling as HTMLElement;
+                                      if (fallback) fallback.style.display = 'flex';
+                                    }}
+                                  />
+                                  <div className="hidden flex-col items-center text-center space-y-4">
+                                    <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto border border-red-200">
+                                      <XCircle className="w-8 h-8 text-red-400" />
+                                    </div>
+                                    <p className="text-sm font-medium text-secondary">This document could not be loaded.</p>
+                                    <p className="text-[10px] text-secondary max-w-[240px]">The file may have been lost during a server update. The applicant may need to re-submit.</p>
+                                  </div>
+                                  </>
+                                ) : isPdfUrl(activeDocument) ? (
+                                  <iframe src={getFileUrl(activeDocument.fileUrl)} className="w-full h-full rounded border-none" title={activeDocument.fileName} />
+                                ) : (
+                                  <div className="text-center space-y-4">
+                                    <FileText className="w-16 h-16 text-outline-variant mx-auto" />
+                                    <p className="text-sm font-medium text-secondary">Preview not available for this file type.</p>
+                                    <button onClick={() => handleDownload(activeDocument)} className="inline-block px-4 py-2 bg-primary text-white text-xs font-bold uppercase tracking-widest rounded-lg">
+                                      Download File
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
+                          )
                         ) : (
                           <div className="text-center text-secondary">
                             <FileSearch className="w-16 h-16 opacity-20 mx-auto mb-4" />
@@ -474,3 +493,4 @@ export default function KYC() {
     </div>
   );
 }
+
