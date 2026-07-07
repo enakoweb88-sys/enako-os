@@ -16,6 +16,38 @@ const getFileUrl = (url: string) => {
   return `${baseUrl}${url.startsWith('/') ? url : '/' + url}`;
 };
 
+const isImageUrl = (doc: any) => {
+  if (doc.mimeType && doc.mimeType.startsWith('image/')) return true;
+  const url = (doc.fileUrl || '').split('?')[0].toLowerCase();
+  return /\.(jpeg|jpg|gif|png|webp|svg|bmp|tiff?)$/.test(url);
+};
+
+const isPdfUrl = (doc: any) => {
+  if (doc.mimeType === 'application/pdf') return true;
+  const url = (doc.fileUrl || '').split('?')[0].toLowerCase();
+  return /\.pdf$/.test(url);
+};
+
+const handleDownload = async (doc: any) => {
+  try {
+    const url = getFileUrl(doc.fileUrl);
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Download failed');
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = doc.fileName || 'document';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  } catch {
+    // Fallback: open in new tab
+    window.open(getFileUrl(doc.fileUrl), '_blank');
+  }
+};
+
 export default function KYC() {
   const { user } = useAuth();
   const role = user?.role?.toLowerCase() ?? 'employee';
@@ -378,23 +410,39 @@ export default function KYC() {
                           <div className="w-full h-full bg-white rounded-2xl border border-outline-variant/30 shadow-sm overflow-hidden flex flex-col">
                             <div className="p-4 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low shrink-0">
                               <p className="text-xs font-bold text-primary truncate max-w-[70%]">{activeDocument.fileName}</p>
-                              <a href={getFileUrl(activeDocument.fileUrl)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-[10px] font-bold text-primary bg-primary-fixed px-3 py-1.5 rounded-lg hover:bg-primary-fixed/80 transition-colors uppercase tracking-widest">
+                              <button onClick={() => handleDownload(activeDocument)} className="flex items-center gap-1.5 text-[10px] font-bold text-primary bg-primary-fixed px-3 py-1.5 rounded-lg hover:bg-primary-fixed/80 transition-colors uppercase tracking-widest">
                                 <Download className="w-3 h-3" /> Download
-                              </a>
+                              </button>
                             </div>
                             <div className="flex-1 overflow-auto bg-slate-50 flex items-center justify-center p-4">
-                              {/* Simple check if image, otherwise fallback to link/iframe */}
-                              {activeDocument.fileUrl.match(/\.(jpeg|jpg|gif|png|webp|svg|blob)$/i) || activeDocument.fileUrl.startsWith('blob:') ? (
-                                <img src={getFileUrl(activeDocument.fileUrl)} alt={activeDocument.documentType} className="max-w-full max-h-full object-contain rounded shadow-sm border border-outline-variant/20" />
-                              ) : activeDocument.fileUrl.match(/\.(pdf)$/i) ? (
+                              {isImageUrl(activeDocument) ? (
+                                <img
+                                  src={getFileUrl(activeDocument.fileUrl)}
+                                  alt={activeDocument.documentType}
+                                  className="max-w-full max-h-full object-contain rounded shadow-sm border border-outline-variant/20"
+                                  onError={(e) => {
+                                    const target = e.currentTarget;
+                                    target.style.display = 'none';
+                                    const fallback = target.nextElementSibling as HTMLElement;
+                                    if (fallback) fallback.style.display = 'flex';
+                                  }}
+                                />
+                                <div className="hidden flex-col items-center text-center space-y-4">
+                                  <FileText className="w-16 h-16 text-outline-variant" />
+                                  <p className="text-sm font-medium text-secondary">Image could not be loaded.</p>
+                                  <button onClick={() => handleDownload(activeDocument)} className="inline-block px-4 py-2 bg-primary text-white text-xs font-bold uppercase tracking-widest rounded-lg">
+                                    Download Instead
+                                  </button>
+                                </div>
+                              ) : isPdfUrl(activeDocument) ? (
                                 <iframe src={getFileUrl(activeDocument.fileUrl)} className="w-full h-full rounded border-none" title={activeDocument.fileName} />
                               ) : (
                                 <div className="text-center space-y-4">
                                   <FileText className="w-16 h-16 text-outline-variant mx-auto" />
                                   <p className="text-sm font-medium text-secondary">Preview not available for this file type.</p>
-                                  <a href={getFileUrl(activeDocument.fileUrl)} target="_blank" rel="noopener noreferrer" className="inline-block px-4 py-2 bg-primary text-white text-xs font-bold uppercase tracking-widest rounded-lg">
-                                    Open File
-                                  </a>
+                                  <button onClick={() => handleDownload(activeDocument)} className="inline-block px-4 py-2 bg-primary text-white text-xs font-bold uppercase tracking-widest rounded-lg">
+                                    Download File
+                                  </button>
                                 </div>
                               )}
                             </div>
