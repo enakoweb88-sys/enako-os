@@ -6,14 +6,26 @@ export default function OutreachEvents() {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [form, setForm] = useState({
     title: '',
     titleFr: '',
     description: '',
     descriptionFr: '',
     type: 'SCHOLARSHIP',
-    targetSchools: '' // Comma separated
+    customType: '',
+    targetSchools: '', // Comma separated
+    videoUrl: '',
+    storyTitle: '',
+    storyTitleFr: '',
+    storyDescription: '',
+    storyDescriptionFr: '',
+    storyMediaType: 'IMAGE',
   });
+
+  const [storyMediaBase64, setStoryMediaBase64] = useState<string | null>(null);
+  const [gallery, setGallery] = useState<any[]>([]); // [{ fileBase64: string, name: string, caption: '', captionFr: '' }]
 
   const fetchEvents = async () => {
     try {
@@ -30,20 +42,108 @@ export default function OutreachEvents() {
     fetchEvents();
   }, []);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        callback(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleGalleryFileChange = (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setGallery(prev => {
+          const updated = [...prev];
+          updated[idx] = {
+            ...updated[idx],
+            fileBase64: reader.result as string,
+            name: file.name
+          };
+          return updated;
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const addGalleryItem = () => {
+    setGallery(prev => [...prev, { fileBase64: '', name: '', caption: '', captionFr: '' }]);
+  };
+
+  const removeGalleryItem = (idx: number) => {
+    setGallery(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleGalleryTextChange = (idx: number, field: string, value: string) => {
+    setGallery(prev => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], [field]: value };
+      return updated;
+    });
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       const targetSchools = form.targetSchools.split(',').map(s => s.trim()).filter(s => s);
-      await outreachAPI.createEvent({
-        ...form,
-        targetSchools
-      });
-      toast.success('Scholarship Event created!');
+      const selectedType = form.type === 'CUSTOM' ? form.customType.toUpperCase().replace(/\s+/g, '_') : form.type;
+      
+      const payload = {
+        title: form.title,
+        titleFr: form.titleFr,
+        description: form.description,
+        descriptionFr: form.descriptionFr,
+        type: selectedType,
+        targetSchools,
+        videoUrl: form.videoUrl || null,
+        storyTitle: form.storyTitle || null,
+        storyTitleFr: form.storyTitleFr || null,
+        storyDescription: form.storyDescription || null,
+        storyDescriptionFr: form.storyDescriptionFr || null,
+        storyMediaType: form.storyMediaType || null,
+        storyMediaBase64,
+        gallery: gallery.filter(g => g.fileBase64).map(g => ({
+          fileBase64: g.fileBase64,
+          caption: g.caption,
+          captionFr: g.captionFr
+        }))
+      };
+
+      await outreachAPI.createEvent(payload);
+      toast.success('Outreach Event created successfully!');
+      
+      // Reset State
       setIsModalOpen(false);
-      setForm({ title: '', titleFr: '', description: '', descriptionFr: '', type: 'SCHOLARSHIP', targetSchools: '' });
+      setForm({
+        title: '',
+        titleFr: '',
+        description: '',
+        descriptionFr: '',
+        type: 'SCHOLARSHIP',
+        customType: '',
+        targetSchools: '',
+        videoUrl: '',
+        storyTitle: '',
+        storyTitleFr: '',
+        storyDescription: '',
+        storyDescriptionFr: '',
+        storyMediaType: 'IMAGE',
+      });
+      setStoryMediaBase64(null);
+      setGallery([]);
+      
       fetchEvents();
     } catch (err) {
       toast.error('Failed to create event');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -121,7 +221,7 @@ export default function OutreachEvents() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-outline-variant/30 flex justify-between items-center">
-              <h3 className="font-display text-xl font-bold text-primary">Create Scholarship</h3>
+              <h3 className="font-display text-xl font-bold text-primary">Create Outreach Event</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-secondary hover:text-primary">&times;</button>
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-4">
@@ -145,12 +245,118 @@ export default function OutreachEvents() {
                   <textarea required value={form.descriptionFr} onChange={e => setForm({...form, descriptionFr: e.target.value})} className="w-full border p-2 rounded h-24" />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-semibold mb-1">Target Schools (Comma separated)</label>
-                <input required value={form.targetSchools} onChange={e => setForm({...form, targetSchools: e.target.value})} type="text" className="w-full border p-2 rounded" placeholder="e.g. University of Buea, UB, Douala University" />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold mb-1">Event Category / Type</label>
+                  <select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="w-full border p-2 rounded bg-white">
+                    <option value="SCHOLARSHIP">Scholarship Support</option>
+                    <option value="CLEAN_WATER">Clean Water Initiative</option>
+                    <option value="HEALTHCARE">Community Health Support</option>
+                    <option value="WOMEN_MOTHERS">Single Mothers Assistance</option>
+                    <option value="COMMUNITY_RELIEF">Community Relief</option>
+                    <option value="FUNDRAISER">General Fundraiser</option>
+                    <option value="CUSTOM">Custom / New Category</option>
+                  </select>
+                </div>
+                {form.type === 'CUSTOM' && (
+                  <div>
+                    <label className="block text-sm font-semibold mb-1">Custom Category Name</label>
+                    <input required value={form.customType} onChange={e => setForm({...form, customType: e.target.value})} type="text" className="w-full border p-2 rounded" placeholder="e.g. SOLAR_POWER" />
+                  </div>
+                )}
               </div>
-              <div className="flex justify-end pt-4">
-                <button type="submit" className="bg-primary text-white px-6 py-2 rounded-lg font-bold">Create</button>
+
+              {form.type === 'SCHOLARSHIP' ? (
+                <div>
+                  <label className="block text-sm font-semibold mb-1">Target Schools (Comma separated)</label>
+                  <input required value={form.targetSchools} onChange={e => setForm({...form, targetSchools: e.target.value})} type="text" className="w-full border p-2 rounded" placeholder="e.g. University of Buea, UB, Douala University" />
+                </div>
+              ) : (
+                <div className="space-y-4 pt-2 border-t border-outline-variant/30">
+                  <h4 className="font-bold text-sm text-primary">Media & Gallery Section</h4>
+                  <div>
+                    <label className="block text-sm font-semibold mb-1">Featured Video Link (Optional)</label>
+                    <input value={form.videoUrl} onChange={e => setForm({...form, videoUrl: e.target.value})} type="text" className="w-full border p-2 rounded" placeholder="https://youtube.com/watch?v=..." />
+                  </div>
+
+                  {/* Story Section */}
+                  <div className="border border-outline-variant/30 p-3 rounded-lg space-y-3 bg-slate-50">
+                    <h5 className="font-semibold text-xs text-primary">Impact Story Card</h5>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold mb-1">Story Title (EN)</label>
+                        <input value={form.storyTitle} onChange={e => setForm({...form, storyTitle: e.target.value})} type="text" className="w-full border p-2 rounded text-xs" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1">Story Title (FR)</label>
+                        <input value={form.storyTitleFr} onChange={e => setForm({...form, storyTitleFr: e.target.value})} type="text" className="w-full border p-2 rounded text-xs" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold mb-1">Story Body (EN)</label>
+                        <textarea value={form.storyDescription} onChange={e => setForm({...form, storyDescription: e.target.value})} className="w-full border p-2 rounded text-xs h-16" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1">Story Body (FR)</label>
+                        <textarea value={form.storyDescriptionFr} onChange={e => setForm({...form, storyDescriptionFr: e.target.value})} className="w-full border p-2 rounded text-xs h-16" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold mb-1">Story File Upload</label>
+                        <input type="file" accept="image/*,video/*" onChange={e => handleFileChange(e, (base64) => setStoryMediaBase64(base64))} className="w-full text-xs" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1">Story File Type</label>
+                        <select value={form.storyMediaType} onChange={e => setForm({...form, storyMediaType: e.target.value})} className="w-full border p-1 rounded text-xs bg-white">
+                          <option value="IMAGE">Image</option>
+                          <option value="VIDEO">Video</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Gallery Items */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <h5 className="font-semibold text-xs text-primary">Event Image Gallery</h5>
+                      <button type="button" onClick={addGalleryItem} className="text-xs font-bold text-blue-600 hover:underline">+ Add Gallery Image</button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {gallery.map((item, idx) => (
+                        <div key={idx} className="border p-3 rounded space-y-2 bg-slate-50 relative">
+                          <button type="button" onClick={() => removeGalleryItem(idx)} className="absolute top-2 right-2 text-red-500 text-sm font-bold">&times;</button>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-semibold mb-1">Select File</label>
+                              <input required type="file" accept="image/*" onChange={e => handleGalleryFileChange(idx, e)} className="w-full text-xs" />
+                              {item.name && <span className="text-[10px] text-green-600 font-bold block mt-1">{item.name}</span>}
+                            </div>
+                            <div className="space-y-2">
+                              <div>
+                                <label className="block text-[10px] font-semibold mb-0.5">Caption (EN)</label>
+                                <input required value={item.caption} onChange={e => handleGalleryTextChange(idx, 'caption', e.target.value)} type="text" className="w-full border p-1 rounded text-xs" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold mb-0.5">Caption (FR)</label>
+                                <input required value={item.captionFr} onChange={e => handleGalleryTextChange(idx, 'captionFr', e.target.value)} type="text" className="w-full border p-1 rounded text-xs" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-4 border-t border-outline-variant/30">
+                <button type="submit" disabled={isSubmitting} className="bg-primary text-white px-6 py-2 rounded-lg font-bold disabled:bg-gray-400">
+                  {isSubmitting ? 'Creating...' : 'Create Event'}
+                </button>
               </div>
             </form>
           </div>
