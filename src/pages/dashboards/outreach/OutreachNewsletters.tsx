@@ -1,8 +1,29 @@
+import { useState } from 'react';
 import { toast } from 'sonner';
+import { apiRequest } from '../../../lib/api';
 
 export default function OutreachNewsletters() {
-  const handleSendNewsletter = () => {
-    toast.success('Newsletter broadcast dispatched successfully.');
+  const [audience, setAudience] = useState('ALL');
+  const [subject, setSubject] = useState('');
+  const [body, setBody] = useState('');
+  const [isSending, setIsSending] = useState(false);
+
+  const handleSendNewsletter = async () => {
+    if (!subject || !body) return toast.error('Subject and body are required.');
+    setIsSending(true);
+    try {
+      const res = await apiRequest<any>('/outreach/newsletters/send', {
+        method: 'POST',
+        body: JSON.stringify({ subject, body, audience })
+      });
+      toast.success(res.message || `Dispatched to ${res.recipientsCount} recipients.`);
+      setSubject('');
+      setBody('');
+    } catch (e) {
+      toast.error('Failed to dispatch newsletter');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -12,15 +33,28 @@ export default function OutreachNewsletters() {
           <h3 className="font-display text-xl font-bold text-primary mb-6">Compose Newsletter</h3>
           <div className="space-y-4">
             <div>
+              <label className="block text-[11px] font-bold text-secondary uppercase tracking-wider mb-2">Target Audience</label>
+              <select value={audience} onChange={e => setAudience(e.target.value)} className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg px-4 py-2 text-sm focus:outline-none mb-4">
+                <option value="ALL">All Groups</option>
+                <option value="SUBSCRIBERS">General Subscribers</option>
+                <option value="DONATORS">Donators</option>
+                <option value="SCHOLARSHIPS">Scholarship Applicants</option>
+                <option value="VOLUNTEERS">Voluntary Workers</option>
+                <option value="FAMILIES">Families In Need</option>
+              </select>
+            </div>
+            <div>
               <label className="block text-[11px] font-bold text-secondary uppercase tracking-wider mb-2">Subject (English & French)</label>
-              <input type="text" className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg px-4 py-2 text-sm focus:outline-none" placeholder="Enter newsletter subject..." />
+              <input value={subject} onChange={e => setSubject(e.target.value)} type="text" className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg px-4 py-2 text-sm focus:outline-none" placeholder="Enter newsletter subject..." />
             </div>
             <div>
               <label className="block text-[11px] font-bold text-secondary uppercase tracking-wider mb-2">Message Body</label>
-              <textarea className="w-full h-40 bg-surface-container-low border border-outline-variant/30 rounded-lg px-4 py-3 text-sm focus:outline-none resize-none" placeholder="Write your newsletter content here..." />
+              <textarea value={body} onChange={e => setBody(e.target.value)} className="w-full h-40 bg-surface-container-low border border-outline-variant/30 rounded-lg px-4 py-3 text-sm focus:outline-none resize-none" placeholder="Write your newsletter content here..." />
             </div>
             <div className="flex justify-end pt-4 border-t border-outline-variant/50">
-              <button onClick={handleSendNewsletter} className="bg-primary text-white px-6 py-2 rounded-lg font-bold hover:bg-primary/90">Send to 0 Subscribers</button>
+              <button disabled={isSending} onClick={handleSendNewsletter} className="bg-primary text-white px-6 py-2 rounded-lg font-bold hover:bg-primary/90 disabled:opacity-50">
+                {isSending ? 'Dispatching...' : 'Dispatch Newsletter'}
+              </button>
             </div>
           </div>
         </div>

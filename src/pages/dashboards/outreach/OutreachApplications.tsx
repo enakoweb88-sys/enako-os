@@ -1,9 +1,17 @@
 import { Filter } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { useState, useEffect } from 'react';
+import { apiRequest } from '../../../lib/api';
+
 export default function OutreachApplications() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const applications: any[] = [];
+  const [applications, setApplications] = useState<any[]>([]);
+
+  useEffect(() => {
+    apiRequest<any[]>('/outreach/applications')
+      .then(setApplications)
+      .catch(err => toast.error('Failed to load applications'));
+  }, []);
 
   const handleVerify = (id: number) => {
     toast.success(`Application #${id} verified and forwarded to Executive Review.`);
@@ -31,18 +39,26 @@ export default function OutreachApplications() {
           <tbody>
             {applications.map(app => (
               <tr key={app.id} className="border-b border-outline-variant/20 last:border-0">
-                <td className="py-4 font-bold text-primary">{app.name}</td>
-                <td className="py-4 text-sm text-secondary">{app.level}</td>
-                <td className="py-4 text-sm text-secondary">{app.date}</td>
+                <td className="py-4 font-bold text-primary">
+                  {app.applicantName}
+                  <div className="text-xs text-secondary font-normal">{app.type}</div>
+                </td>
+                <td className="py-4 text-sm text-secondary">{app.level !== 'NONE' ? app.level : '-'}</td>
+                <td className="py-4 text-sm text-secondary">{new Date(app.createdAt).toLocaleDateString()}</td>
                 <td className="py-4">
                   <span className={`px-2 py-1 rounded text-xs font-bold ${app.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
                     {app.status.replace(/_/g, ' ')}
                   </span>
                 </td>
                 <td className="py-4 text-right">
+                  {app.documents && app.documents.length > 0 && (
+                    <a href={app.documents[0]} target="_blank" rel="noopener noreferrer" className="mr-3 text-primary text-xs underline font-bold">
+                      View Doc
+                    </a>
+                  )}
                   {app.status === 'PENDING' && (
                     <button onClick={() => handleVerify(app.id)} className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-700">
-                      Verify & Forward
+                      Verify
                     </button>
                   )}
                 </td>

@@ -24,6 +24,7 @@ import {
 import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { api } from '../lib/api';
 import { toast } from 'sonner';
 
 export default function Profile() {
@@ -33,10 +34,43 @@ export default function Profile() {
   const userName = user?.fullName ?? 'Executive';
   const userEmail = user?.email ?? '';
 
-  const [showCredModal, setShowCredModal] = useState(false);
   const [showCertModal, setShowCertModal] = useState(false);
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [pauseTimer, setPauseTimer] = useState(0);
+  const [stats, setStats] = useState<any>(null);
+  const [activeTimer, setActiveTimer] = useState('00:00:00');
+
+  useEffect(() => {
+    api.getProfileStats().then(setStats).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (pauseTimer) return;
+    const startTime = stats?.activeTask?.startedAt ? new Date(stats.activeTask.startedAt).getTime() : new Date(user?.createdAt || Date.now()).getTime();
+    
+    const updateTimer = () => {
+      const diff = Math.max(0, Date.now() - startTime);
+      const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
+      const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
+      const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+      setActiveTimer(`${h}:${m}:${s}`);
+    };
+    
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [stats, pauseTimer, user?.createdAt]);
+
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editName, setEditName] = useState(userName);
+  const [editPhone, setEditPhone] = useState(user?.phone || '');
+  const [editTitle, setEditTitle] = useState(user?.title || '');
+  const [updatingProfile, setUpdatingProfile] = useState(false);
+
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -49,45 +83,44 @@ export default function Profile() {
     setPauseTimer(Date.now());
   };
 
-  const handleCredChange = (e: React.FormEvent) => {
-    e.preventDefault();
-    setShowCredModal(false);
-    toast.success('Credentials change request submitted to IT.');
-  };
-
   const getRoleSpecificData = () => {
+    const completion = stats ? `${stats.taskCompletion}%` : '0%';
+    const goals = stats ? `${stats.completedGoals}/${stats.totalGoals}` : '0/0';
+    const uptime = stats ? `${stats.networkUptime}%` : '99.9%';
+    const badges = stats?.badges || [];
+
     switch (role) {
       case 'ceo':
         return {
           title: 'Strategic Overseer',
           stats: [
-            { label: 'Company Stability', value: '0.00%', icon: Shield, color: 'text-primary' },
-            { label: 'Global Compliance', value: 'Lvl 0', icon: Globe, color: 'text-secondary' },
-            { label: 'Executive Tenure', value: '0 Days', icon: Clock, color: 'text-tertiary' },
+            { label: 'Company Stability', value: uptime, icon: Shield, color: 'text-primary' },
+            { label: 'Goals Reached', value: goals, icon: Target, color: 'text-secondary' },
+            { label: 'Task Completion', value: completion, icon: CheckCircle2, color: 'text-tertiary' },
           ],
-          badges: ['Founder', 'Strategic Visionary', 'High-Trust Node'],
+          badges: badges.length ? badges : ['Founder', 'Strategic Visionary', 'High-Trust Node'],
           bio: 'Architect of the Enako financial ecosystem. Dedicated to deep liquidity and algorithmic transparency.'
         };
       case 'manager':
         return {
           title: 'Operational Lead',
           stats: [
-            { label: 'Team Velocity', value: '0%', icon: Zap, color: 'text-primary' },
-            { label: 'Resource Efficiency', value: '0%', icon: BarChart3, color: 'text-secondary' },
-            { label: 'Active Projects', value: '0', icon: Briefcase, color: 'text-tertiary' },
+            { label: 'Team Velocity', value: completion, icon: Zap, color: 'text-primary' },
+            { label: 'Goals Reached', value: goals, icon: BarChart3, color: 'text-secondary' },
+            { label: 'Network Uptime', value: uptime, icon: Briefcase, color: 'text-tertiary' },
           ],
-          badges: ['Efficiency Expert', 'Team Catalyst', 'Operational Authority'],
+          badges: badges.length ? badges : ['Efficiency Expert', 'Team Catalyst', 'Operational Authority'],
           bio: 'Bridging high-level strategy with operative execution. Managing the workflow of Node Alpha and Beta.'
         };
       default:
         return {
           title: 'Operative Node',
           stats: [
-            { label: 'Task completion', value: '0%', icon: CheckCircle2, color: 'text-primary' },
-            { label: 'Network Uptime', value: '0%', icon: Zap, color: 'text-secondary' },
-            { label: 'Goals Reached', value: '0/0', icon: Target, color: 'text-tertiary' },
+            { label: 'Task completion', value: completion, icon: CheckCircle2, color: 'text-primary' },
+            { label: 'Network Uptime', value: uptime, icon: Zap, color: 'text-secondary' },
+            { label: 'Goals Reached', value: goals, icon: Target, color: 'text-tertiary' },
           ],
-          badges: ['Rising Star', 'Bug Hunter', 'Reliability Hero'],
+          badges: badges.length ? badges : ['Rising Star', 'Bug Hunter', 'Reliability Hero'],
           bio: 'Functional unit within the Enako OS ecosystem. Specializing in high-frequency data synthesis and reporting.'
         };
     }
@@ -199,7 +232,10 @@ export default function Profile() {
           <section className="bg-white border border-outline-variant/30 p-10 rounded-[2.5rem] shadow-sm">
              <div className="flex justify-between items-center mb-8">
                 <h3 className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Contact & Identity</h3>
-                <button onClick={() => setShowCredModal(true)} className="text-[10px] font-bold text-primary hover:underline uppercase tracking-widest">Request Credentials Change</button>
+                <div className="flex gap-4">
+                  <button onClick={() => { setEditName(userName); setEditPhone(user?.phone || ''); setEditTitle(user?.title || ''); setShowEditProfile(true); }} className="text-[10px] font-bold text-primary hover:underline uppercase tracking-widest">Edit Profile</button>
+                  <button onClick={() => { setCurrentPassword(''); setNewPassword(''); setShowChangePassword(true); }} className="text-[10px] font-bold text-primary hover:underline uppercase tracking-widest">Change Password</button>
+                </div>
              </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-6">
@@ -229,7 +265,7 @@ export default function Profile() {
                     </div>
                     <div>
                       <p className="text-[9px] font-bold text-secondary uppercase tracking-widest">Department</p>
-                      <p className="text-sm font-bold text-primary">{role === 'ceo' ? 'Executive Board' : (role === 'manager' ? 'Global Operations' : 'Internal Node')}</p>
+                      <p className="text-sm font-bold text-primary">{user?.department || (role === 'ceo' ? 'Executive Board' : (role === 'manager' ? 'Global Operations' : 'Internal Node'))}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -271,12 +307,12 @@ export default function Profile() {
              <div className="space-y-6">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-primary-fixed/80">Project Focus</p>
-                  <p className="text-xl font-bold mt-1">Global OS V5.0 Migration</p>
+                  <p className="text-xl font-bold mt-1">{stats?.activeTask?.title || 'Global OS V5.0 Migration'}</p>
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-primary-fixed/80">Work Session</p>
                   <p className="text-lg font-mono font-bold mt-1">
-                    {pauseTimer ? 'PAUSED' : '00:00:00'}
+                    {pauseTimer ? 'PAUSED' : activeTimer}
                   </p>
                 </div>
                 <button onClick={() => setShowPauseModal(true)} className="w-full py-4 bg-white text-primary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:shadow-2xl hover:scale-[1.02] active:scale-95 transition-all">
@@ -288,31 +324,83 @@ export default function Profile() {
       </div>
 
       <AnimatePresence>
-        {showCredModal && (
+        {showEditProfile && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCredModal(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowEditProfile(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 z-10">
               <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
-                <h3 className="text-lg font-bold text-primary flex items-center gap-2"><Lock className="w-5 h-5 text-secondary" /> Request Credentials Change</h3>
-                <button onClick={() => setShowCredModal(false)}><X className="w-5 h-5 text-secondary" /></button>
+                <h3 className="text-lg font-bold text-primary flex items-center gap-2"><User className="w-5 h-5 text-secondary" /> Edit Profile</h3>
+                <button onClick={() => setShowEditProfile(false)}><X className="w-5 h-5 text-secondary" /></button>
               </div>
-              <form onSubmit={handleCredChange} className="p-6 space-y-4">
-                <p className="text-sm text-secondary mb-4">Please detail the reason for requesting a credentials reset. IT will review this request within 24 hours.</p>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                setUpdatingProfile(true);
+                try {
+                  const updated = await api.updateMe({ fullName: editName, phone: editPhone, title: editTitle });
+                  const storedStr = localStorage.getItem('enako_user');
+                  if (storedStr) {
+                    localStorage.setItem('enako_user', JSON.stringify({ ...JSON.parse(storedStr), ...updated }));
+                  }
+                  toast.success('Profile updated successfully!');
+                  setShowEditProfile(false);
+                  setTimeout(() => window.location.reload(), 1000);
+                } catch (err: any) {
+                  toast.error(err.message || 'Failed to update profile');
+                } finally {
+                  setUpdatingProfile(false);
+                }
+              }} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Reason for Reset</label>
-                  <select className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
-                    <option>Suspected Compromise</option>
-                    <option>Routine Security Rotation</option>
-                    <option>Lost 2FA Device</option>
-                    <option>Other</option>
-                  </select>
+                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Full Name</label>
+                  <input required value={editName} onChange={e => setEditName(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Additional Notes</label>
-                  <textarea rows={3} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20 resize-none" placeholder="Provide context..." />
+                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Phone Number</label>
+                  <input value={editPhone} onChange={e => setEditPhone(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
                 </div>
-                <button type="submit" className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4">
-                  Submit Request to IT
+                <div>
+                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Title</label>
+                  <input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                </div>
+                <button type="submit" disabled={updatingProfile} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 disabled:opacity-50">
+                  {updatingProfile ? 'Saving...' : 'Save Changes'}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
+        {showChangePassword && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowChangePassword(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 z-10">
+              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
+                <h3 className="text-lg font-bold text-primary flex items-center gap-2"><Lock className="w-5 h-5 text-secondary" /> Change Password</h3>
+                <button onClick={() => setShowChangePassword(false)}><X className="w-5 h-5 text-secondary" /></button>
+              </div>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                setUpdatingPassword(true);
+                try {
+                  await api.changePassword({ currentPassword, newPassword });
+                  toast.success('Password updated successfully!');
+                  setShowChangePassword(false);
+                } catch (err: any) {
+                  toast.error(err.message || 'Failed to change password');
+                } finally {
+                  setUpdatingPassword(false);
+                }
+              }} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Current Password</label>
+                  <input required type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">New Password</label>
+                  <input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" minLength={8} />
+                </div>
+                <button type="submit" disabled={updatingPassword} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 disabled:opacity-50">
+                  {updatingPassword ? 'Updating...' : 'Update Password'}
                 </button>
               </form>
             </motion.div>

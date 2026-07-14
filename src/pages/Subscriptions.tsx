@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { apiRequest } from '../lib/api/core';
 
 type Subscription = {
   id: string;
@@ -12,6 +13,7 @@ type Subscription = {
   cost: string | number;
   cycle: 'Monthly' | 'Yearly';
   status: 'Active' | 'Paused' | 'Cancelled';
+  startDate: string;
   nextBilling: string;
   receiptUrl?: string;
 };
@@ -29,7 +31,10 @@ export default function Subscriptions() {
   const [newName, setNewName] = useState('');
   const [newCost, setNewCost] = useState('');
   const [newCycle, setNewCycle] = useState<'Monthly' | 'Yearly'>('Monthly');
-  const [newReceipt, setNewReceipt] = useState('');
+  const [newStartDate, setNewStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newReceiptUrl, setNewReceiptUrl] = useState('');
+  const [newReceiptFile, setNewReceiptFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -57,31 +62,53 @@ export default function Subscriptions() {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName.trim() || !newCost) {
+    if (!newName.trim() || !newCost || !newStartDate) {
       toast.error('Please fill in all required fields.');
       return;
     }
     
     setSubmitting(true);
     try {
-      const nextBilling = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      let finalReceiptUrl = newReceiptUrl;
+
+      if (newReceiptFile) {
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('file', newReceiptFile);
+        const uploadRes = await apiRequest<{url: string}>('/files/upload', { method: 'POST', body: formData });
+        finalReceiptUrl = uploadRes.url;
+        setUploading(false);
+      }
+
+      const start = new Date(newStartDate);
+      const nextBilling = new Date(start.getTime());
+      if (newCycle === 'Monthly') {
+        nextBilling.setMonth(nextBilling.getMonth() + 1);
+      } else {
+        nextBilling.setFullYear(nextBilling.getFullYear() + 1);
+      }
+
       await api.createSubscription({
         name: newName,
         cost: parseFloat(newCost),
         cycle: newCycle,
-        nextBilling,
-        receiptUrl: newReceipt || undefined
+        startDate: newStartDate,
+        nextBilling: nextBilling.toISOString(),
+        receiptUrl: finalReceiptUrl || undefined
       });
       
       setShowAddForm(false);
       setNewName('');
       setNewCost('');
       setNewCycle('Monthly');
-      setNewReceipt('');
+      setNewStartDate(new Date().toISOString().split('T')[0]);
+      setNewReceiptUrl('');
+      setNewReceiptFile(null);
       toast.success('Subscription added successfully');
       load();
     } catch (e: any) {
       toast.error(e.message || 'Failed to add subscription');
+      setUploading(false);
     } finally {
       setSubmitting(false);
     }
@@ -175,6 +202,7 @@ export default function Subscriptions() {
                 <th className="px-8 py-4 text-[10px] font-bold text-secondary uppercase tracking-widest border-b border-outline-variant/20">Cycle</th>
                 <th className="px-8 py-4 text-[10px] font-bold text-secondary uppercase tracking-widest border-b border-outline-variant/20">Status</th>
                 <th className="px-8 py-4 text-[10px] font-bold text-secondary uppercase tracking-widest border-b border-outline-variant/20">Receipt</th>
+                <th className="px-8 py-4 text-[10px] font-bold text-secondary uppercase tracking-widest border-b border-outline-variant/20">Start Date</th>
                 <th className="px-8 py-4 text-[10px] font-bold text-secondary uppercase tracking-widest border-b border-outline-variant/20">Next Billing</th>
                 <th className="px-8 py-4 text-[10px] font-bold text-secondary uppercase tracking-widest border-b border-outline-variant/20 text-right">Actions</th>
               </tr>
@@ -214,6 +242,9 @@ export default function Subscriptions() {
                       ) : (
                         <span className="text-xs text-outline">-</span>
                       )}
+                    </td>
+                    <td className="px-8 py-5 border-b border-outline-variant/10">
+                      <span className="text-sm text-secondary">{new Date(sub.startDate || sub.nextBilling).toLocaleDateString()}</span>
                     </td>
                     <td className="px-8 py-5 border-b border-outline-variant/10">
                       <span className="text-sm text-secondary">{new Date(sub.nextBilling).toLocaleDateString()}</span>
@@ -308,17 +339,40 @@ export default function Subscriptions() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-2">Receipt URL (Optional)</label>
-                  <div className="relative">
-                    <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-2">Start Date *</label>
                     <input 
-                      type="url" 
-                      value={newReceipt}
-                      onChange={(e) => setNewReceipt(e.target.value)}
-                      className="w-full bg-surface-container-low border border-outline-variant/30 rounded-2xl pl-10 pr-4 py-3.5 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container"
-                      placeholder="https://..."
+                      type="date" 
+                      required
+                      value={newStartDate}
+                      onChange={(e) => setNewStartDate(e.target.value)}
+                      className="w-full bg-surface-container-low border border-outline-variant/30 rounded-2xl px-5 py-3.5 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-2">Receipt (URL or File)</label>
+                    <div className="space-y-2">
+                      <input 
+                        type="url" 
+                        value={newReceiptUrl}
+                        onChange={(e) => { setNewReceiptUrl(e.target.value); setNewReceiptFile(null); }}
+                        disabled={!!newReceiptFile}
+                        className="w-full bg-surface-container-low border border-outline-variant/30 rounded-2xl px-5 py-2 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-50"
+                        placeholder="https://... (or upload below)"
+                      />
+                      <input 
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            setNewReceiptFile(e.target.files[0]);
+                            setNewReceiptUrl('');
+                          }
+                        }}
+                        className="w-full text-sm text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -332,10 +386,10 @@ export default function Subscriptions() {
                   </button>
                   <button 
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || uploading}
                     className="px-6 py-3.5 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest shadow-xl hover:shadow-2xl transition-all disabled:opacity-50"
                   >
-                    {submitting ? 'Saving...' : 'Save Subscription'}
+                    {uploading ? 'Uploading...' : submitting ? 'Saving...' : 'Save Subscription'}
                   </button>
                 </div>
               </form>
