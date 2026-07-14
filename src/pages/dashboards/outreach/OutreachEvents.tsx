@@ -225,7 +225,7 @@ export default function OutreachEvents() {
               <button onClick={() => setIsModalOpen(false)} className="text-secondary hover:text-primary">&times;</button>
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold mb-1">Title (English)</label>
                   <input required value={form.title} onChange={e => setForm({...form, title: e.target.value})} type="text" className="w-full border p-2 rounded" />
@@ -235,7 +235,7 @@ export default function OutreachEvents() {
                   <input required value={form.titleFr} onChange={e => setForm({...form, titleFr: e.target.value})} type="text" className="w-full border p-2 rounded" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold mb-1">Description (English)</label>
                   <textarea required value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full border p-2 rounded h-24" />
@@ -246,7 +246,7 @@ export default function OutreachEvents() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold mb-1">Event Category / Type</label>
                   <select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="w-full border p-2 rounded bg-white">
@@ -283,7 +283,7 @@ export default function OutreachEvents() {
                   {/* Story Section */}
                   <div className="border border-outline-variant/30 p-3 rounded-lg space-y-3 bg-slate-50">
                     <h5 className="font-semibold text-xs text-primary">Impact Story Card</h5>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold mb-1">Story Title (EN)</label>
                         <input value={form.storyTitle} onChange={e => setForm({...form, storyTitle: e.target.value})} type="text" className="w-full border p-2 rounded text-xs" />
@@ -293,7 +293,7 @@ export default function OutreachEvents() {
                         <input value={form.storyTitleFr} onChange={e => setForm({...form, storyTitleFr: e.target.value})} type="text" className="w-full border p-2 rounded text-xs" />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold mb-1">Story Body (EN)</label>
                         <textarea value={form.storyDescription} onChange={e => setForm({...form, storyDescription: e.target.value})} className="w-full border p-2 rounded text-xs h-16" />
@@ -303,7 +303,7 @@ export default function OutreachEvents() {
                         <textarea value={form.storyDescriptionFr} onChange={e => setForm({...form, storyDescriptionFr: e.target.value})} className="w-full border p-2 rounded text-xs h-16" />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold mb-1">Story File Upload</label>
                         <input type="file" accept="image/*,video/*" onChange={e => handleFileChange(e, (base64) => setStoryMediaBase64(base64))} className="w-full text-xs" />
@@ -329,7 +329,7 @@ export default function OutreachEvents() {
                       {gallery.map((item, idx) => (
                         <div key={idx} className="border p-3 rounded space-y-2 bg-slate-50 relative">
                           <button type="button" onClick={() => removeGalleryItem(idx)} className="absolute top-2 right-2 text-red-500 text-sm font-bold">&times;</button>
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                               <label className="block text-xs font-semibold mb-1">Select File</label>
                               <input required type="file" accept="image/*" onChange={e => handleGalleryFileChange(idx, e)} className="w-full text-xs" />
