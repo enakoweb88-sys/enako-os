@@ -10,7 +10,7 @@ let socket: Socket | null = null;
 
 function getSocket() {
   if (!socket) {
-    const url = (import.meta.env.VITE_API_URL as string)?.replace('/api/v1', '') ?? 'http://localhost:5000';
+    const url = (import.meta.env.VITE_API_URL as string)?.replace('/api/v1', '') ?? 'https://api.enakoos.com';
     socket = io(url, { transports: ['websocket', 'polling'] });
   }
   return socket;

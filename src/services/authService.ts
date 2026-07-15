@@ -7,7 +7,7 @@ export async function login(
   password: string,
   role: 'CEO' | 'MANAGER' | 'EMPLOYEE',
 ) {
-  const API_BASE = (import.meta.env.VITE_API_URL as string) ?? 'http://localhost:5000/api/v1';
+  const API_BASE = (import.meta.env.VITE_API_URL as string) ?? 'https://api.enakoos.com/api/v1';
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
