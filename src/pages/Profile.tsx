@@ -84,46 +84,23 @@ export default function Profile() {
   };
 
   const getRoleSpecificData = () => {
-    const completion = stats ? `${stats.taskCompletion}%` : '0%';
-    const goals = stats ? `${stats.completedGoals}/${stats.totalGoals}` : '0/0';
-    const uptime = stats ? `${stats.networkUptime}%` : '99.9%';
+    const completion = stats ? `${stats.taskCompletion || 0}%` : '0%';
+    const goals = stats ? `${stats.completedGoals || 0}/${stats.totalGoals || 0}` : '0/0';
+    const uptime = stats ? `${stats.networkUptime || 99.9}%` : '99.9%';
     const badges = stats?.badges || [];
 
-    switch (role) {
-      case 'ceo':
-        return {
-          title: 'Strategic Overseer',
-          stats: [
-            { label: 'Company Stability', value: uptime, icon: Shield, color: 'text-primary' },
-            { label: 'Goals Reached', value: goals, icon: Target, color: 'text-secondary' },
-            { label: 'Task Completion', value: completion, icon: CheckCircle2, color: 'text-tertiary' },
-          ],
-          badges: badges.length ? badges : ['Founder', 'Strategic Visionary', 'High-Trust Node'],
-          bio: 'Architect of the Enako financial ecosystem. Dedicated to deep liquidity and algorithmic transparency.'
-        };
-      case 'manager':
-        return {
-          title: 'Operational Lead',
-          stats: [
-            { label: 'Team Velocity', value: completion, icon: Zap, color: 'text-primary' },
-            { label: 'Goals Reached', value: goals, icon: BarChart3, color: 'text-secondary' },
-            { label: 'Network Uptime', value: uptime, icon: Briefcase, color: 'text-tertiary' },
-          ],
-          badges: badges.length ? badges : ['Efficiency Expert', 'Team Catalyst', 'Operational Authority'],
-          bio: 'Bridging high-level strategy with operative execution. Managing the workflow of Node Alpha and Beta.'
-        };
-      default:
-        return {
-          title: 'Operative Node',
-          stats: [
-            { label: 'Task completion', value: completion, icon: CheckCircle2, color: 'text-primary' },
-            { label: 'Network Uptime', value: uptime, icon: Zap, color: 'text-secondary' },
-            { label: 'Goals Reached', value: goals, icon: Target, color: 'text-tertiary' },
-          ],
-          badges: badges.length ? badges : ['Rising Star', 'Bug Hunter', 'Reliability Hero'],
-          bio: 'Functional unit within the Enako OS ecosystem. Specializing in high-frequency data synthesis and reporting.'
-        };
-    }
+    const defaultTitle = role.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+
+    return {
+      title: user?.title || defaultTitle,
+      stats: [
+        { label: 'Task completion', value: completion, icon: CheckCircle2, color: 'text-primary' },
+        { label: 'System Uptime', value: uptime, icon: Zap, color: 'text-secondary' },
+        { label: 'Goals Reached', value: goals, icon: Target, color: 'text-tertiary' },
+      ],
+      badges: badges.length ? badges : ['Verified Member'],
+      bio: `Professional profile for ${userName}, serving as ${user?.title || defaultTitle} within the organization.`
+    };
   };
 
   const data = getRoleSpecificData();
@@ -187,11 +164,11 @@ export default function Profile() {
                   <UserCheck className="w-6 h-6 text-green-500" />
                </div>
                <div className="flex items-center gap-4 mt-2 text-secondary">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.2em]">{data.title} • {role.toUpperCase()}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.2em]">{data.title}</span>
                   <span className="size-1 rounded-full bg-outline-variant"></span>
                   <span className="text-[11px] font-bold uppercase tracking-[0.2em] flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5" />
-                    London Hub
+                    {user?.address || 'Headquarters'}
                   </span>
                </div>
             </div>
@@ -253,8 +230,8 @@ export default function Profile() {
                       <Globe className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-[9px] font-bold text-secondary uppercase tracking-widest">Language Nodes</p>
-                      <p className="text-sm font-bold text-primary">English (Native), French (Fluent)</p>
+                      <p className="text-[9px] font-bold text-secondary uppercase tracking-widest">Languages</p>
+                      <p className="text-sm font-bold text-primary">English, French</p>
                     </div>
                   </div>
                 </div>
@@ -265,7 +242,7 @@ export default function Profile() {
                     </div>
                     <div>
                       <p className="text-[9px] font-bold text-secondary uppercase tracking-widest">Department</p>
-                      <p className="text-sm font-bold text-primary">{user?.department || (role === 'ceo' ? 'Executive Board' : (role === 'manager' ? 'Global Operations' : 'Internal Node'))}</p>
+                      <p className="text-sm font-bold text-primary">{user?.department || (role === 'ceo' ? 'Executive Board' : 'General Operations')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -273,8 +250,8 @@ export default function Profile() {
                       <Zap className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-[9px] font-bold text-secondary uppercase tracking-widest">Network Access</p>
-                      <p className="text-sm font-bold text-primary">Tier {role === 'ceo' ? '1 (Absolute)' : '2 (Managerial)'}</p>
+                      <p className="text-[9px] font-bold text-secondary uppercase tracking-widest">System Access</p>
+                      <p className="text-sm font-bold text-primary">Level {role === 'ceo' ? '1' : role.includes('manager') ? '2' : '3'} Authorization</p>
                     </div>
                   </div>
                 </div>
@@ -306,17 +283,17 @@ export default function Profile() {
              <h3 className="text-[10px] font-bold text-primary-fixed/60 uppercase tracking-[0.2em] mb-6">Current Work Stream</h3>
              <div className="space-y-6">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-primary-fixed/80">Project Focus</p>
-                  <p className="text-xl font-bold mt-1">{stats?.activeTask?.title || 'Global OS V5.0 Migration'}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-primary-fixed/80">Active Task</p>
+                  <p className="text-xl font-bold mt-1">{stats?.activeTask?.title || 'General Operations'}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-primary-fixed/80">Work Session</p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-primary-fixed/80">Time Logged</p>
                   <p className="text-lg font-mono font-bold mt-1">
                     {pauseTimer ? 'PAUSED' : activeTimer}
                   </p>
                 </div>
                 <button onClick={() => setShowPauseModal(true)} className="w-full py-4 bg-white text-primary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:shadow-2xl hover:scale-[1.02] active:scale-95 transition-all">
-                  {pauseTimer ? 'Resume Operational Flow' : 'Pause Operational Flow'}
+                  {pauseTimer ? 'Resume Session' : 'Pause Session'}
                 </button>
              </div>
           </section>
