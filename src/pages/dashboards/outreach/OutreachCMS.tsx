@@ -307,7 +307,6 @@ export default function OutreachCMS() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={() => !saving && setShowModal(false)} />
           <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 z-10 flex flex-col">
-            <div className="w-[900px] bg-surface rounded-2xl flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between p-6 border-b border-outline-variant/30">
               <h2 className="text-xl font-display font-bold text-primary flex items-center gap-2">
                 <PenTool className="text-secondary w-5 h-5" />
