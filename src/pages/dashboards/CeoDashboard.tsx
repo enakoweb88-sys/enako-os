@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
-import { api } from '../../lib/api';
+import { api, outreachAPI } from '../../lib/api';
 import {
   CreditCard, Wallet, Users, Repeat, ClipboardCheck,
   ChevronRight, Briefcase, Megaphone, CircleAlert, Activity, PieChart, TrendingUp,
@@ -27,6 +27,8 @@ export function CEODashboard() {
   const [marketing, setMarketing] = useState<any>(null);
   const [njangi, setNjangi] = useState<any>(null);
   const [appActivity, setAppActivity] = useState<any>(null);
+  const [outreachStats, setOutreachStats] = useState<any>(null);
+  const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,9 +39,11 @@ export function CEODashboard() {
       api.healthScore(),
       api.marketingPerformance(),
       api.njangiAnalysis(),
-      api.appActivity()
+      api.appActivity(),
+      outreachAPI.getStats().catch(() => null),
+      outreachAPI.getApplications().catch(() => [])
     ])
-      .then(([ov, tx, ann, hs, mkt, nj, app]) => {
+      .then(([ov, tx, ann, hs, mkt, nj, app, outStats, outApps]) => {
         setOverview(ov);
         setTransactions(tx.items);
         setAnnouncements(ann.slice(0, 3));
@@ -47,6 +51,8 @@ export function CEODashboard() {
         setMarketing(mkt);
         setNjangi(nj);
         setAppActivity(app);
+        setOutreachStats(outStats);
+        setApplications(Array.isArray(outApps) ? outApps.slice(0, 5) : []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -447,11 +453,11 @@ export function CEODashboard() {
           <div className="flex gap-4">
             <div className="text-right">
               <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Active Events</p>
-              <p className="font-bold text-primary text-lg">4</p>
+              <p className="font-bold text-primary text-lg">{outreachStats?.activeEvents || 0}</p>
             </div>
             <div className="text-right border-l border-outline-variant/30 pl-4">
               <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Newsletter Subscribers</p>
-              <p className="font-bold text-primary text-lg">1,204</p>
+              <p className="font-bold text-primary text-lg">{fmt(outreachStats?.subscribers || 0, false)}</p>
             </div>
           </div>
         </div>
@@ -470,17 +476,20 @@ export function CEODashboard() {
               </tr>
             </thead>
             <tbody>
-              {/* Mock Forwarded Applications */}
-              <tr className="border-b border-outline-variant/20 last:border-0">
-                <td className="py-4 font-bold text-primary">Jane Smith</td>
-                <td className="py-4 text-sm text-secondary">SECONDARY</td>
-                <td className="py-4 text-sm text-secondary">2026-06-28</td>
-                <td className="py-4"><span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold">VERIFIED_BY_OUTREACH</span></td>
-                <td className="py-4 text-right">
-                  <button onClick={() => toast.success('Application Approved. Automated bilingual email dispatched!')} className="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-primary/90 mr-2">Approve</button>
-                  <button onClick={() => toast.error('Application Rejected.')} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100">Reject</button>
-                </td>
-              </tr>
+              {applications.length === 0 ? (
+                <tr><td colSpan={5} className="py-4 text-center text-sm text-secondary">No applications found.</td></tr>
+              ) : applications.map((app) => (
+                <tr key={app.id} className="border-b border-outline-variant/20 last:border-0 hover:bg-surface-container/30">
+                  <td className="py-4 font-bold text-primary">{app.fullName}</td>
+                  <td className="py-4 text-sm text-secondary">{app.level}</td>
+                  <td className="py-4 text-sm text-secondary">{new Date(app.createdAt).toLocaleDateString()}</td>
+                  <td className="py-4"><span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold">{app.status}</span></td>
+                  <td className="py-4 text-right">
+                    <button onClick={() => toast.success('Application Approved. Automated bilingual email dispatched!')} className="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-primary/90 mr-2">Approve</button>
+                    <button onClick={() => toast.error('Application Rejected.')} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100">Reject</button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

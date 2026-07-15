@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
-import { api } from '../../lib/api';
+import { api, outreachAPI } from '../../lib/api';
 import {
   Users, Wallet, ClipboardCheck, Activity, Calendar, User, ArrowRight,
   Bell, FileText, Settings, ShieldCheck, CheckCircle2, Megaphone,
@@ -23,6 +23,8 @@ export function ManagerDashboard() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
+  const [outreachStats, setOutreachStats] = useState<any>(null);
+  const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,21 +32,29 @@ export function ManagerDashboard() {
       api.overview(),
       api.tasks(),
       api.notifications(),
-      api.employees({ limit: 5 })
+      api.employees({ limit: 5 }),
+      api.auditLogs().catch(() => []),
+      outreachAPI.getStats().catch(() => null),
+      outreachAPI.getApplications().catch(() => [])
     ])
-      .then(([ov, t, notif, emp]) => {
+      .then(([ov, t, notif, emp, logs, outStats, outApps]) => {
         setOverview(ov);
         setTasks(t.slice(0, 5));
         setNotifications(notif.slice(0, 5));
         setStaff(emp.items || []);
         
-        // Mock some recent activities based on existing data types
-        setActivities([
-          { id: 1, action: 'Approved Expense Claim #EXP-104', user: 'James T.', time: '10 mins ago', icon: CheckCircle2, color: 'text-green-600' },
-          { id: 2, action: 'Created new Task "Server Migration"', user: 'System Admin', time: '1 hour ago', icon: ClipboardCheck, color: 'text-blue-600' },
-          { id: 3, action: 'KYC Document Verification Failed', user: 'Compliance AI', time: '2 hours ago', icon: ShieldCheck, color: 'text-red-600' },
-          { id: 4, action: 'System Configuration Updated', user: 'Admin User', time: '5 hours ago', icon: Settings, color: 'text-slate-600' },
-        ]);
+        const mappedLogs = Array.isArray(logs) ? logs.slice(0, 4).map((log: any) => ({
+          id: log.id,
+          action: log.action,
+          user: log.employee?.fullName || 'System',
+          time: new Date(log.createdAt).toLocaleTimeString(),
+          icon: Activity,
+          color: 'text-slate-600'
+        })) : [];
+        setActivities(mappedLogs);
+        
+        setOutreachStats(outStats);
+        setApplications(Array.isArray(outApps) ? outApps.slice(0, 5) : []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -106,8 +116,8 @@ export function ManagerDashboard() {
                   <tr>
                     <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-secondary">Staff</th>
                     <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-secondary">Role</th>
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-secondary">New Clients</th>
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-secondary text-right">Revenue Generated</th>
+                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-secondary">Department</th>
+                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-secondary text-right">Hire Date</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/20">
@@ -119,9 +129,9 @@ export function ManagerDashboard() {
                         </div>
                         <span className="text-sm font-bold text-primary">{emp.fullName}</span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-secondary">{emp.role?.name || 'Employee'}</td>
-                      <td className="px-4 py-3 text-sm font-mono text-primary font-bold">{Math.floor(Math.random() * 50) + 10}</td>
-                      <td className="px-4 py-3 text-sm font-mono text-green-600 font-bold text-right">{fmt((Math.floor(Math.random() * 500) + 100) * 1000)}</td>
+                      <td className="px-4 py-3 text-xs text-secondary">{emp.role || 'Employee'}</td>
+                      <td className="px-4 py-3 text-sm font-bold text-primary">{emp.department || '—'}</td>
+                      <td className="px-4 py-3 text-sm text-secondary text-right">{emp.hireDate ? new Date(emp.hireDate).toLocaleDateString() : '—'}</td>
                     </tr>
                   )) : (
                     <tr><td colSpan={4} className="px-4 py-6 text-center text-secondary text-sm">No staff data found.</td></tr>
@@ -217,11 +227,11 @@ export function ManagerDashboard() {
           <div className="flex gap-4">
             <div className="text-right">
               <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Active Events</p>
-              <p className="font-bold text-primary text-lg">4</p>
+              <p className="font-bold text-primary text-lg">{outreachStats?.activeEvents || 0}</p>
             </div>
             <div className="text-right border-l border-outline-variant/30 pl-4">
               <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Newsletter Subscribers</p>
-              <p className="font-bold text-primary text-lg">1,204</p>
+              <p className="font-bold text-primary text-lg">{fmt(outreachStats?.subscribers || 0, false)}</p>
             </div>
           </div>
         </div>
@@ -240,17 +250,20 @@ export function ManagerDashboard() {
               </tr>
             </thead>
             <tbody>
-              {/* Mock Forwarded Applications */}
-              <tr className="border-b border-outline-variant/20 last:border-0">
-                <td className="py-4 font-bold text-primary">Jane Smith</td>
-                <td className="py-4 text-sm text-secondary">SECONDARY</td>
-                <td className="py-4 text-sm text-secondary">2026-06-28</td>
-                <td className="py-4"><span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold">VERIFIED_BY_OUTREACH</span></td>
-                <td className="py-4 text-right">
-                  <button onClick={() => toast.success('Application Approved. Automated bilingual email dispatched!')} className="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-primary/90 mr-2">Approve</button>
-                  <button onClick={() => toast.error('Application Rejected.')} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100">Reject</button>
-                </td>
-              </tr>
+              {applications.length === 0 ? (
+                <tr><td colSpan={5} className="py-4 text-center text-sm text-secondary">No applications found.</td></tr>
+              ) : applications.map((app) => (
+                <tr key={app.id} className="border-b border-outline-variant/20 last:border-0 hover:bg-surface-container/30">
+                  <td className="py-4 font-bold text-primary">{app.fullName}</td>
+                  <td className="py-4 text-sm text-secondary">{app.level}</td>
+                  <td className="py-4 text-sm text-secondary">{new Date(app.createdAt).toLocaleDateString()}</td>
+                  <td className="py-4"><span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold">{app.status}</span></td>
+                  <td className="py-4 text-right">
+                    <button onClick={() => toast.success('Application Approved.')} className="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-primary/90 mr-2">Approve</button>
+                    <button onClick={() => toast.error('Application Rejected.')} className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-100">Reject</button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
