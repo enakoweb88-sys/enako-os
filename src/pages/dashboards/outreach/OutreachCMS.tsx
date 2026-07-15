@@ -11,6 +11,7 @@ export default function OutreachCMS() {
   // Form state
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [category, setCategory] = useState('Blog');
   const [coverImageBase64, setCoverImageBase64] = useState('');
   const [coverImagePreview, setCoverImagePreview] = useState('');
   const [saving, setSaving] = useState(false);
@@ -50,6 +51,7 @@ export default function OutreachCMS() {
       await outreachAPI.createPost({
         title,
         content,
+        category,
         coverImageBase64,
         status,
         author: 'ENAKO OS Outreach Manager'
@@ -58,6 +60,7 @@ export default function OutreachCMS() {
       setShowModal(false);
       setTitle('');
       setContent('');
+      setCategory('Blog');
       setCoverImageBase64('');
       setCoverImagePreview('');
       fetchPosts();
@@ -116,7 +119,10 @@ export default function OutreachCMS() {
                       <ImageIcon className="w-8 h-8 opacity-50" />
                     </div>
                   )}
-                  <div className="absolute top-4 right-4">
+                  <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
+                    <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-white/90 backdrop-blur text-primary shadow-sm border border-outline-variant/30">
+                      {post.category || 'Blog'}
+                    </span>
                     <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                       post.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
                     }`}>
@@ -154,14 +160,31 @@ export default function OutreachCMS() {
             </div>
             
             <div className="p-8 overflow-y-auto space-y-6 flex-1">
-              <div>
-                <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Article Title</label>
-                <input 
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
-                  placeholder="e.g. Impact Report: First Quarter Education Grants"
-                  className="w-full text-xl font-bold text-primary bg-surface border border-outline-variant/30 rounded-xl p-4 outline-none focus:ring-2 focus:ring-primary-container/20" 
-                />
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Article Title</label>
+                  <input 
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    placeholder="e.g. Impact Report: First Quarter Education Grants"
+                    className="w-full text-xl font-bold text-primary bg-surface border border-outline-variant/30 rounded-xl p-4 outline-none focus:ring-2 focus:ring-primary-container/20" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Category</label>
+                  <select 
+                    value={category}
+                    onChange={e => setCategory(e.target.value)}
+                    className="w-full text-xl font-bold text-primary bg-surface border border-outline-variant/30 rounded-xl p-4 outline-none focus:ring-2 focus:ring-primary-container/20 cursor-pointer" 
+                  >
+                    <option value="Blog">Blog</option>
+                    <option value="News">News</option>
+                    <option value="Latest News">Latest News</option>
+                    <option value="Emergency Relief">Emergency Relief</option>
+                    <option value="Crisis">Crisis</option>
+                    <option value="General">General</option>
+                  </select>
+                </div>
               </div>
 
               <div>
