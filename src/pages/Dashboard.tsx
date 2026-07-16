@@ -1,4 +1,5 @@
-import React, { useAuth } from '../lib/auth';
+import React from 'react';
+import { useAuth } from '../lib/auth';
 import { CEODashboard } from './dashboards/CeoDashboard';
 import { ManagerDashboard } from './dashboards/ManagerDashboard';
 import { EmployeeDashboard } from './dashboards/EmployeeDashboard';

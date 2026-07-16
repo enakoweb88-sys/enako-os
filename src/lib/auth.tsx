@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { api, AuthUser, clearSession, getStoredUser, RoleName, storeSession } from './api';
 
@@ -13,6 +13,18 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
 
+  useEffect(() => {
+    const handleUnload = () => {
+      const sessionId = localStorage.getItem('enako_session_id');
+      if (sessionId) {
+        const url = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:5000/api/v1' : 'https://api.enakoos.com/api/v1');
+        navigator.sendBeacon(`${url}/auth/end-session`, new Blob([JSON.stringify({ sessionId })], { type: 'application/json' }));
+      }
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, []);
+
   const value = useMemo<AuthContextValue>(() => ({
     user,
     async login(email, password, role) {
@@ -21,6 +33,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session.user);
     },
     async logout() {
+      const sessionId = localStorage.getItem('enako_session_id');
+      if (sessionId) await api.endSession(sessionId);
       await api.logout();
       clearSession();
       setUser(null);

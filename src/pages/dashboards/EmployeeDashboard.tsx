@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
-import { Utensils, Wallet, ClipboardCheck, Target, Megaphone, BarChart3 } from 'lucide-react';
+import { Utensils, Wallet, ClipboardCheck, Target, Megaphone, BarChart3, Activity } from 'lucide-react';
 
 function fmt(val: string | number | null | undefined, currency = true) {
   const n = Number(val ?? 0);
@@ -21,12 +21,17 @@ export function EmployeeDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([api.expenses(), api.tasks(), api.meals(), api.announcements()])
+    Promise.all([
+      api.expenses().catch(() => null),
+      api.tasks().catch(() => []),
+      api.meals().catch(() => null),
+      api.announcements().catch(() => [])
+    ])
       .then(([exp, t, m, ann]) => {
         setExpenses(exp);
-        setTasks(t.slice(0, 5));
+        setTasks(Array.isArray(t) ? t.slice(0, 5) : []);
         setMeals(m);
-        setAnnouncements(ann.slice(0, 1));
+        setAnnouncements(Array.isArray(ann) ? ann.slice(0, 1) : []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -47,6 +52,25 @@ export function EmployeeDashboard() {
 
   return (
     <div className="space-y-8">
+      {/* Operations Header: Work Stream */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-gradient-to-br from-primary to-primary-fixed border border-primary/20 rounded-xl p-6 shadow-sm text-white">
+          <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest mb-1">Current Work Stream</p>
+          <p className="text-xl font-bold font-display">Development Sprint</p>
+          <p className="text-xs text-white/70 mt-2">Q3 Enterprise Features</p>
+        </div>
+        <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col justify-center">
+          <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1 flex items-center gap-2"><Activity className="w-4 h-4 text-primary" /> Active Task</p>
+          <p className="text-lg font-bold text-primary">UI Component Updates</p>
+          <p className="text-xs text-secondary mt-1">In Progress · Due Today</p>
+        </div>
+        <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col justify-center">
+          <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1 flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-primary" /> General Operations</p>
+          <p className="text-lg font-bold text-primary">Routine Maintenance</p>
+          <p className="text-xs text-secondary mt-1">System is healthy</p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {employeeStats.map((stat, idx) => (
           <motion.div

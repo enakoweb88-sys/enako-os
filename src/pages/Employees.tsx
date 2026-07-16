@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Search, Mail, Phone, Briefcase, X, Plus, RefreshCw, ArrowLeft, Edit2, Check, ShieldAlert } from 'lucide-react';
+import { Users, Search, Mail, Phone, Briefcase, X, Plus, RefreshCw, ArrowLeft, Edit2, Check, ShieldAlert, Activity } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -290,6 +290,33 @@ export default function Employees() {
                 </div>
               </div>
             </section>
+
+            {/* Overall Performance */}
+            {(role === 'manager' || role === 'ceo') && (
+              <section className="bg-surface-container-low/30 rounded-2xl p-6 border border-outline-variant/20 xl:col-span-2">
+                <h4 className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                  <Activity className="w-4 h-4" /> Overall Performance
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white border border-outline-variant/30 rounded-xl p-4">
+                    <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Total Logged In Time</p>
+                    <p className="text-xl font-bold text-primary">
+                      {data.performanceStats?.totalLoginTime 
+                        ? `${Math.floor(data.performanceStats.totalLoginTime / 3600)} hrs ${Math.floor((data.performanceStats.totalLoginTime % 3600) / 60)} mins`
+                        : '0 hrs 0 mins'}
+                    </p>
+                  </div>
+                  <div className="bg-white border border-outline-variant/30 rounded-xl p-4">
+                    <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Average Session</p>
+                    <p className="text-xl font-bold text-primary">
+                      {data.performanceStats?.averageLoginTime 
+                        ? `${Math.floor(data.performanceStats.averageLoginTime / 3600)} hrs ${Math.floor((data.performanceStats.averageLoginTime % 3600) / 60)} mins`
+                        : '0 hrs 0 mins'}
+                    </p>
+                  </div>
+                </div>
+              </section>
+            )}
 
             {/* HR & Payroll */}
             <section className="bg-surface-container-low/30 rounded-2xl p-6 border border-outline-variant/20">

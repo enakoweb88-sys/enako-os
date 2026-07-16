@@ -29,19 +29,19 @@ export function ManagerDashboard() {
 
   useEffect(() => {
     Promise.all([
-      api.overview(),
-      api.tasks(),
-      api.notifications(),
-      api.employees({ limit: 5 }),
+      api.overview().catch(() => null),
+      api.tasks().catch(() => []),
+      api.notifications().catch(() => []),
+      api.employees({ limit: 5 }).catch(() => ({ items: [] })),
       api.auditLogs().catch(() => []),
       outreachAPI.getStats().catch(() => null),
       outreachAPI.getApplications().catch(() => [])
     ])
       .then(([ov, t, notif, emp, logs, outStats, outApps]) => {
         setOverview(ov);
-        setTasks(t.slice(0, 5));
-        setNotifications(notif.slice(0, 5));
-        setStaff(emp.items || []);
+        setTasks(Array.isArray(t) ? t.slice(0, 5) : []);
+        setNotifications(Array.isArray(notif) ? notif.slice(0, 5) : []);
+        setStaff(emp?.items || []);
         
         const mappedLogs = Array.isArray(logs) ? logs.slice(0, 4).map((log: any) => ({
           id: log.id,
@@ -76,7 +76,35 @@ export function ManagerDashboard() {
         <h3 className="font-display font-bold text-primary">Operations Overview</h3>
         <div className="flex items-center gap-2 bg-surface-container-low border border-outline-variant/30 rounded-lg px-4 py-2 cursor-pointer hover:border-primary transition-colors">
           <Calendar className="w-4 h-4 text-secondary" />
-          <span className="text-xs font-bold text-primary">10 June – 16 June 2026</span>
+          <span className="text-xs font-bold text-primary">
+            {(() => {
+              const now = new Date();
+              const start = new Date(now);
+              start.setDate(now.getDate() - now.getDay() + 1);
+              const end = new Date(start);
+              end.setDate(start.getDate() + 6);
+              return `${start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+            })()}
+          </span>
+        </div>
+      </div>
+
+      {/* Operations Header: Work Stream */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-gradient-to-br from-primary to-primary-fixed border border-primary/20 rounded-xl p-6 shadow-sm text-white">
+          <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest mb-1">Current Work Stream</p>
+          <p className="text-xl font-bold font-display">Management & Strategy</p>
+          <p className="text-xs text-white/70 mt-2">Team Coordination</p>
+        </div>
+        <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col justify-center">
+          <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1 flex items-center gap-2"><Activity className="w-4 h-4 text-primary" /> Active Task</p>
+          <p className="text-lg font-bold text-primary">Department Review</p>
+          <p className="text-xs text-secondary mt-1">In Progress · Priority High</p>
+        </div>
+        <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col justify-center">
+          <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1 flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-primary" /> General Operations</p>
+          <p className="text-lg font-bold text-primary">Performance Evaluations</p>
+          <p className="text-xs text-secondary mt-1">Pending Approval</p>
         </div>
       </div>
 

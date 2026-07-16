@@ -5,9 +5,9 @@ import { cn } from '../../lib/utils';
 import { api } from '../../lib/api';
 import {
   CalendarDays, CheckSquare, ThumbsUp, BarChart2,
-  Globe, LayoutTemplate, Activity, ArrowUpRight
+  Globe, LayoutTemplate, Activity, ArrowUpRight, PieChart as PieChartIcon
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
 
 function fmt(val: string | number | null | undefined, currency = false) {
   const n = Number(val ?? 0);
@@ -199,7 +199,7 @@ export function DigitalDashboard() {
         {/* Content Types Donut */}
         <div className="col-span-12 lg:col-span-4 bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col items-center">
           <h3 className="font-display text-lg font-bold text-primary w-full text-left mb-2 flex items-center gap-2">
-            <PieChart className="w-5 h-5" /> Content by Type
+            <PieChartIcon className="w-5 h-5" /> Content by Type
           </h3>
           <div className="h-48 w-full">
             <ResponsiveContainer width="100%" height="100%">

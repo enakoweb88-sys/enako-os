@@ -6,7 +6,7 @@ import {
   PieChart, Activity, Building, Smartphone, FileText
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { api } from '../lib/api';
+import { api, apiRequest } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
 
@@ -86,7 +86,7 @@ export default function Transactions() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.apiRequest(`/transactions/${chargesForm.id}/status/SETTLED`, { 
+      await apiRequest(`/transactions/${chargesForm.id}/status/SETTLED`, { 
         method: 'PATCH', 
         body: JSON.stringify({ charges: Number(chargesForm.charges) }) 
       });

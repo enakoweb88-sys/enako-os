@@ -24,6 +24,7 @@ import { auditLogsApi } from './auditLogs';
 
 import { subscriptionsApi } from './subscriptions';
 import { reportsApi } from './reports';
+import { settingsApi } from './settings';
 
 export * from './core';
 export * from './roles';
@@ -55,4 +56,5 @@ export const api = {
   ...performanceApi,
   ...dashboardApi,
   ...auditLogsApi,
+  settings: settingsApi,
 };

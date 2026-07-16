@@ -27,18 +27,19 @@ export function getStoredUser(): AuthUser | null {
   return raw ? (JSON.parse(raw) as AuthUser) : null;
 }
 
-export function storeSession(session: { accessToken: string; refreshToken: string; user: AuthUser }) {
+export function storeSession(session: { accessToken: string; refreshToken: string; user: AuthUser; sessionId?: string }) {
   localStorage.setItem('enako_access_token', session.accessToken);
   localStorage.setItem('enako_refresh_token', session.refreshToken);
   localStorage.setItem('enako_user', JSON.stringify(session.user));
   localStorage.setItem('enako_user_role', session.user.role.toLowerCase());
   localStorage.setItem('enako_user_name', session.user.fullName);
   localStorage.setItem('enako_user_email', session.user.email);
+  if (session.sessionId) localStorage.setItem('enako_session_id', session.sessionId);
 }
 
 export function clearSession() {
   ['enako_access_token', 'enako_refresh_token', 'enako_user',
-   'enako_user_role', 'enako_user_name', 'enako_user_email', 'enako_selected_role']
+   'enako_user_role', 'enako_user_name', 'enako_user_email', 'enako_selected_role', 'enako_session_id']
     .forEach(k => localStorage.removeItem(k));
 }
 

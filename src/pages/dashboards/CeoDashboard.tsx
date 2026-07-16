@@ -33,24 +33,22 @@ export function CEODashboard() {
 
   useEffect(() => {
     Promise.all([
-      api.overview(),
-      api.transactions({ limit: 5 }),
-      api.announcements(),
-      api.healthScore(),
-      api.marketingPerformance(),
-      api.njangiAnalysis(),
-      api.appActivity(),
+      api.overview().catch(() => null),
+      api.healthScore().catch(() => null),
+      api.transactions({ limit: 5 }).catch(() => ({ items: [] })),
+      api.marketingPerformance().catch(() => null),
+      api.njangiAnalysis().catch(() => null),
+      api.appActivity().catch(() => null),
       outreachAPI.getStats().catch(() => null),
       outreachAPI.getApplications().catch(() => [])
     ])
-      .then(([ov, tx, ann, hs, mkt, nj, app, outStats, outApps]) => {
+      .then(([ov, h, t, m, n, a, outStats, outApps]) => {
         setOverview(ov);
-        setTransactions(tx.items);
-        setAnnouncements(ann.slice(0, 3));
-        setHealthScore(hs);
-        setMarketing(mkt);
-        setNjangi(nj);
-        setAppActivity(app);
+        setHealthScore(h);
+        setTransactions(Array.isArray(t) ? t : t?.items || []);
+        setMarketing(Array.isArray(m) ? { channels: m } : m || { channels: [] });
+        setNjangi(n);
+        setAppActivity(a);
         setOutreachStats(outStats);
         setApplications(Array.isArray(outApps) ? outApps.slice(0, 5) : []);
       })
@@ -97,6 +95,25 @@ export function CEODashboard() {
         </button>
       </div>
 
+      {/* Operations Header: Work Stream */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-gradient-to-br from-primary to-primary-fixed border border-primary/20 rounded-xl p-6 shadow-sm text-white">
+          <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest mb-1">Current Work Stream</p>
+          <p className="text-xl font-bold font-display">Executive Oversight</p>
+          <p className="text-xs text-white/70 mt-2">Company-wide Growth</p>
+        </div>
+        <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col justify-center">
+          <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1 flex items-center gap-2"><Activity className="w-4 h-4 text-primary" /> Active Task</p>
+          <p className="text-lg font-bold text-primary">Strategic Planning</p>
+          <p className="text-xs text-secondary mt-1">Reviewing Quarterly Goals</p>
+        </div>
+        <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col justify-center">
+          <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1 flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-primary" /> General Operations</p>
+          <p className="text-lg font-bold text-primary">Investor Relations</p>
+          <p className="text-xs text-secondary mt-1">Preparing monthly bulletin</p>
+        </div>
+      </div>
+
       {/* ── Top Level Stats ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, idx) => (
@@ -140,19 +157,23 @@ export function CEODashboard() {
           <div className="grid grid-cols-2 gap-4 mt-auto">
             <div className="bg-surface-container-low p-3 rounded-lg text-center">
               <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Users</p>
-              <p className="font-bold text-green-600">+{healthScore?.usersGrowth ?? 12}%</p>
+              <p className={`font-bold ${healthScore?.usersGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {healthScore?.usersGrowth >= 0 ? '+' : ''}{healthScore?.usersGrowth ?? 0}%
+              </p>
             </div>
             <div className="bg-surface-container-low p-3 rounded-lg text-center">
               <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Revenue</p>
-              <p className="font-bold text-green-600">+{healthScore?.revenueGrowth ?? 8}%</p>
+              <p className={`font-bold ${healthScore?.revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {healthScore?.revenueGrowth >= 0 ? '+' : ''}{healthScore?.revenueGrowth ?? 0}%
+              </p>
             </div>
             <div className="bg-surface-container-low p-3 rounded-lg text-center">
               <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Uptime</p>
-              <p className="font-bold text-primary">{healthScore?.uptime ?? 99.9}%</p>
+              <p className="font-bold text-primary">{healthScore?.uptime ?? 0}%</p>
             </div>
             <div className="bg-surface-container-low p-3 rounded-lg text-center">
               <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Satisfaction</p>
-              <p className="font-bold text-primary">{healthScore?.satisfaction ?? 94}%</p>
+              <p className="font-bold text-primary">{healthScore?.satisfaction ?? 0}%</p>
             </div>
           </div>
         </div>
@@ -163,32 +184,11 @@ export function CEODashboard() {
             <h3 className="font-display text-lg font-bold text-primary flex items-center gap-2">
               <TrendingUp className="w-5 h-5" /> App Downloads & Activity
             </h3>
-            <div className="flex gap-4 text-sm">
-              <div className="text-right">
-                <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Downloads</p>
-                <p className="font-bold text-primary text-lg">{fmt(appActivity?.downloads ?? 0, false)}</p>
-              </div>
-              <div className="text-right border-l border-outline-variant/30 pl-4">
-                <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">MAU</p>
-                <p className="font-bold text-primary text-lg">{fmt(appActivity?.mau ?? 0, false)}</p>
-              </div>
-              <div className="text-right border-l border-outline-variant/30 pl-4">
-                <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">DAU</p>
-                <p className="font-bold text-primary text-lg">{fmt(appActivity?.dau ?? 0, false)}</p>
-              </div>
-            </div>
           </div>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={appActivity?.chartData?.length ? appActivity.chartData : []}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dx={-10} />
-                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                <Line type="monotone" dataKey="downloads" stroke="#2563eb" strokeWidth={3} dot={false} activeDot={{ r: 6 }} name="Downloads" />
-                <Line type="monotone" dataKey="active" stroke="#94a3b8" strokeWidth={3} dot={false} name="Active Users" />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="flex flex-col items-center justify-center p-8 bg-surface-container-low/50 rounded-xl border border-dashed border-outline-variant/50 w-full h-64">
+            <TrendingUp className="w-8 h-8 text-secondary/50 mb-3" />
+            <p className="text-sm font-bold text-secondary">Awaiting API Key Integration</p>
+            <p className="text-xs text-secondary mt-1">App download data will appear here once connected.</p>
           </div>
         </div>
       </div>
@@ -222,8 +222,8 @@ export function CEODashboard() {
             </div>
             <ul className="space-y-3">
               <li className="flex justify-between items-start text-sm">
-                <span className="text-yellow-900 font-medium">MTN Float Balance</span>
-                <span className="text-yellow-800 text-xs font-bold">Low</span>
+                <span className="text-yellow-900 font-medium">Pending Transactions</span>
+                <span className="bg-yellow-200 text-yellow-800 px-2 rounded-full text-xs font-bold">{overview?.transactions?.pending ?? 0}</span>
               </li>
               <li className="flex justify-between items-start text-sm">
                 <span className="text-yellow-900 font-medium">Unassigned Support Tickets</span>
@@ -238,8 +238,8 @@ export function CEODashboard() {
             </div>
             <ul className="space-y-3">
               <li className="flex justify-between items-start text-sm">
-                <span className="text-green-900 font-medium">New B2B Partnership Signed</span>
-                <span className="text-green-800 text-xs font-bold text-right">Acme Corp</span>
+                <span className="text-green-900 font-medium">Approved KYC</span>
+                <span className="bg-green-200 text-green-800 px-2 rounded-full text-xs font-bold text-right">{overview?.kyc?.approved ?? 0}</span>
               </li>
               <li className="flex justify-between items-start text-sm">
                 <span className="text-green-900 font-medium">Revenue Target</span>
@@ -297,35 +297,10 @@ export function CEODashboard() {
           <h3 className="font-display text-lg font-bold text-primary mb-6 flex items-center gap-2">
             <PieChart className="w-5 h-5" /> Njangi (Groups) Analysis
           </h3>
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/20">
-              <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Total Groups Created</p>
-              <p className="font-display text-2xl font-bold text-primary">{fmt(njangi?.totalGroups ?? 0, false)}</p>
-            </div>
-            <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/20">
-              <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Active Groups</p>
-              <p className="font-display text-2xl font-bold text-primary">{fmt(njangi?.activeGroups ?? 0, false)}</p>
-            </div>
-          </div>
-          <div className="bg-primary-fixed/30 p-5 rounded-xl border border-primary/20 flex flex-col justify-center flex-1">
-            <div className="flex justify-between items-end mb-4">
-              <div>
-                <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">Total Group Contributions</p>
-                <p className="font-display text-3xl font-bold text-primary">{fmt(njangi?.totalContributions ?? 0)}</p>
-              </div>
-              {njangi?.topGroup ? (
-                <div className="text-right">
-                  <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Top Group</p>
-                  <p className="font-bold text-sm text-primary">{njangi.topGroup.name}</p>
-                  <p className="text-xs text-secondary font-mono">{fmt(njangi.topGroup.amount)}</p>
-                </div>
-              ) : (
-                <div className="text-right">
-                  <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Top Group</p>
-                  <p className="font-bold text-sm text-secondary">No groups yet</p>
-                </div>
-              )}
-            </div>
+          <div className="flex flex-col items-center justify-center p-8 bg-surface-container-low/50 rounded-xl border border-dashed border-outline-variant/50 flex-1 min-h-[250px]">
+            <PieChart className="w-8 h-8 text-secondary/50 mb-3" />
+            <p className="text-sm font-bold text-secondary">Awaiting API Key Integration</p>
+            <p className="text-xs text-secondary mt-1">Njangi data will appear here once connected.</p>
           </div>
         </div>
       </div>

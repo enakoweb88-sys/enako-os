@@ -1,4 +1,4 @@
-import { get, patch, post, del } from './fetcher';
+import { apiRequest } from './core';
 
 export interface UserPreferences {
   analytics: boolean;
@@ -20,14 +20,12 @@ export interface Session {
   expiresAt: string;
 }
 
-export const getPreferences = () => get<UserPreferences>('/users/preferences');
-export const updatePreferences = (data: Partial<UserPreferences>) => patch<UserPreferences>('/users/preferences', data);
-
-export const getSessions = () => get<Session[]>('/auth/sessions');
-export const revokeSession = (id: string) => del<{ ok: boolean }>(`/auth/sessions/${id}`);
-
-export const changePassword = (currentPassword: string, newPassword: string) => post<{ ok: boolean }>('/users/change-password', { currentPassword, newPassword });
-
-export const exportData = () => post<any>('/users/export', {});
-
-export const deleteAccount = () => del<{ ok: boolean; message: string }>('/users/me');
+export const settingsApi = {
+  getPreferences: () => apiRequest<UserPreferences>('/users/preferences'),
+  updatePreferences: (data: Partial<UserPreferences>) => apiRequest<UserPreferences>('/users/preferences', { method: 'PATCH', body: JSON.stringify(data) }),
+  getSessions: () => apiRequest<Session[]>('/auth/sessions'),
+  revokeSession: (id: string) => apiRequest<{ ok: boolean }>(`/auth/sessions/${id}`, { method: 'DELETE' }),
+  changePassword: (currentPassword: string, newPassword: string) => apiRequest<{ ok: boolean }>('/users/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) }),
+  exportData: () => apiRequest<any>('/users/export', { method: 'POST', body: JSON.stringify({}) }),
+  deleteAccount: () => apiRequest<{ ok: boolean; message: string }>('/users/me', { method: 'DELETE' })
+};
