@@ -65,8 +65,9 @@ export default function DashboardLayout() {
   useEffect(() => {
     api.notifications()
       .then(notifs => {
-        setNotifications(notifs);
-        setUnreadCount(notifs.filter((n: any) => !n.readAt).length);
+        const arr = Array.isArray(notifs) ? notifs : [];
+        setNotifications(arr);
+        setUnreadCount(arr.filter((n: any) => !n.readAt).length);
       })
       .catch(() => { });
   }, [location.pathname]);
