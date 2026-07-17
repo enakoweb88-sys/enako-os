@@ -12,11 +12,12 @@ export type AuthUser = {
 
 const envApiUrl = import.meta.env.VITE_API_URL as string | undefined;
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const defaultHost = window.location.hostname.replace(/^(www\.|app\.|os\.|client\.|dashboard\.)/, '');
 export const API_BASE_URL = (envApiUrl && envApiUrl !== 'undefined')
   ? envApiUrl
   : (isLocal 
       ? 'http://localhost:5000/api/v1' 
-      : 'https://api.enakoos.com/api/v1');
+      : `https://api.${defaultHost}/api/v1`);
 
 export function getAccessToken() {
   return localStorage.getItem('enako_access_token');
@@ -83,5 +84,13 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     throw new Error(Array.isArray(msg) ? msg.join(', ') : msg);
   }
   if (response.status === 204) return undefined as T;
-  return response.json();
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    if (text.startsWith('<')) {
+      throw new Error('API Configuration Error: Received HTML instead of JSON. Ensure VITE_API_URL is correctly set.');
+    }
+    throw new Error('Invalid JSON response from server');
+  }
 }

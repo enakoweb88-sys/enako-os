@@ -7,7 +7,8 @@ export async function login(
   password: string,
   role: 'CEO' | 'MANAGER' | 'EMPLOYEE',
 ) {
-  const API_BASE = (import.meta.env.VITE_API_URL as string) ?? 'https://api.enakoos.com/api/v1';
+  const defaultHost = window.location.hostname.replace(/^(www\.|app\.|os\.|client\.|dashboard\.)/, '');
+  const API_BASE = (import.meta.env.VITE_API_URL as string) ?? (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:5000/api/v1' : `https://api.${defaultHost}/api/v1`);
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
