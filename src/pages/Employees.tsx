@@ -114,7 +114,16 @@ export default function Employees() {
         hireDate: editForm.hireDate ? new Date(editForm.hireDate).toISOString() : undefined,
         dateOfBirth: editForm.dateOfBirth ? new Date(editForm.dateOfBirth).toISOString() : undefined,
       };
-      await api.updateEmployee(viewEmployee.id, payload);
+      if (viewEmployee.id === user?.id && role !== 'ceo' && role !== 'manager') {
+        await api.updateMe(payload);
+        // Also update local storage if it's the current user
+        const storedStr = localStorage.getItem('enako_user');
+        if (storedStr) {
+          localStorage.setItem('enako_user', JSON.stringify({ ...JSON.parse(storedStr), ...payload }));
+        }
+      } else {
+        await api.updateEmployee(viewEmployee.id, payload);
+      }
       setEditMode(false);
       load(); // Will refresh list and current viewEmployee
     } catch (e: any) {
@@ -124,19 +133,10 @@ export default function Employees() {
     }
   };
 
-  if (role === 'employee') {
-    return (
-      <div className="h-[60vh] flex flex-col items-center justify-center text-center space-y-4">
-        <Users className="w-16 h-16 text-outline-variant" />
-        <h2 className="text-2xl font-display font-bold text-primary">Access Restricted</h2>
-        <p className="text-secondary max-w-sm">The organization directory is only accessible by management and executive nodes.</p>
-      </div>
-    );
-  }
 
   if (viewEmployee) {
     const data = editMode ? editForm : viewEmployee;
-    const canEdit = role === 'ceo' || role === 'manager';
+    const canEdit = role === 'ceo' || role === 'manager' || viewEmployee.id === user?.id;
 
     return (
       <div className="space-y-8 animate-in fade-in zoom-in-95 duration-200">
