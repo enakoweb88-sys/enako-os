@@ -65,6 +65,10 @@ export default function Profile() {
   const [editName, setEditName] = useState(userName);
   const [editPhone, setEditPhone] = useState(user?.phone || '');
   const [editTitle, setEditTitle] = useState(user?.title || '');
+  const [editAddress, setEditAddress] = useState(user?.address || '');
+  const [editPersonalEmail, setEditPersonalEmail] = useState(user?.personalEmail || '');
+  const [editEmergencyContact, setEditEmergencyContact] = useState(user?.emergencyContact || '');
+  const [editDateOfBirth, setEditDateOfBirth] = useState(user?.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : '');
   const [updatingProfile, setUpdatingProfile] = useState(false);
 
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -210,7 +214,16 @@ export default function Profile() {
              <div className="flex justify-between items-center mb-8">
                 <h3 className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Contact & Identity</h3>
                 <div className="flex gap-4">
-                  <button onClick={() => { setEditName(userName); setEditPhone(user?.phone || ''); setEditTitle(user?.title || ''); setShowEditProfile(true); }} className="text-[10px] font-bold text-primary hover:underline uppercase tracking-widest">Edit Profile</button>
+                  <button onClick={() => { 
+                    setEditName(userName); 
+                    setEditPhone(user?.phone || ''); 
+                    setEditTitle(user?.title || ''); 
+                    setEditAddress(user?.address || '');
+                    setEditPersonalEmail(user?.personalEmail || '');
+                    setEditEmergencyContact(user?.emergencyContact || '');
+                    setEditDateOfBirth(user?.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : '');
+                    setShowEditProfile(true); 
+                  }} className="text-[10px] font-bold text-primary hover:underline uppercase tracking-widest">Edit Profile</button>
                   <button onClick={() => { setCurrentPassword(''); setNewPassword(''); setShowChangePassword(true); }} className="text-[10px] font-bold text-primary hover:underline uppercase tracking-widest">Change Password</button>
                 </div>
              </div>
@@ -313,7 +326,15 @@ export default function Profile() {
                 e.preventDefault();
                 setUpdatingProfile(true);
                 try {
-                  const updated = await api.updateMe({ fullName: editName, phone: editPhone, title: editTitle });
+                  const updated = await api.updateMe({ 
+                    fullName: editName, 
+                    phone: editPhone, 
+                    title: editTitle,
+                    address: editAddress,
+                    personalEmail: editPersonalEmail,
+                    emergencyContact: editEmergencyContact,
+                    dateOfBirth: editDateOfBirth ? new Date(editDateOfBirth).toISOString() : undefined
+                  });
                   const storedStr = localStorage.getItem('enako_user');
                   if (storedStr) {
                     localStorage.setItem('enako_user', JSON.stringify({ ...JSON.parse(storedStr), ...updated }));
@@ -327,17 +348,35 @@ export default function Profile() {
                   setUpdatingProfile(false);
                 }
               }} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Full Name</label>
-                  <input required value={editName} onChange={e => setEditName(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Phone Number</label>
-                  <input value={editPhone} onChange={e => setEditPhone(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Title</label>
-                  <input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Full Name</label>
+                    <input required value={editName} onChange={e => setEditName(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Phone Number</label>
+                    <input value={editPhone} onChange={e => setEditPhone(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Title</label>
+                    <input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Date of Birth</label>
+                    <input type="date" value={editDateOfBirth} onChange={e => setEditDateOfBirth(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Personal Email</label>
+                    <input type="email" value={editPersonalEmail} onChange={e => setEditPersonalEmail(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Emergency Contact</label>
+                    <input value={editEmergencyContact} onChange={e => setEditEmergencyContact(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Address</label>
+                    <input value={editAddress} onChange={e => setEditAddress(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                  </div>
                 </div>
                 <button type="submit" disabled={updatingProfile} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 disabled:opacity-50">
                   {updatingProfile ? 'Saving...' : 'Save Changes'}

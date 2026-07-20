@@ -8,6 +8,10 @@ export type AuthUser = {
   department?: string | null;
   ledDepartments?: string[];
   avatarUrl?: string;
+  address?: string | null;
+  personalEmail?: string | null;
+  emergencyContact?: string | null;
+  dateOfBirth?: string | null;
 };
 
 const envApiUrl = import.meta.env.VITE_API_URL as string | undefined;
@@ -54,7 +58,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
 
   const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
 
-  if (response.status === 401) {
+  if (response.status === 401 && !path.includes('/auth/login')) {
     const refreshToken = localStorage.getItem('enako_refresh_token');
     if (refreshToken) {
       const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
