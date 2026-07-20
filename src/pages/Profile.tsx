@@ -145,10 +145,10 @@ export default function Profile() {
                       const apiModule = await import('../lib/api');
                       const updatedUser = await apiModule.api.updateMe({ avatarUrl: base64 });
                       
-                      const storedStr = localStorage.getItem('enako_user');
+                      const storedStr = sessionStorage.getItem('enako_user');
                       if (storedStr) {
                         const parsed = JSON.parse(storedStr);
-                        localStorage.setItem('enako_user', JSON.stringify({ ...parsed, ...updatedUser }));
+                        sessionStorage.setItem('enako_user', JSON.stringify({ ...parsed, ...updatedUser }));
                       }
 
                       toast.success('Profile picture updated!');
@@ -335,9 +335,9 @@ export default function Profile() {
                     emergencyContact: editEmergencyContact,
                     dateOfBirth: editDateOfBirth ? new Date(editDateOfBirth).toISOString() : undefined
                   });
-                  const storedStr = localStorage.getItem('enako_user');
+                  const storedStr = sessionStorage.getItem('enako_user');
                   if (storedStr) {
-                    localStorage.setItem('enako_user', JSON.stringify({ ...JSON.parse(storedStr), ...updated }));
+                    sessionStorage.setItem('enako_user', JSON.stringify({ ...JSON.parse(storedStr), ...updated }));
                   }
                   toast.success('Profile updated successfully!');
                   setShowEditProfile(false);

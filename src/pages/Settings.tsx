@@ -157,7 +157,7 @@ export default function Settings() {
     }
   };
 
-  if (role !== 'ceo' && role !== 'admin') {
+  if (!['ceo', 'admin', 'manager'].includes(role)) {
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center text-center space-y-4">
         <SettingsIcon className="w-16 h-16 text-outline-variant" />

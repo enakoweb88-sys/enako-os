@@ -117,9 +117,9 @@ export default function Employees() {
       if (viewEmployee.id === user?.id && role !== 'ceo' && role !== 'manager') {
         await api.updateMe(payload);
         // Also update local storage if it's the current user
-        const storedStr = localStorage.getItem('enako_user');
+        const storedStr = sessionStorage.getItem('enako_user');
         if (storedStr) {
-          localStorage.setItem('enako_user', JSON.stringify({ ...JSON.parse(storedStr), ...payload }));
+          sessionStorage.setItem('enako_user', JSON.stringify({ ...JSON.parse(storedStr), ...payload }));
         }
       } else {
         await api.updateEmployee(viewEmployee.id, payload);
