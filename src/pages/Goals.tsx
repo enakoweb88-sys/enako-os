@@ -16,7 +16,7 @@ export default function Goals() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', targetValue: '', unit: '', dueDate: '', scope: 'COMPANY', departmentId: '', ownerId: '' });
+  const [form, setForm] = useState({ title: '', description: '', objectiveType: 'Financial', targetValue: '', unit: '', dueDate: '', scope: 'COMPANY', departmentId: '', ownerId: '' });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -38,18 +38,30 @@ export default function Goals() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      let targetVal = form.targetValue ? Number(form.targetValue) : undefined;
+      let targetUnit = form.unit || undefined;
+
+      if (form.objectiveType === 'Financial') {
+        targetUnit = form.unit || 'XAF';
+      } else if (form.objectiveType === 'Growth (%)') {
+        targetUnit = '%';
+      } else if (form.objectiveType === 'Milestone') {
+        targetVal = 100;
+        targetUnit = '%';
+      }
+
       await api.createGoal({
         title: form.title,
         description: form.description || undefined,
-        targetValue: form.targetValue ? Number(form.targetValue) : undefined,
-        unit: form.unit || undefined,
+        targetValue: targetVal,
+        unit: targetUnit,
         dueDate: form.dueDate || undefined,
         scope: form.scope,
         departmentId: form.scope === 'DEPARTMENT' ? form.departmentId : undefined,
         ownerId: form.scope === 'PERSONAL' ? form.ownerId : undefined,
       });
       setShowModal(false);
-      setForm({ title: '', description: '', targetValue: '', unit: '', dueDate: '', scope: 'COMPANY', departmentId: '', ownerId: '' });
+      setForm({ title: '', description: '', objectiveType: 'Financial', targetValue: '', unit: '', dueDate: '', scope: 'COMPANY', departmentId: '', ownerId: '' });
       load();
     } catch (e: any) { alert(e.message); }
     finally { setSubmitting(false); }
@@ -198,12 +210,13 @@ export default function Goals() {
         {showModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30">
-              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 flex flex-col max-h-[90vh]">
+              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low shrink-0">
                 <h3 className="text-lg font-bold text-primary">Create Strategic Goal</h3>
-                <button onClick={() => setShowModal(false)}><X className="w-5 h-5 text-secondary" /></button>
+                <button type="button" onClick={() => setShowModal(false)}><X className="w-5 h-5 text-secondary" /></button>
               </div>
-              <form onSubmit={handleCreate} className="p-6 space-y-4">
+              <div className="p-6 overflow-y-auto">
+                <form onSubmit={handleCreate} className="space-y-4">
                 <div>
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Title *</label>
                   <input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="e.g. Increase Market Share" />
@@ -211,6 +224,15 @@ export default function Goals() {
                 <div>
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Description</label>
                   <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20 resize-none" placeholder="Optional description…" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Objective Type *</label>
+                  <select value={form.objectiveType} onChange={e => setForm({ ...form, objectiveType: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
+                    <option value="Financial">Financial Target</option>
+                    <option value="Quantitative">Quantitative Target</option>
+                    <option value="Growth (%)">Growth Target (%)</option>
+                    <option value="Milestone">Milestone / Basic</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Scope *</label>
@@ -238,16 +260,18 @@ export default function Goals() {
                     </select>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Target Value</label>
-                    <input type="number" value={form.targetValue} onChange={e => setForm({ ...form, targetValue: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="e.g. 1000000" />
+                {form.objectiveType !== 'Milestone' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Target Value</label>
+                      <input type="number" required value={form.targetValue} onChange={e => setForm({ ...form, targetValue: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="e.g. 1000000" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Unit</label>
+                      <input value={form.objectiveType === 'Growth (%)' ? '%' : form.unit} disabled={form.objectiveType === 'Growth (%)'} onChange={e => setForm({ ...form, unit: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20 disabled:bg-surface-container" placeholder={form.objectiveType === 'Financial' ? 'e.g. XAF' : 'e.g. users'} />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Unit</label>
-                    <input value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="e.g. XAF, %, users" />
-                  </div>
-                </div>
+                )}
                 <div>
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Due Date</label>
                   <input type="date" value={form.dueDate} onChange={e => setForm({ ...form, dueDate: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none" />
@@ -255,7 +279,8 @@ export default function Goals() {
                 <button type="submit" disabled={submitting} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 disabled:opacity-60">
                   {submitting ? 'Creating…' : 'Deploy Objective'}
                 </button>
-              </form>
+                </form>
+              </div>
             </motion.div>
           </div>
         )}

@@ -18,6 +18,7 @@ export function EmployeeDashboard() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [meals, setMeals] = useState<any>(null);
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [goals, setGoals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,13 +26,15 @@ export function EmployeeDashboard() {
       api.expenses().catch(() => null),
       api.tasks().catch(() => []),
       api.meals().catch(() => null),
-      api.announcements().catch(() => [])
+      api.announcements().catch(() => []),
+      api.goals().catch(() => [])
     ])
-      .then(([exp, t, m, ann]) => {
+      .then(([exp, t, m, ann, g]) => {
         setExpenses(exp);
         setTasks(Array.isArray(t) ? t.slice(0, 5) : []);
         setMeals(m);
         setAnnouncements(Array.isArray(ann) ? ann.slice(0, 1) : []);
+        setGoals(Array.isArray(g) ? g : []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -43,11 +46,13 @@ export function EmployeeDashboard() {
   const myMeals = meals?.items?.filter((m: any) => m.employeeId === user?.id) ?? [];
   const myMealTotal = myMeals.filter((m: any) => m.status === 'ATE').length;
 
+  const activeGoals = goals.filter((g: any) => g.status === 'ACTIVE').length;
+
   const employeeStats = [
     { label: 'Meal Credits Used', value: `${myMealTotal} meals`, icon: Utensils },
     { label: 'Pending Reimbursements', value: fmt(pendingExpenses), icon: Wallet },
     { label: 'My Tasks', value: fmt(tasks.length, false), icon: ClipboardCheck },
-    { label: 'Active Goals', value: '—', icon: Target },
+    { label: 'Active Goals', value: activeGoals.toString(), icon: Target },
   ];
 
   return (
