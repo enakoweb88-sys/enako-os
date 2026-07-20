@@ -18,7 +18,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const sessionId = localStorage.getItem('enako_session_id');
       if (sessionId) {
         const defaultHost = window.location.hostname.replace(/^(www\.|app\.|os\.|client\.|dashboard\.)/, '');
-        const url = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:5000/api/v1' : `https://api.${defaultHost}/api/v1`);
+        const url = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'https://api.enakoos.com/api/v1' : `https://api.${defaultHost}/api/v1`);
         navigator.sendBeacon(`${url}/auth/end-session`, new Blob([JSON.stringify({ sessionId })], { type: 'application/json' }));
       }
     };

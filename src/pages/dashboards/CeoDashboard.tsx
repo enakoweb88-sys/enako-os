@@ -211,7 +211,7 @@ export function CEODashboard() {
               </li>
               <li className="flex justify-between items-start text-sm">
                 <span className="text-red-900 font-medium">Failed Disbursals</span>
-                <span className="bg-red-200 text-red-800 px-2 rounded-full text-xs font-bold">{overview?.transactions?.failed ?? 0}</span>
+                <span className="bg-red-200 text-red-800 px-2 rounded-full text-xs font-bold">{overview?.transactions?.failed?._count ?? 0}</span>
               </li>
             </ul>
           </div>
@@ -223,7 +223,7 @@ export function CEODashboard() {
             <ul className="space-y-3">
               <li className="flex justify-between items-start text-sm">
                 <span className="text-yellow-900 font-medium">Pending Transactions</span>
-                <span className="bg-yellow-200 text-yellow-800 px-2 rounded-full text-xs font-bold">{overview?.transactions?.pending ?? 0}</span>
+                <span className="bg-yellow-200 text-yellow-800 px-2 rounded-full text-xs font-bold">{overview?.transactions?.pending?._count ?? 0}</span>
               </li>
               <li className="flex justify-between items-start text-sm">
                 <span className="text-yellow-900 font-medium">Unassigned Support Tickets</span>

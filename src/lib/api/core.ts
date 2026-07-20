@@ -16,7 +16,7 @@ const defaultHost = window.location.hostname.replace(/^(www\.|app\.|os\.|client\
 export const API_BASE_URL = (envApiUrl && envApiUrl !== 'undefined')
   ? envApiUrl
   : (isLocal 
-      ? 'http://localhost:5000/api/v1' 
+      ? 'https://api.enakoos.com/api/v1' 
       : `https://api.${defaultHost}/api/v1`);
 
 export function getAccessToken() {
