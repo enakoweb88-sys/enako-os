@@ -15,7 +15,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleUnload = () => {
-      const sessionId = localStorage.getItem('enako_session_id');
+      const sessionId = sessionStorage.getItem('enako_session_id');
       if (sessionId) {
         const defaultHost = window.location.hostname.replace(/^(www\.|app\.|os\.|client\.|dashboard\.)/, '');
         const url = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'https://api.enakoos.com/api/v1' : `https://api.${defaultHost}/api/v1`);
@@ -23,8 +23,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
     window.addEventListener('beforeunload', handleUnload);
-    return () => window.removeEventListener('beforeunload', handleUnload);
-  }, []);
+
+    // Inactivity Timer
+    let inactivityTimer: number;
+    const resetTimer = () => {
+      window.clearTimeout(inactivityTimer);
+      // 15 minutes = 900,000 ms
+      inactivityTimer = window.setTimeout(async () => {
+        const sessionId = sessionStorage.getItem('enako_session_id');
+        if (sessionId) await api.endSession(sessionId).catch(() => {});
+        await api.logout().catch(() => {});
+        clearSession();
+        setUser(null);
+      }, 900000);
+    };
+
+    if (user) {
+      window.addEventListener('mousemove', resetTimer);
+      window.addEventListener('keydown', resetTimer);
+      window.addEventListener('scroll', resetTimer);
+      window.addEventListener('click', resetTimer);
+      resetTimer();
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('mousemove', resetTimer);
+      window.removeEventListener('keydown', resetTimer);
+      window.removeEventListener('scroll', resetTimer);
+      window.removeEventListener('click', resetTimer);
+      window.clearTimeout(inactivityTimer);
+    };
+  }, [user]);
 
   const value = useMemo<AuthContextValue>(() => ({
     user,
@@ -34,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session.user);
     },
     async logout() {
-      const sessionId = localStorage.getItem('enako_session_id');
+      const sessionId = sessionStorage.getItem('enako_session_id');
       if (sessionId) await api.endSession(sessionId);
       await api.logout();
       clearSession();
