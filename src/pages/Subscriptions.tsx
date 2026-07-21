@@ -264,7 +264,7 @@ export default function Subscriptions() {
               </AnimatePresence>
               {filteredSubs.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-8 py-12 text-center text-secondary">
+                  <td colSpan={8} className="px-8 py-12 text-center text-secondary">
                     No subscriptions found matching your search.
                   </td>
                 </tr>

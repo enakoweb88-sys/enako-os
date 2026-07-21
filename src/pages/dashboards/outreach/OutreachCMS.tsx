@@ -406,25 +406,40 @@ export default function OutreachCMS() {
                   </div>
 
                   {/* Video */}
-                  <div className={`relative h-24 border-2 border-dashed border-outline-variant/50 rounded-xl hover:border-primary/30 transition-colors bg-white overflow-hidden flex flex-col items-center justify-center cursor-pointer group ${videoFile || videoUrl ? 'border-primary/50 bg-primary/5' : ''}`}>
-                    <input 
-                      type="file" 
-                      accept="video/*" 
-                      onChange={handleVideoUpload}
-                      disabled={isUploadingMedia}
-                      className="absolute inset-0 opacity-0 cursor-pointer z-10" 
-                    />
-                    <div className="flex flex-col items-center justify-center p-4">
-                      {isUploadingMedia ? (
-                         <Loader2 className="w-6 h-6 text-primary mb-1 animate-spin" />
-                      ) : (
-                         <Film className={`w-6 h-6 mb-1 transition-colors ${videoFile || videoUrl ? 'text-primary' : 'text-secondary group-hover:text-primary'}`} />
-                      )}
-                      <span className={`text-xs font-bold ${videoFile || videoUrl ? 'text-primary' : 'text-secondary'}`}>
-                        {videoFile ? 'Video Selected' : videoUrl ? 'Video Uploaded' : 'Upload Video File'}
-                      </span>
-                      <span className="text-[10px] text-slate-400 mt-1">Direct upload (Max 100MB)</span>
+                  <div className="relative">
+                    <div className={`relative h-24 border-2 border-dashed border-outline-variant/50 rounded-xl hover:border-primary/30 transition-colors bg-white overflow-hidden flex flex-col items-center justify-center cursor-pointer group ${videoFile || videoUrl ? 'border-primary/50 bg-primary/5' : ''}`}>
+                      <input 
+                        type="file" 
+                        accept="video/*" 
+                        onChange={handleVideoUpload}
+                        disabled={isUploadingMedia}
+                        className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                      />
+                      <div className="flex flex-col items-center justify-center p-4">
+                        {isUploadingMedia ? (
+                           <Loader2 className="w-6 h-6 text-primary mb-1 animate-spin" />
+                        ) : (
+                           <Film className={`w-6 h-6 mb-1 transition-colors ${videoFile || videoUrl ? 'text-primary' : 'text-secondary group-hover:text-primary'}`} />
+                        )}
+                        <span className={`text-xs font-bold ${videoFile || videoUrl ? 'text-primary' : 'text-secondary'}`}>
+                          {videoFile ? 'Video Selected' : videoUrl ? 'Video Uploaded' : 'Upload Video File'}
+                        </span>
+                        <span className="text-[10px] text-slate-400 mt-1">Direct upload (Max 100MB)</span>
+                      </div>
                     </div>
+                    {(videoFile || videoUrl) && (
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setVideoFile(null);
+                          setVideoUrl(null);
+                        }}
+                        className="absolute -top-2 -right-2 bg-error text-white rounded-full p-1.5 shadow-lg hover:bg-red-600 transition-colors z-20"
+                        title="Remove Video"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -438,9 +453,10 @@ export default function OutreachCMS() {
                             e.preventDefault();
                             setImages(images.filter((_, i) => i !== idx));
                           }}
-                          className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"
+                          className="absolute -top-2 -right-2 bg-error text-white rounded-full p-1.5 shadow-md hover:bg-red-600 transition-colors z-20"
+                          title="Remove Photo"
                         >
-                          <X className="w-3 h-3" />
+                          <X className="w-4 h-4" />
                         </button>
                       </div>
                     ))}

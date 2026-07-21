@@ -12,6 +12,7 @@ import {
   X
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { api } from '../lib/api';
 
 export default function Investments() {
   const [role, setRole] = useState<string>('ceo');
@@ -25,31 +26,38 @@ export default function Investments() {
   });
 
   useEffect(() => {
-    setRole(localStorage.getItem('enako_user_role') || 'ceo');
-    const stored = localStorage.getItem('enako_investments');
-    if (stored) {
-      setInvestments(JSON.parse(stored));
-    }
+    setRole(sessionStorage.getItem('enako_user_role') || 'ceo');
+    loadInvestments();
   }, []);
 
-  const handleAllocate = (e: React.FormEvent) => {
-    e.preventDefault();
-    const asset = {
-      ...newAsset,
-      id: Date.now(),
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      amount: '$' + parseInt(newAsset.amount).toLocaleString(),
-      weight: newAsset.weight + '%',
-      color: 'bg-primary'
-    };
-    const updated = [asset, ...investments];
-    setInvestments(updated);
-    localStorage.setItem('enako_investments', JSON.stringify(updated));
-    setShowAllocateModal(false);
-    setNewAsset({ title: '', category: 'Emerging Markets', amount: '', weight: '10' });
+  const loadInvestments = async () => {
+    try {
+      const data = await api.getInvestments();
+      setInvestments(data);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const totalPortfolio = investments.reduce((acc, inv) => acc + parseInt(inv.amount.replace(/[$,]/g, '')), 0);
+  const handleAllocate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const asset = {
+        ...newAsset,
+        amount: Number(newAsset.amount),
+        weight: Number(newAsset.weight),
+        color: 'bg-primary'
+      };
+      await api.createInvestment(asset);
+      setShowAllocateModal(false);
+      setNewAsset({ title: '', category: 'Emerging Markets', amount: '', weight: '10' });
+      loadInvestments();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const totalPortfolio = investments.reduce((acc, inv) => acc + Number(inv.amount), 0);
 
   if (role === 'employee' || role === 'manager') {
     return (
@@ -177,10 +185,10 @@ export default function Investments() {
                       </div>
                       <div>
                         <p className="text-xs font-bold text-primary">{item.title}</p>
-                        <p className="text-[9px] font-bold text-secondary uppercase tracking-widest">{item.category} • {item.date}</p>
+                        <p className="text-[9px] font-bold text-secondary uppercase tracking-widest">{item.category} • {new Date(item.createdAt || Date.now()).toLocaleDateString()}</p>
                       </div>
                     </div>
-                    <p className="text-xs font-mono font-bold text-primary">{item.amount}</p>
+                    <p className="text-xs font-mono font-bold text-primary">${Number(item.amount).toLocaleString()}</p>
                   </div>
                 ))
               )}

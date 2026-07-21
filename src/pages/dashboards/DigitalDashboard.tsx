@@ -38,53 +38,14 @@ export function DigitalDashboard() {
       api.websiteOverview()
     ])
       .then(([cal, t, app, soc, p, ad, type, web]) => {
-        setCalendar(cal?.dailyCounts?.length ? cal : {
-          summary: { scheduled: 12, inProgress: 8, pending: 5, overdue: 2 },
-          dailyCounts: [
-            { day: 'Mon', posts: 3, reels: 1 },
-            { day: 'Tue', posts: 2, reels: 2 },
-            { day: 'Wed', posts: 4, reels: 0 },
-            { day: 'Thu', posts: 1, reels: 1 },
-            { day: 'Fri', posts: 5, reels: 2 },
-            { day: 'Sat', posts: 2, reels: 1 },
-            { day: 'Sun', posts: 1, reels: 0 },
-          ]
-        });
-        setTasks(t?.todo ? t : { todo: 14, inProgress: 8, forReview: 5, approved: 12, published: 45, rejected: 3 });
-        setApprovals(app.length ? app : [
-          { id: 1, title: 'Summer Campaign Reel', platform: 'Instagram', status: 'Pending', author: 'Jane D.' },
-          { id: 2, title: 'Feature Update Thread', platform: 'Twitter', status: 'Approved', author: 'Mark T.' },
-        ]);
-        setSocial(soc.length ? soc : [
-          { platform: 'Facebook', followers: 45200, engagement: '4.2%', impressions: 125000, growth: 5.2 },
-          { platform: 'Instagram', followers: 32100, engagement: '6.8%', impressions: 98000, growth: 8.4 },
-          { platform: 'TikTok', followers: 15400, engagement: '12.4%', impressions: 250000, growth: 15.2 },
-          { platform: 'Twitter', followers: 12500, engagement: '3.1%', impressions: 45000, growth: 1.2 },
-        ]);
-        setPosts(p.length ? p : [
-          { id: 1, title: 'How to use ENAKO OS', platform: 'Facebook', date: '2026-06-10', reach: 15400, engagement: 1200 },
-          { id: 2, title: 'New Feature Alert', platform: 'Instagram', date: '2026-06-09', reach: 12100, engagement: 1500 },
-        ]);
-        setAds(ad?.chartData?.length ? ad : {
-          chartData: [
-            { date: '1 Jun', spend: 50000, conversions: 12 },
-            { date: '2 Jun', spend: 60000, conversions: 15 },
-            { date: '3 Jun', spend: 45000, conversions: 10 },
-            { date: '4 Jun', spend: 75000, conversions: 22 },
-            { date: '5 Jun', spend: 55000, conversions: 14 },
-            { date: '6 Jun', spend: 80000, conversions: 28 },
-          ]
-        });
-        setContentTypes(type.length ? type : [
-          { name: 'Image Posts', value: 45 },
-          { name: 'Reels', value: 25 },
-          { name: 'Videos', value: 15 },
-          { name: 'Stories', value: 10 },
-          { name: 'Others', value: 5 }
-        ]);
-        setWebsite(web?.sessions ? web : {
-          sessions: 45200, users: 38100, pageViews: 125000, bounceRate: 42.5
-        });
+        setCalendar(cal || { summary: { scheduled: 0, inProgress: 0, pending: 0, overdue: 0 }, dailyCounts: [] });
+        setTasks(t || { todo: 0, inProgress: 0, forReview: 0, approved: 0, published: 0, rejected: 0 });
+        setApprovals(app || []);
+        setSocial(soc || []);
+        setPosts(p || []);
+        setAds(ad || { chartData: [] });
+        setContentTypes(type || []);
+        setWebsite(web || { sessions: 0, users: 0, pageViews: 0, bounceRate: 0 });
       })
       .catch(console.error)
       .finally(() => setLoading(false));

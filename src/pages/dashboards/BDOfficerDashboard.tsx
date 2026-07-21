@@ -35,46 +35,12 @@ export function BDOfficerDashboard() {
       api.commission()
     ])
       .then(([pl, t, mtg, ld, perf, comm]) => {
-        setPipeline(pl?.stages?.length ? pl : {
-          totalValue: 12500000,
-          stages: [
-            { name: 'New Lead', count: 24, value: 1200000 },
-            { name: 'Contacted', count: 18, value: 2500000 },
-            { name: 'Interested', count: 12, value: 3800000 },
-            { name: 'KYC Sent', count: 5, value: 1500000 },
-            { name: 'Active Client', count: 3, value: 3500000 }
-          ]
-        });
-        setTasks(t.length ? t : [
-          { id: 1, title: 'Follow up with MTN Rep', context: 'MTN Float Integration', due: 'Today', status: 'IN_PROGRESS' },
-          { id: 2, title: 'Send proposal to Tech Hub', context: 'Tech Hub Ltd', due: 'Today', status: 'DONE' },
-          { id: 3, title: 'Call new lead from Facebook', context: 'Lead: John Doe', due: 'Tomorrow', status: 'TODO' },
-        ]);
-        setMeetings(mtg.length ? mtg : [
-          { id: 1, time: '10:00 AM', person: 'Sarah Jenkins', type: 'Initial Discovery', status: 'Confirmed' },
-          { id: 2, time: '02:30 PM', person: 'Michael Obi', type: 'Proposal Review', status: 'Pending' },
-        ]);
-        setLeads(ld.length ? ld : [
-          { id: 1, name: 'Grace M.', phone: '+237 671 234 567', source: 'WhatsApp', interest: 'Njangi Group', status: 'New', date: '2026-06-11' },
-          { id: 2, name: 'Definitive Tech', phone: '+237 692 345 678', source: 'Referral', interest: 'B2B API', status: 'Contacted', date: '2026-06-10' },
-          { id: 3, name: 'Alice W.', phone: '+237 653 456 789', source: 'Facebook', interest: 'Bill Payments', status: 'Interested', date: '2026-06-09' },
-        ]);
-        setPerformance(perf?.target ? perf : {
-          target: 20000000, achieved: 12500000, remaining: 7500000, daysLeft: 19,
-          sources: [
-            { name: 'Referral', value: 45 },
-            { name: 'Facebook', value: 25 },
-            { name: 'WhatsApp', value: 15 },
-            { name: 'Walk In', value: 10 },
-            { name: 'Other', value: 5 }
-          ],
-          topServices: [
-            { name: 'B2B API Integrations', count: 42, max: 50 },
-            { name: 'Njangi Group Setup', count: 35, max: 50 },
-            { name: 'Utility Payments', count: 28, max: 50 }
-          ]
-        });
-        setCommission(comm?.total ? comm : { total: 450000, paid: 300000, pending: 150000 });
+        setPipeline(pl || { totalValue: 0, stages: [] });
+        setTasks(t || []);
+        setMeetings(mtg || []);
+        setLeads(ld || []);
+        setPerformance(perf || { target: 0, achieved: 0, remaining: 0, daysLeft: 0, sources: [], topServices: [] });
+        setCommission(comm || { total: 0, paid: 0, pending: 0 });
       })
       .catch(console.error)
       .finally(() => setLoading(false));

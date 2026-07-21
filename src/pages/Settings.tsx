@@ -243,42 +243,67 @@ export default function Settings() {
                       <User className="w-6 h-6 text-primary-container" />
                       Account Information
                     </h3>
-                    <div className="space-y-8">
+                    <form className="space-y-8" onSubmit={async (e) => {
+                      e.preventDefault();
+                      try {
+                        const form = e.target as HTMLFormElement;
+                        const data = {
+                          fullName: (form.elements.namedItem('fullName') as HTMLInputElement).value,
+                          phone: (form.elements.namedItem('phone') as HTMLInputElement).value,
+                          title: (form.elements.namedItem('title') as HTMLInputElement).value,
+                          address: (form.elements.namedItem('address') as HTMLInputElement).value,
+                        };
+                        const updated = await api.updateMe(data);
+                        const storedStr = sessionStorage.getItem('enako_user');
+                        if (storedStr) {
+                          sessionStorage.setItem('enako_user', JSON.stringify({ ...JSON.parse(storedStr), ...updated }));
+                        }
+                        toast.success('System profile updated successfully');
+                        setTimeout(() => window.location.reload(), 1000);
+                      } catch (err: any) {
+                        toast.error(err.message || 'Failed to update profile');
+                      }
+                    }}>
                       <div className="flex items-center gap-8">
                           <div className="relative group cursor-pointer">
                             <div className="size-24 rounded-3xl bg-primary/10 flex items-center justify-center shadow-lg group-hover:opacity-80 transition-all">
                               <span className="text-4xl font-bold text-primary">{userName.charAt(0)}</span>
                             </div>
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
-                              <Monitor className="w-6 h-6 text-white" />
-                            </div>
                           </div>
                           <div>
                             <p className="text-xl font-bold text-primary">{userName}</p>
                             <p className="text-[11px] font-bold text-secondary uppercase tracking-widest mt-1">Global {role} Node</p>
-                            <button 
-                              onClick={handleUpdateIdentity}
-                              className="mt-4 px-5 py-2 border border-outline-variant/30 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container transition-all cursor-pointer"
-                            >
-                              Update Identity
-                            </button>
                           </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                          {[
-                            { label: 'Full Name', val: userName },
-                            { label: 'Corporate Email', val: userEmail },
-                            { label: 'Identity Node ID', val: `E-OS-${role.toUpperCase()}` },
-                            { label: 'Network Origin', val: 'Global (Encrypted)' },
-                          ].map((field) => (
-                            <div key={field.label} className="space-y-2">
-                                <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">{field.label}</label>
-                                <input readOnly value={field.val} className="w-full bg-surface-container-low border border-outline-variant/10 rounded-2xl px-6 py-4 text-sm font-medium text-primary outline-none" />
-                            </div>
-                          ))}
+                          <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Full Name</label>
+                              <input name="fullName" defaultValue={userName} required className="w-full bg-surface-container-low border border-outline-variant/10 rounded-2xl px-6 py-4 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container/20" />
+                          </div>
+                          <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Corporate Email</label>
+                              <input readOnly value={userEmail} className="w-full bg-surface-container-low border border-outline-variant/10 rounded-2xl px-6 py-4 text-sm font-medium text-primary/50 outline-none cursor-not-allowed" />
+                          </div>
+                          <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Title</label>
+                              <input name="title" defaultValue={user?.title || ''} className="w-full bg-surface-container-low border border-outline-variant/10 rounded-2xl px-6 py-4 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container/20" />
+                          </div>
+                          <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Phone Number</label>
+                              <input name="phone" defaultValue={user?.phone || ''} className="w-full bg-surface-container-low border border-outline-variant/10 rounded-2xl px-6 py-4 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container/20" />
+                          </div>
+                          <div className="col-span-1 md:col-span-2 space-y-2">
+                              <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Address</label>
+                              <input name="address" defaultValue={user?.address || ''} className="w-full bg-surface-container-low border border-outline-variant/10 rounded-2xl px-6 py-4 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container/20" />
+                          </div>
                       </div>
-                    </div>
+                      <div className="flex justify-end pt-4">
+                        <button type="submit" className="px-8 py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest hover:opacity-90 transition-all shadow-lg hover:shadow-xl">
+                          Update Identity
+                        </button>
+                      </div>
+                    </form>
                   </section>
 
                   <section className="bg-white border border-outline-variant/30 p-10 rounded-[2.5rem] shadow-sm">

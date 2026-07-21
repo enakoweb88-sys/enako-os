@@ -32,40 +32,11 @@ export function FinanceDashboard() {
       api.accountsSummary()
     ])
       .then(([bank, bud, cash, inv, acc]) => {
-        setBanking(bank.length ? bank : [
-          { name: 'Main Operating Account', bank: 'UBA Cameroon', accountNo: '10023XXXX', balance: 145000000 },
-          { name: 'Payroll Account', bank: 'Ecobank', accountNo: '04321XXXX', balance: 45000000 },
-          { name: 'Reserve Account', bank: 'Afriland First Bank', accountNo: '88392XXXX', balance: 80000000 },
-        ]);
-        setBudget(bud.length ? bud : [
-          { category: 'Operations', budget: 10000000, actual: 8500000 },
-          { category: 'Salaries & Wages', budget: 45000000, actual: 45000000 },
-          { category: 'Marketing', budget: 5000000, actual: 6200000 },
-          { category: 'Office & Admin', budget: 2000000, actual: 1800000 },
-          { category: 'Others', budget: 1000000, actual: 400000 },
-        ]);
-        setCashPosition(cash?.chartData?.length ? cash : {
-          chartData: [
-            { name: 'Mon', Inflow: 4000, Outflow: 2400 },
-            { name: 'Tue', Inflow: 3000, Outflow: 1398 },
-            { name: 'Wed', Inflow: 2000, Outflow: 9800 },
-            { name: 'Thu', Inflow: 2780, Outflow: 3908 },
-            { name: 'Fri', Inflow: 1890, Outflow: 4800 },
-            { name: 'Sat', Inflow: 2390, Outflow: 3800 },
-            { name: 'Sun', Inflow: 3490, Outflow: 4300 },
-          ]
-        });
-        setInvoices(inv?.recent?.length ? inv : {
-          summary: { total: 124, paid: 98, pending: 20, overdue: 6 },
-          recent: [
-            { id: 'INV-2026-041', client: 'Acme Corp', amount: 1500000, status: 'Paid', due: '2026-06-05' },
-            { id: 'INV-2026-042', client: 'Tech Hub Ltd', amount: 800000, status: 'Pending', due: '2026-06-12' },
-            { id: 'INV-2026-043', client: 'Global Logistics', amount: 2500000, status: 'Overdue', due: '2026-05-30' },
-          ]
-        });
-        setAccounts(acc?.assets ? acc : {
-          assets: 450000000, liabilities: 120000000, equity: 330000000, revenueYtd: 850000000, expensesYtd: 420000000, netProfit: 430000000
-        });
+        setBanking(bank || []);
+        setBudget(bud || []);
+        setCashPosition(cash || { chartData: [] });
+        setInvoices(inv || { summary: { total: 0, paid: 0, pending: 0, overdue: 0 }, recent: [] });
+        setAccounts(acc || { assets: 0, liabilities: 0, equity: 0, revenueYtd: 0, expensesYtd: 0, netProfit: 0 });
       })
       .catch(console.error)
       .finally(() => setLoading(false));

@@ -19,7 +19,7 @@ export default function StaffMeals() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ employeeId: '', date: new Date().toISOString().split('T')[0], status: 'ATE' as 'ATE' | 'DID_NOT_EAT' });
+  const [form, setForm] = useState({ employeeId: '', date: new Date().toISOString().split('T')[0], status: 'ATE' as 'ATE' | 'DID_NOT_EAT', mealName: '', mealTime: '', price: '' });
   const [disputeId, setDisputeId] = useState<string | null>(null);
   const [disputeReason, setDisputeReason] = useState('');
 
@@ -41,21 +41,26 @@ export default function StaffMeals() {
     if (!form.employeeId) return;
     setSubmitting(true);
     try {
-      await api.recordMeal(form);
+      const payload: any = {
+        employeeId: form.employeeId,
+        date: form.date,
+        status: form.status,
+      };
+      if (form.mealName) payload.mealName = form.mealName;
+      if (form.mealTime) payload.mealTime = new Date(`${form.date}T${form.mealTime}:00`).toISOString();
+      if (form.price) payload.price = Number(form.price);
+
+      await api.recordMeal(payload);
       setShowModal(false);
       load();
     } catch (e: any) { alert(e.message); }
     finally { setSubmitting(false); }
   };
 
-  const handleSelfLog = async () => {
+  const handleSelfLog = () => {
     if (!user) return;
-    setSubmitting(true);
-    try {
-      await api.recordMeal({ employeeId: user.id, date: new Date().toISOString().split('T')[0], status: 'ATE' });
-      load();
-    } catch (e: any) { alert(e.message); }
-    finally { setSubmitting(false); }
+    setForm({ ...form, employeeId: user.id });
+    setShowModal(true);
   };
 
   const handleDispute = async (e: React.FormEvent) => {
@@ -171,7 +176,10 @@ export default function StaffMeals() {
             <button
               onClick={() => {
                 const id = prompt('Enter meal record ID to dispute:');
-                if (id) setDisputeId(id);
+                if (id) {
+                  setDisputeId(id);
+                  // Notify manager logic can be handled here or backend. We are calling the dispute endpoint.
+                }
               }}
               className="w-full py-3 bg-white/10 hover:bg-white/20 transition-all rounded-xl text-[11px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-2 border border-white/5"
             >
@@ -219,7 +227,7 @@ export default function StaffMeals() {
                     </div>
                   </td>
                   <td className="px-8 py-5 text-sm font-mono font-medium text-secondary">
-                    {new Date(row.date).toLocaleDateString()}
+                    {new Date(row.date).toLocaleDateString()} {row.mealTime && <span className="block text-xs">{new Date(row.mealTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
                   </td>
                   <td className="px-8 py-5">
                     <span className={cn(
@@ -267,6 +275,26 @@ export default function StaffMeals() {
                     <option value="DID_NOT_EAT">Did Not Eat</option>
                   </select>
                 </div>
+                
+                {form.status === 'ATE' && (
+                  <>
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Meal Name</label>
+                      <input type="text" value={form.mealName} onChange={e => setForm({ ...form, mealName: e.target.value })} placeholder="e.g. Lunch" className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Time</label>
+                        <input type="time" value={form.mealTime} onChange={e => setForm({ ...form, mealTime: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Price (XAF)</label>
+                        <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="e.g. 2000" className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none" />
+                      </div>
+                    </div>
+                  </>
+                )}
+                
                 <button type="submit" disabled={submitting} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest disabled:opacity-60">
                   {submitting ? 'Logging…' : 'Log Entry'}
                 </button>

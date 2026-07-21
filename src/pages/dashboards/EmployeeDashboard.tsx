@@ -5,6 +5,7 @@ import { cn } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { Utensils, Wallet, ClipboardCheck, Target, Megaphone, BarChart3, Activity } from 'lucide-react';
+import { TasksWidget } from '../../components/TasksWidget';
 
 function fmt(val: string | number | null | undefined, currency = true) {
   const n = Number(val ?? 0);
@@ -61,13 +62,13 @@ export function EmployeeDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-gradient-to-br from-primary to-primary-fixed border border-primary/20 rounded-xl p-6 shadow-sm text-white">
           <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest mb-1">Current Work Stream</p>
-          <p className="text-xl font-bold font-display">Development Sprint</p>
-          <p className="text-xs text-white/70 mt-2">Q3 Enterprise Features</p>
+          <p className="text-xl font-bold font-display">Active Operations</p>
+          <p className="text-xs text-white/70 mt-2">Check your tasks</p>
         </div>
         <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col justify-center">
-          <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1 flex items-center gap-2"><Activity className="w-4 h-4 text-primary" /> Active Task</p>
-          <p className="text-lg font-bold text-primary">UI Component Updates</p>
-          <p className="text-xs text-secondary mt-1">In Progress · Due Today</p>
+          <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1 flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Active Goals</p>
+          <p className="text-lg font-bold text-primary">{activeGoals} Goals Tracking</p>
+          <p className="text-xs text-secondary mt-1">Keep up the momentum</p>
         </div>
         <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col justify-center">
           <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1 flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-primary" /> General Operations</p>
@@ -97,28 +98,8 @@ export function EmployeeDashboard() {
       </div>
 
       <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 lg:col-span-8 bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm">
-          <h3 className="font-display text-xl font-bold text-primary mb-6">My Tasks</h3>
-          <div className="space-y-3">
-            {tasks.length === 0
-              ? <p className="text-secondary text-sm text-center py-4">No tasks assigned.</p>
-              : tasks.map(task => (
-                <div key={task.id} className="flex items-center justify-between p-4 bg-surface-container-low/50 rounded-xl border border-outline-variant/10">
-                  <div>
-                    <p className="text-sm font-bold text-primary">{task.title}</p>
-                    <p className="text-[10px] text-secondary uppercase tracking-widest mt-0.5">
-                      {task.priority} · Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No deadline'}
-                    </p>
-                  </div>
-                  <span className={cn(
-                    'text-[9px] font-black uppercase px-2 py-0.5 rounded',
-                    task.status === 'DONE' ? 'bg-green-50 text-green-700' :
-                    task.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700' :
-                    'bg-primary-fixed text-primary',
-                  )}>{task.status}</span>
-                </div>
-              ))}
-          </div>
+        <div className="col-span-12 lg:col-span-8">
+          <TasksWidget limit={10} />
         </div>
 
         <div className="col-span-12 lg:col-span-4 space-y-6">

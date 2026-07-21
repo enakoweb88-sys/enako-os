@@ -7,7 +7,7 @@ import {
   Bell, BarChart3, Settings, LogOut, Search, HelpCircle,
   MessageSquare, UtensilsCrossed, User, Briefcase, Megaphone,
   Headphones, ClipboardList, TrendingUp, Menu, ChevronLeft, ChevronRight,
-  PenTool, Calendar, FileText, Mail
+  PenTool, Calendar, FileText, Mail, X
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
@@ -25,8 +25,8 @@ const navItems = [
   { icon: Headphones, label: 'Support Tickets', path: '/app/tickets', roles: ['ceo', 'support'] },
   { icon: UtensilsCrossed, label: 'Staff Meals', path: '/app/meals', roles: ['ceo', 'manager', 'admin', 'employee'] },
   { icon: Bell, label: 'Announcements', path: '/app/announcements', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
-  { icon: BarChart3, label: 'Reports', path: '/app/reports', roles: ['ceo', 'manager', 'finance', 'admin'] },
-  { icon: CreditCard, label: 'Subscriptions', path: '/app/subscriptions', roles: ['ceo', 'manager', 'finance', 'admin', 'employee'] },
+  { icon: BarChart3, label: 'Reports', path: '/app/reports', roles: ['ceo', 'manager', 'finance', 'admin', 'employee', 'outreach_manager'] },
+  { icon: CreditCard, label: 'Subscriptions', path: '/app/subscriptions', roles: ['ceo', 'manager', 'finance', 'admin', 'employee', 'outreach_manager'] },
   
   // Outreach Manager specifics
   { icon: PenTool, label: 'Blog & Content', path: '/app/outreach/cms', roles: ['outreach_manager'] },
@@ -34,6 +34,7 @@ const navItems = [
   { icon: FileText, label: 'Applications', path: '/app/outreach/applications', roles: ['outreach_manager'] },
   { icon: Mail, label: 'Newsletters', path: '/app/outreach/newsletters', roles: ['outreach_manager'] },
 
+  { icon: HelpCircle, label: 'Help & Support', path: '/app/help', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
   { icon: User, label: 'Profile', path: '/app/profile', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
 ];
 
@@ -46,6 +47,9 @@ export default function DashboardLayout() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotif, setShowNotif] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  const [announcement, setAnnouncement] = useState<any>(null);
+  const [showBanner, setShowBanner] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -68,6 +72,15 @@ export default function DashboardLayout() {
         const arr = Array.isArray(notifs) ? notifs : [];
         setNotifications(arr);
         setUnreadCount(arr.filter((n: any) => !n.readAt).length);
+      })
+      .catch(() => { });
+
+    api.announcements()
+      .then(anns => {
+        const activeAnns = Array.isArray(anns) ? anns : [];
+        if (activeAnns.length > 0) {
+          setAnnouncement(activeAnns[0]);
+        }
       })
       .catch(() => { });
   }, [location.pathname]);
@@ -192,6 +205,20 @@ export default function DashboardLayout() {
 
       {/* ── Main Content ── */}
       <main className={cn("flex-1 min-w-0 flex flex-col transition-all duration-300", sidebarOpen ? "ml-64" : "ml-20")}>
+        
+        {/* Banner */}
+        <AnimatePresence>
+          {announcement && showBanner && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="bg-primary-fixed text-primary px-4 py-2 flex items-center justify-between z-50">
+              <div className="flex items-center gap-3">
+                <Megaphone className="w-4 h-4" />
+                <p className="text-sm font-bold">{announcement.title}: <span className="font-normal">{announcement.content}</span></p>
+              </div>
+              <button onClick={() => setShowBanner(false)} className="p-1 hover:bg-black/10 rounded-full transition-colors"><X className="w-4 h-4" /></button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Top Header */}
         <header className="sticky top-0 z-40 bg-surface/70 backdrop-blur-xl border-b border-outline-variant/30 flex justify-between items-center px-8 py-4">
           <div className="flex items-center flex-1 max-w-xl gap-4" ref={searchRef}>

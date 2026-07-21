@@ -9,6 +9,7 @@ import {
   Bell, FileText, Settings, ShieldCheck, CheckCircle2, Megaphone,
   Briefcase, Globe
 } from 'lucide-react';
+import { TasksWidget } from '../../components/TasksWidget';
 
 function fmt(val: string | number | null | undefined, currency = true) {
   const n = Number(val ?? 0);
@@ -170,29 +171,7 @@ export function ManagerDashboard() {
           </div>
 
           {/* Recent Tasks (Existing Component) */}
-          <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm">
-            <h3 className="font-display text-xl font-bold text-primary mb-6">Recent Tasks</h3>
-            <div className="space-y-3">
-              {tasks.length === 0
-                ? <p className="text-secondary text-sm text-center py-4">No tasks found.</p>
-                : tasks.map(task => (
-                  <div key={task.id} className="flex items-center justify-between p-4 bg-surface-container-low/50 rounded-xl border border-outline-variant/10">
-                    <div>
-                      <p className="text-sm font-bold text-primary">{task.title}</p>
-                      <p className="text-[10px] text-secondary uppercase tracking-widest mt-0.5">
-                        {task.assignee?.fullName ?? 'Unassigned'} · {task.priority}
-                      </p>
-                    </div>
-                    <span className={cn(
-                      'text-[9px] font-black uppercase px-2 py-0.5 rounded',
-                      task.status === 'DONE' ? 'bg-green-50 text-green-700' :
-                      task.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700' :
-                      'bg-primary-fixed text-primary',
-                    )}>{task.status}</span>
-                  </div>
-                ))}
-            </div>
-          </div>
+          <TasksWidget limit={10} />
 
         </div>
 

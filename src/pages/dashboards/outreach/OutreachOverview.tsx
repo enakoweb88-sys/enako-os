@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Globe, PenTool, FileText, Users, Heart } from 'lucide-react';
 import { outreachAPI } from '../../../lib/api';
+import { TasksWidget } from '../../../components/TasksWidget';
 
 export default function OutreachOverview() {
   const [statsData, setStatsData] = useState<any>(null);
@@ -55,11 +56,14 @@ export default function OutreachOverview() {
         ))}
       </div>
 
-      <div className="bg-white rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-outline-variant/30">
-          <h3 className="font-bold text-lg text-primary">Recent Donations</h3>
-        </div>
-        <div className="overflow-x-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TasksWidget limit={5} />
+
+        <div className="bg-white rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden flex flex-col">
+          <div className="p-5 border-b border-outline-variant/30 flex-shrink-0">
+            <h3 className="font-bold text-lg text-primary">Recent Donations</h3>
+          </div>
+          <div className="overflow-x-auto flex-1">
           <table className="w-full">
             <thead className="bg-surface-container/50">
               <tr>
@@ -94,6 +98,7 @@ export default function OutreachOverview() {
               )}
             </tbody>
           </table>
+        </div>
         </div>
       </div>
     </div>
