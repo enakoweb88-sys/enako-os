@@ -55,7 +55,7 @@ export default function RoleSelect() {
 
   const handleSelect = (role: 'CEO' | 'MANAGER' | 'EMPLOYEE' | 'OUTREACH_MANAGER') => {
     sessionStorage.setItem('enako_selected_role', role);
-    navigate('/login');
+    navigate(`/login?role=${role}`);
   };
 
   return (

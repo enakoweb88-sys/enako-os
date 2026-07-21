@@ -26,7 +26,9 @@ function isValidRole(r: string | null): r is Role {
 
 export default function Login() {
   const [searchParams] = useSearchParams();
-  const rawRole = searchParams.get('role');
+  const queryRole = searchParams.get('role');
+  const sessionRole = sessionStorage.getItem('enako_selected_role');
+  const rawRole = queryRole || sessionRole;
   const selectedRole: Role = isValidRole(rawRole) ? rawRole : 'CEO';
 
   const [email, setEmail] = useState('');
