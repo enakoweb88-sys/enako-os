@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { outreachAPI } from '../../../lib/api';
 import { toast } from 'sonner';
+import { 
+  Calendar, Plus, Target, CheckCircle2, Trash2, Heart, 
+  GraduationCap, Droplets, Stethoscope, AlertTriangle, RefreshCw, 
+  FileText, Video, Image as ImageIcon, Sparkles, Filter
+} from 'lucide-react';
 
 export default function OutreachEvents() {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -13,9 +19,13 @@ export default function OutreachEvents() {
     titleFr: '',
     description: '',
     descriptionFr: '',
-    type: 'SCHOLARSHIP',
+    type: 'FUNDRAISER',
     customType: '',
-    targetSchools: '', // Comma separated
+    targetSchools: '', // Comma separated target schools or communities
+    targetAmount: '5000000',
+    currentAmount: '0',
+    location: '',
+    eventDate: '',
     videoUrl: '',
     storyTitle: '',
     storyTitleFr: '',
@@ -25,14 +35,14 @@ export default function OutreachEvents() {
   });
 
   const [storyMediaBase64, setStoryMediaBase64] = useState<string | null>(null);
-  const [gallery, setGallery] = useState<any[]>([]); // [{ fileBase64: string, name: string, caption: '', captionFr: '' }]
 
   const fetchEvents = async () => {
+    setLoading(true);
     try {
       const data = await outreachAPI.getEvents();
       setEvents(data);
     } catch (err) {
-      toast.error('Failed to load events');
+      toast.error('Failed to load outreach events');
     } finally {
       setLoading(false);
     }
@@ -42,50 +52,15 @@ export default function OutreachEvents() {
     fetchEvents();
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void) => {
+  const handleStoryMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        callback(reader.result as string);
+        setStoryMediaBase64(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const handleGalleryFileChange = (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setGallery(prev => {
-          const updated = [...prev];
-          updated[idx] = {
-            ...updated[idx],
-            fileBase64: reader.result as string,
-            name: file.name
-          };
-          return updated;
-        });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const addGalleryItem = () => {
-    setGallery(prev => [...prev, { fileBase64: '', name: '', caption: '', captionFr: '' }]);
-  };
-
-  const removeGalleryItem = (idx: number) => {
-    setGallery(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  const handleGalleryTextChange = (idx: number, field: string, value: string) => {
-    setGallery(prev => {
-      const updated = [...prev];
-      updated[idx] = { ...updated[idx], [field]: value };
-      return updated;
-    });
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -97,38 +72,41 @@ export default function OutreachEvents() {
       
       const payload = {
         title: form.title,
-        titleFr: form.titleFr,
+        titleFr: form.titleFr || form.title,
         description: form.description,
-        descriptionFr: form.descriptionFr,
+        descriptionFr: form.descriptionFr || form.description,
         type: selectedType,
         targetSchools,
+        targetAmount: form.targetAmount ? parseFloat(form.targetAmount) : 0,
+        currentAmount: form.currentAmount ? parseFloat(form.currentAmount) : 0,
+        location: form.location || 'Cameroon',
+        eventDate: form.eventDate ? new Date(form.eventDate).toISOString() : new Date().toISOString(),
         videoUrl: form.videoUrl || null,
         storyTitle: form.storyTitle || null,
         storyTitleFr: form.storyTitleFr || null,
         storyDescription: form.storyDescription || null,
         storyDescriptionFr: form.storyDescriptionFr || null,
-        storyMediaType: form.storyMediaType || null,
+        storyMediaType: form.storyMediaType || 'IMAGE',
         storyMediaBase64,
-        gallery: gallery.filter(g => g.fileBase64).map(g => ({
-          fileBase64: g.fileBase64,
-          caption: g.caption,
-          captionFr: g.captionFr
-        }))
       };
 
       await outreachAPI.createEvent(payload);
-      toast.success('Outreach Event created successfully!');
+      toast.success('Outreach Event / Fundraiser published successfully!');
       
-      // Reset State
       setIsModalOpen(false);
+      // Reset form
       setForm({
         title: '',
         titleFr: '',
         description: '',
         descriptionFr: '',
-        type: 'SCHOLARSHIP',
+        type: 'FUNDRAISER',
         customType: '',
         targetSchools: '',
+        targetAmount: '5000000',
+        currentAmount: '0',
+        location: '',
+        eventDate: '',
         videoUrl: '',
         storyTitle: '',
         storyTitleFr: '',
@@ -137,227 +115,303 @@ export default function OutreachEvents() {
         storyMediaType: 'IMAGE',
       });
       setStoryMediaBase64(null);
-      setGallery([]);
-      
+
       fetchEvents();
-    } catch (err) {
-      toast.error('Failed to create event');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to publish event');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const toggleStatus = async (id: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'OPEN' ? 'CLOSED' : 'OPEN';
+  const handleStatusToggle = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'ACTIVE' ? 'COMPLETED' : 'ACTIVE';
     try {
       await outreachAPI.updateEventStatus(id, newStatus);
-      toast.success('Status updated');
+      toast.success(`Event status updated to ${newStatus}`);
       fetchEvents();
     } catch (err) {
       toast.error('Failed to update status');
     }
   };
 
+  const filteredEvents = selectedTypeFilter 
+    ? events.filter(e => e.type === selectedTypeFilter) 
+    : events;
+
+  const getTypeBadgeColor = (type: string) => {
+    switch (type) {
+      case 'SCHOLARSHIP': return 'bg-blue-100 text-blue-800';
+      case 'FUNDRAISER': return 'bg-purple-100 text-purple-800';
+      case 'CLEAN_WATER': return 'bg-cyan-100 text-cyan-800';
+      case 'HEALTH_CAMPAIGN': return 'bg-emerald-100 text-emerald-800';
+      case 'EMERGENCY_AID': return 'bg-red-100 text-red-800';
+      default: return 'bg-slate-100 text-slate-800';
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'SCHOLARSHIP': return <GraduationCap className="w-4 h-4 text-blue-600" />;
+      case 'FUNDRAISER': return <Heart className="w-4 h-4 text-purple-600" />;
+      case 'CLEAN_WATER': return <Droplets className="w-4 h-4 text-cyan-600" />;
+      case 'HEALTH_CAMPAIGN': return <Stethoscope className="w-4 h-4 text-emerald-600" />;
+      case 'EMERGENCY_AID': return <AlertTriangle className="w-4 h-4 text-red-600" />;
+      default: return <Calendar className="w-4 h-4 text-slate-600" />;
+    }
+  };
+
   return (
-    <div className="p-6 pb-20">
-      <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="font-display text-xl font-bold text-primary">Manage Outreach Events</h3>
-          <button onClick={() => setIsModalOpen(true)} className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary/90">Create Event</button>
+    <div className="space-y-6 pb-20 p-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-outline-variant/30 pb-5">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider mb-1">
+            <Calendar className="w-4 h-4 text-primary" />
+            <span>Outreach Manager Portal</span>
+          </div>
+          <h2 className="text-3xl font-bold font-display text-primary">Outreach Events & Fundraisers</h2>
+          <p className="text-secondary text-sm mt-1">
+            Create, track, and manage scholarship drives, fundraising galas, and field campaigns.
+          </p>
         </div>
 
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={fetchEvents}
+            className="bg-surface-container border border-outline-variant/40 text-primary font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 hover:bg-surface-container-high transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Refresh
+          </button>
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-primary-dark transition-all shadow-sm shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            Publish Event / Fundraiser
+          </button>
+        </div>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="bg-white border border-outline-variant/30 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Filter className="w-4 h-4 text-primary" />
+          <span className="text-xs font-bold text-primary">Filter Event Type:</span>
+          <select
+            value={selectedTypeFilter}
+            onChange={(e) => setSelectedTypeFilter(e.target.value)}
+            className="bg-surface-container border border-outline-variant/40 rounded-lg px-3 py-1.5 text-xs font-bold text-primary focus:outline-none"
+          >
+            <option value="">All Event Categories</option>
+            <option value="FUNDRAISER">Fundraisers</option>
+            <option value="SCHOLARSHIP">Scholarship Drives</option>
+            <option value="CLEAN_WATER">Clean Water Initiatives</option>
+            <option value="HEALTH_CAMPAIGN">Community Health Campaigns</option>
+            <option value="EMERGENCY_AID">Emergency Aid Drives</option>
+          </select>
+        </div>
+
+        <span className="text-xs font-bold text-secondary">
+          Total Events: <strong className="text-primary">{filteredEvents.length}</strong>
+        </span>
+      </div>
+
+      {/* Events Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
-          <p className="text-secondary">Loading...</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[600px]">
-              <thead>
-                <tr className="border-b border-outline-variant/50 text-secondary text-sm">
-                  <th className="pb-3 font-semibold">Title (EN)</th>
-                  <th className="pb-3 font-semibold">Type</th>
-                  <th className="pb-3 font-semibold">Status</th>
-                  <th className="pb-3 font-semibold">Schools</th>
-                  <th className="pb-3 font-semibold">Applicants</th>
-                  <th className="pb-3 font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {events.length === 0 && (
-                  <tr><td colSpan={6} className="py-4 text-center text-secondary">No events found.</td></tr>
-                )}
-                {events.map(ev => (
-                  <tr key={ev.id} className="border-b border-outline-variant/20 last:border-0">
-                    <td className="py-4 font-bold text-primary">{ev.title}</td>
-                    <td className="py-4 text-sm text-secondary">{ev.type}</td>
-                    <td className="py-4">
-                      <span className={`px-2 py-1 rounded text-xs font-bold ${ev.status === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                        {ev.status}
-                      </span>
-                    </td>
-                    <td className="py-4 text-sm text-secondary">
-                      {ev.targetSchools && ev.targetSchools.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {ev.targetSchools.map((s: string, i: number) => (
-                            <span key={i} className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded text-xs">{s}</span>
-                          ))}
-                        </div>
-                      ) : '-'}
-                    </td>
-                    <td className="py-4 text-sm font-bold">{ev._count?.applications || 0}</td>
-                    <td className="py-4">
-                      <button onClick={() => toggleStatus(ev.id, ev.status)} className="text-sm font-bold text-blue-600 hover:underline">
-                        Toggle Status
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="col-span-full py-16 text-center text-secondary text-sm font-medium animate-pulse">
+            Loading events & fundraisers from database...
           </div>
+        ) : filteredEvents.length === 0 ? (
+          <div className="col-span-full bg-white border border-outline-variant/30 rounded-2xl p-12 text-center text-secondary space-y-3">
+            <Calendar className="w-12 h-12 text-outline-variant mx-auto opacity-40" />
+            <h4 className="font-bold text-primary text-base">No Events / Fundraisers Found</h4>
+            <p className="text-xs text-secondary max-w-sm mx-auto">
+              Click <strong>"Publish Event / Fundraiser"</strong> above to launch a new scholarship drive, water campaign, or charity fundraiser.
+            </p>
+          </div>
+        ) : (
+          filteredEvents.map((ev) => {
+            const target = parseFloat(ev.targetAmount || '0');
+            const current = parseFloat(ev.currentAmount || '0');
+            const percent = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
+
+            return (
+              <div key={ev.id} className="bg-white border border-outline-variant/30 rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative group">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider flex items-center gap-1.5 ${getTypeBadgeColor(ev.type)}`}>
+                      {getTypeIcon(ev.type)}
+                      <span>{ev.type.replace('_', ' ')}</span>
+                    </span>
+
+                    <button
+                      onClick={() => handleStatusToggle(ev.id, ev.status)}
+                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded cursor-pointer transition-colors ${ev.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                      title="Click to toggle status"
+                    >
+                      {ev.status}
+                    </button>
+                  </div>
+
+                  <h3 className="font-bold text-primary text-base mb-2">{ev.title}</h3>
+                  <p className="text-xs text-secondary line-clamp-3 leading-relaxed mb-4">{ev.description}</p>
+                </div>
+
+                <div className="pt-3 border-t border-outline-variant/30 space-y-2">
+                  {target > 0 && (
+                    <div className="space-y-1 mb-2">
+                      <div className="flex justify-between text-xs font-bold text-primary">
+                        <span>Fundraising Goal: {current.toLocaleString()} XAF</span>
+                        <span>{percent}%</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${percent}%` }} />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium pt-1">
+                    <span>📅 {new Date(ev.createdAt).toLocaleDateString()}</span>
+                    <span>{ev.targetSchools?.length || 0} Target Locations</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
 
+      {/* Modal: Create Event / Fundraiser */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-outline-variant/30 flex justify-between items-center">
-              <h3 className="font-display text-xl font-bold text-primary">Create Outreach Event</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-secondary hover:text-primary">&times;</button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-primary/20 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl border border-outline-variant/30 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-outline-variant/30 pb-3">
+              <h3 className="font-bold text-primary text-lg">Publish Outreach Event / Fundraiser</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-base">✕</button>
             </div>
-            <form onSubmit={handleCreate} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Title (English)</label>
-                  <input required value={form.title} onChange={e => setForm({...form, title: e.target.value})} type="text" className="w-full border p-2 rounded" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Title (French)</label>
-                  <input required value={form.titleFr} onChange={e => setForm({...form, titleFr: e.target.value})} type="text" className="w-full border p-2 rounded" />
-                </div>
+
+            <form onSubmit={handleCreate} className="space-y-4 text-xs font-bold text-primary">
+              <div>
+                <label className="block mb-1 text-secondary uppercase tracking-wider">Event / Fundraiser Title (English) *</label>
+                <input
+                  required
+                  type="text"
+                  placeholder="e.g. Annual Cameroon Clean Water Gala & Borehole Drive"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Description (English)</label>
-                  <textarea required value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full border p-2 rounded h-24" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Description (French)</label>
-                  <textarea required value={form.descriptionFr} onChange={e => setForm({...form, descriptionFr: e.target.value})} className="w-full border p-2 rounded h-24" />
-                </div>
+
+              <div>
+                <label className="block mb-1 text-secondary uppercase tracking-wider">Title (French)</label>
+                <input
+                  type="text"
+                  placeholder="Titre de l'événement en français..."
+                  value={form.titleFr}
+                  onChange={(e) => setForm({ ...form, titleFr: e.target.value })}
+                  className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                />
               </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-semibold mb-1">Event Category / Type</label>
-                  <select value={form.type} onChange={e => setForm({...form, type: e.target.value})} className="w-full border p-2 rounded bg-white">
-                    <option value="SCHOLARSHIP">Scholarship Support</option>
+                  <label className="block mb-1 text-secondary uppercase tracking-wider">Event Category *</label>
+                  <select
+                    value={form.type}
+                    onChange={(e) => setForm({ ...form, type: e.target.value })}
+                    className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                  >
+                    <option value="FUNDRAISER">Fundraiser Gala</option>
+                    <option value="SCHOLARSHIP">Scholarship Drive</option>
                     <option value="CLEAN_WATER">Clean Water Initiative</option>
-                    <option value="HEALTHCARE">Community Health Support</option>
-                    <option value="WOMEN_MOTHERS">Single Mothers Assistance</option>
-                    <option value="COMMUNITY_RELIEF">Community Relief</option>
-                    <option value="FUNDRAISER">General Fundraiser</option>
-                    <option value="CUSTOM">Custom / New Category</option>
+                    <option value="HEALTH_CAMPAIGN">Community Health Campaign</option>
+                    <option value="EMERGENCY_AID">Emergency Aid Drive</option>
+                    <option value="CUSTOM">Custom Category</option>
                   </select>
                 </div>
+
                 {form.type === 'CUSTOM' && (
                   <div>
-                    <label className="block text-sm font-semibold mb-1">Custom Category Name</label>
-                    <input required value={form.customType} onChange={e => setForm({...form, customType: e.target.value})} type="text" className="w-full border p-2 rounded" placeholder="e.g. SOLAR_POWER" />
+                    <label className="block mb-1 text-secondary uppercase tracking-wider">Custom Category Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. YOUTH_TECH"
+                      value={form.customType}
+                      onChange={(e) => setForm({ ...form, customType: e.target.value })}
+                      className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                    />
                   </div>
                 )}
-              </div>
 
-              {form.type === 'SCHOLARSHIP' ? (
                 <div>
-                  <label className="block text-sm font-semibold mb-1">Target Schools (Comma separated)</label>
-                  <input required value={form.targetSchools} onChange={e => setForm({...form, targetSchools: e.target.value})} type="text" className="w-full border p-2 rounded" placeholder="e.g. University of Buea, UB, Douala University" />
+                  <label className="block mb-1 text-secondary uppercase tracking-wider">Location / City</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Douala, Kumba, Yaoundé"
+                    value={form.location}
+                    onChange={(e) => setForm({ ...form, location: e.target.value })}
+                    className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                  />
                 </div>
-              ) : (
-                <div className="space-y-4 pt-2 border-t border-outline-variant/30">
-                  <h4 className="font-bold text-sm text-primary">Media & Gallery Section</h4>
-                  <div>
-                    <label className="block text-sm font-semibold mb-1">Featured Video Link (Optional)</label>
-                    <input value={form.videoUrl} onChange={e => setForm({...form, videoUrl: e.target.value})} type="text" className="w-full border p-2 rounded" placeholder="https://youtube.com/watch?v=..." />
-                  </div>
-
-                  {/* Story Section */}
-                  <div className="border border-outline-variant/30 p-3 rounded-lg space-y-3 bg-slate-50">
-                    <h5 className="font-semibold text-xs text-primary">Impact Story Card</h5>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold mb-1">Story Title (EN)</label>
-                        <input value={form.storyTitle} onChange={e => setForm({...form, storyTitle: e.target.value})} type="text" className="w-full border p-2 rounded text-xs" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold mb-1">Story Title (FR)</label>
-                        <input value={form.storyTitleFr} onChange={e => setForm({...form, storyTitleFr: e.target.value})} type="text" className="w-full border p-2 rounded text-xs" />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold mb-1">Story Body (EN)</label>
-                        <textarea value={form.storyDescription} onChange={e => setForm({...form, storyDescription: e.target.value})} className="w-full border p-2 rounded text-xs h-16" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold mb-1">Story Body (FR)</label>
-                        <textarea value={form.storyDescriptionFr} onChange={e => setForm({...form, storyDescriptionFr: e.target.value})} className="w-full border p-2 rounded text-xs h-16" />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold mb-1">Story File Upload</label>
-                        <input type="file" accept="image/*,video/*" onChange={e => handleFileChange(e, (base64) => setStoryMediaBase64(base64))} className="w-full text-xs" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold mb-1">Story File Type</label>
-                        <select value={form.storyMediaType} onChange={e => setForm({...form, storyMediaType: e.target.value})} className="w-full border p-1 rounded text-xs bg-white">
-                          <option value="IMAGE">Image</option>
-                          <option value="VIDEO">Video</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Gallery Items */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <h5 className="font-semibold text-xs text-primary">Event Image Gallery</h5>
-                      <button type="button" onClick={addGalleryItem} className="text-xs font-bold text-blue-600 hover:underline">+ Add Gallery Image</button>
-                    </div>
-
-                    <div className="space-y-3">
-                      {gallery.map((item, idx) => (
-                        <div key={idx} className="border p-3 rounded space-y-2 bg-slate-50 relative">
-                          <button type="button" onClick={() => removeGalleryItem(idx)} className="absolute top-2 right-2 text-red-500 text-sm font-bold">&times;</button>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                              <label className="block text-xs font-semibold mb-1">Select File</label>
-                              <input required type="file" accept="image/*" onChange={e => handleGalleryFileChange(idx, e)} className="w-full text-xs" />
-                              {item.name && <span className="text-[10px] text-green-600 font-bold block mt-1">{item.name}</span>}
-                            </div>
-                            <div className="space-y-2">
-                              <div>
-                                <label className="block text-[10px] font-semibold mb-0.5">Caption (EN)</label>
-                                <input required value={item.caption} onChange={e => handleGalleryTextChange(idx, 'caption', e.target.value)} type="text" className="w-full border p-1 rounded text-xs" />
-                              </div>
-                              <div>
-                                <label className="block text-[10px] font-semibold mb-0.5">Caption (FR)</label>
-                                <input required value={item.captionFr} onChange={e => handleGalleryTextChange(idx, 'captionFr', e.target.value)} type="text" className="w-full border p-1 rounded text-xs" />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end pt-4 border-t border-outline-variant/30">
-                <button type="submit" disabled={isSubmitting} className="bg-primary text-white px-6 py-2 rounded-lg font-bold disabled:bg-gray-400">
-                  {isSubmitting ? 'Creating...' : 'Create Event'}
-                </button>
               </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block mb-1 text-secondary uppercase tracking-wider">Target Fundraising Goal (XAF)</label>
+                  <input
+                    type="number"
+                    value={form.targetAmount}
+                    onChange={(e) => setForm({ ...form, targetAmount: e.target.value })}
+                    className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-1 text-secondary uppercase tracking-wider">Target Schools / Beneficiaries</label>
+                  <input
+                    type="text"
+                    placeholder="Comma-separated list..."
+                    value={form.targetSchools}
+                    onChange={(e) => setForm({ ...form, targetSchools: e.target.value })}
+                    className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block mb-1 text-secondary uppercase tracking-wider">Event Description (English) *</label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="Describe event schedule, fundraising objectives, and impact..."
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1 text-secondary uppercase tracking-wider">Media Upload (Select Image)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleStoryMediaChange}
+                  className="w-full p-2 bg-surface border border-outline-variant/40 rounded-xl outline-none text-xs"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3.5 bg-primary text-white font-bold rounded-xl shadow hover:bg-primary-dark transition-all uppercase tracking-widest disabled:opacity-50"
+              >
+                {isSubmitting ? 'Publishing Event...' : 'Publish Event / Fundraiser'}
+              </button>
             </form>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Globe, PenTool, FileText, Users, Heart } from 'lucide-react';
+import { Globe, PenTool, FileText, Users, Heart, Cookie } from 'lucide-react';
 import { outreachAPI } from '../../../lib/api';
 import { TasksWidget } from '../../../components/TasksWidget';
 
@@ -9,15 +9,19 @@ export default function OutreachOverview() {
   const [donations, setDonations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [insights, setInsights] = useState<any>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsRes, donationsRes] = await Promise.all([
+        const [statsRes, donationsRes, insightsRes] = await Promise.all([
           outreachAPI.getStats(),
-          outreachAPI.getDonations()
+          outreachAPI.getDonations(),
+          outreachAPI.getWebInsights().catch(() => null)
         ]);
         setStatsData(statsRes);
         setDonations(donationsRes);
+        setInsights(insightsRes);
       } catch (err) {
         console.error('Failed to fetch outreach data:', err);
       } finally {
@@ -31,7 +35,7 @@ export default function OutreachOverview() {
     { label: 'Active Events', value: statsData?.activeEvents || 0, icon: Globe },
     { label: 'Pending Applications', value: statsData?.pendingApplications || 0, icon: FileText },
     { label: 'Total Donations (XAF)', value: (statsData?.totalDonations || 0).toLocaleString(), icon: Heart },
-    { label: 'Total Donors', value: statsData?.donationCount || 0, icon: Users },
+    { label: 'Cookie Consent Rate', value: insights?.consent?.total > 0 ? `${insights.consent.rate}%` : '0%', icon: Cookie },
   ];
 
   if (loading) {

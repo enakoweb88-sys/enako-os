@@ -7,7 +7,7 @@ import {
   Bell, BarChart3, Settings, LogOut, Search, HelpCircle,
   MessageSquare, UtensilsCrossed, User, Briefcase, Megaphone,
   Headphones, ClipboardList, TrendingUp, Menu, ChevronLeft, ChevronRight,
-  PenTool, Calendar, FileText, Mail, X
+  PenTool, Calendar, FileText, Mail, X, Building2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
@@ -30,9 +30,11 @@ const navItems = [
   
   // Outreach Manager specifics
   { icon: PenTool, label: 'Blog & Content', path: '/app/outreach/cms', roles: ['outreach_manager'] },
+  { icon: Building2, label: 'Projects & Initiatives', path: '/app/outreach/projects', roles: ['outreach_manager'] },
   { icon: Calendar, label: 'Events & Fundraisers', path: '/app/outreach/events', roles: ['outreach_manager'] },
   { icon: FileText, label: 'Applications', path: '/app/outreach/applications', roles: ['outreach_manager'] },
   { icon: Mail, label: 'Newsletters', path: '/app/outreach/newsletters', roles: ['outreach_manager'] },
+  { icon: TrendingUp, label: 'Web Insights & SEO', path: '/app/outreach/web-insights', roles: ['outreach_manager', 'ceo', 'manager', 'digital'] },
 
   { icon: HelpCircle, label: 'Help & Support', path: '/app/help', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
   { icon: User, label: 'Profile', path: '/app/profile', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },

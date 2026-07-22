@@ -336,10 +336,15 @@ export default function OutreachCMS() {
                     className="w-full text-xl font-bold text-primary bg-surface border border-outline-variant/30 rounded-xl p-4 outline-none focus:ring-2 focus:ring-primary-container/20 cursor-pointer" 
                   >
                     <option value="Blog">Blog</option>
-                    <option value="News">News</option>
                     <option value="Latest News">Latest News</option>
+                    <option value="News">News</option>
                     <option value="Emergency Relief">Emergency Relief</option>
                     <option value="Crisis">Crisis</option>
+                    <option value="Archives">Archives</option>
+                    <option value="Education">Education</option>
+                    <option value="Clean Water">Clean Water</option>
+                    <option value="Youth Empowerment">Youth Empowerment</option>
+                    <option value="Community Health">Community Health</option>
                     <option value="General">General</option>
                   </select>
                 </div>

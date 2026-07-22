@@ -29,9 +29,11 @@ import DashboardLayout from './layouts/DashboardLayout';
 
 // Outreach Manager Pages
 import OutreachEvents from './pages/dashboards/outreach/OutreachEvents';
+import OutreachProjects from './pages/dashboards/outreach/OutreachProjects';
 import OutreachApplications from './pages/dashboards/outreach/OutreachApplications';
 import OutreachCMS from './pages/dashboards/outreach/OutreachCMS';
 import OutreachNewsletters from './pages/dashboards/outreach/OutreachNewsletters';
+import WebInsights from './pages/dashboards/outreach/WebInsights';
 
 export default function App() {
   return (
@@ -102,6 +104,11 @@ export default function App() {
                 <OutreachEvents />
               </ProtectedRoute>
             } />
+            <Route path="outreach/projects" element={
+              <ProtectedRoute roles={['OUTREACH_MANAGER']}>
+                <OutreachProjects />
+              </ProtectedRoute>
+            } />
             <Route path="outreach/applications" element={
               <ProtectedRoute roles={['OUTREACH_MANAGER']}>
                 <OutreachApplications />
@@ -115,6 +122,11 @@ export default function App() {
             <Route path="outreach/newsletters" element={
               <ProtectedRoute roles={['OUTREACH_MANAGER']}>
                 <OutreachNewsletters />
+              </ProtectedRoute>
+            } />
+            <Route path="outreach/web-insights" element={
+              <ProtectedRoute roles={['OUTREACH_MANAGER', 'CEO', 'MANAGER', 'DIGITAL']}>
+                <WebInsights />
               </ProtectedRoute>
             } />
           </Route>
