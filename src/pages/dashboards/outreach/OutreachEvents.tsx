@@ -52,13 +52,46 @@ export default function OutreachEvents() {
     fetchEvents();
   }, []);
 
+  const compressImageToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1280;
+          let width = img.width;
+          let height = img.height;
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.80));
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleStoryMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Story media must be under 5MB. Please compress the file first.');
+      return;
+    }
+    if (file.type.startsWith('image/')) {
+      // Compress images before encoding
+      compressImageToBase64(file).then(compressed => setStoryMediaBase64(compressed));
+    } else {
+      // Non-image (video) — just read as data URL (already validated to 5MB)
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setStoryMediaBase64(reader.result as string);
-      };
+      reader.onloadend = () => setStoryMediaBase64(reader.result as string);
       reader.readAsDataURL(file);
     }
   };

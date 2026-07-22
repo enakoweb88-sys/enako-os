@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { outreachAPI } from '../../../lib/api';
+import { supabase } from '../../../lib/supabase';
 import { toast } from 'sonner';
 import { 
   Building2, Plus, MapPin, Target, Trash2, Image as ImageIcon, 
@@ -23,11 +24,11 @@ export default function OutreachProjects() {
     description: '',
   });
 
-  // Media state
+  // Media state — all store final Supabase URLs (not base64)
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isCompressingMedia, setIsCompressingMedia] = useState(false);
 
   const fetchProjects = async () => {
@@ -37,7 +38,7 @@ export default function OutreachProjects() {
       setProjects(data);
     } catch (err) {
       toast.error('Failed to load community projects');
-    } fontally: {
+    } finally {
       setLoading(false);
     }
   };
@@ -72,42 +73,77 @@ export default function OutreachProjects() {
     });
   };
 
+  const uploadToSupabase = async (base64: string, prefix: string): Promise<string | null> => {
+    const match = base64.match(/^data:([a-zA-Z0-9-+\/]+);base64,(.+)$/);
+    if (!match) return null;
+    const contentType = match[1];
+    const buffer = Uint8Array.from(atob(match[2]), c => c.charCodeAt(0));
+    const ext = contentType.split('/')[1] || 'jpg';
+    const fileName = `${prefix}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+    const { error } = await supabase.storage.from('outreach').upload(fileName, buffer, { contentType });
+    if (error) { console.error('Supabase upload error:', error); return null; }
+    const { data: { publicUrl } } = supabase.storage.from('outreach').getPublicUrl(fileName);
+    return publicUrl;
+  };
+
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setIsCompressingMedia(true);
-      try {
-        const compressed = await compressImage(file);
-        setCoverImagePreview(compressed);
-      } catch (err) {
-        toast.error('Failed to process cover image');
-      } finally {
-        setIsCompressingMedia(false);
-      }
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) return toast.error('Cover image must be under 5MB');
+    setIsCompressingMedia(true);
+    try {
+      const compressed = await compressImage(file);
+      setCoverImagePreview(URL.createObjectURL(file)); // Local preview
+      const url = await uploadToSupabase(compressed, 'project-cover');
+      if (url) setCoverImageUrl(url);
+      else toast.error('Failed to upload cover to storage');
+    } catch (err) {
+      toast.error('Failed to process cover image');
+    } finally {
+      setIsCompressingMedia(false);
     }
   };
 
   const handleMultiImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      setIsCompressingMedia(true);
-      try {
-        const compressedList = await Promise.all(files.map(file => compressImage(file)));
-        setImages(prev => [...prev, ...compressedList]);
-      } catch (err) {
-        toast.error('Failed to process photos');
-      } finally {
-        setIsCompressingMedia(false);
+    if (!files.length) return;
+    setIsCompressingMedia(true);
+    try {
+      for (const file of files) {
+        if (file.size > 10 * 1024 * 1024) { toast.error(`${file.name} is too large (max 10MB)`); continue; }
+        const compressed = await compressImage(file);
+        const url = await uploadToSupabase(compressed, 'project-photo');
+        if (url) setImages(prev => [...prev, url]);
       }
+      toast.success('Photos uploaded successfully!');
+    } catch (err) {
+      toast.error('Failed to upload photos');
+    } finally {
+      setIsCompressingMedia(false);
     }
   };
 
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setVideoFile(file);
-      const url = URL.createObjectURL(file);
-      setVideoPreview(url);
+    if (!file) return;
+    if (file.size > 200 * 1024 * 1024) return toast.error('Video must be under 200MB');
+    setIsCompressingMedia(true);
+    toast.info('Uploading video to storage...');
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = `project-video/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+      const { error } = await supabase.storage.from('outreach').upload(fileName, file, { contentType: file.type });
+      if (!error) {
+        const { data: { publicUrl } } = supabase.storage.from('outreach').getPublicUrl(fileName);
+        setVideoUrl(publicUrl);
+        toast.success('Video uploaded successfully!');
+      } else {
+        toast.error('Failed to upload video');
+      }
+    } catch (err) {
+      toast.error('Video upload failed');
+    } finally {
+      setIsCompressingMedia(false);
     }
   };
 
@@ -123,9 +159,9 @@ export default function OutreachProjects() {
         targetAmount: form.targetAmount,
         currentAmount: form.currentAmount,
         status: form.status,
-        coverImage: coverImagePreview,
-        images,
-        videoUrl: videoPreview
+        coverImage: coverImageUrl,  // Supabase URL, not base64
+        images,                     // Array of Supabase URLs
+        videoUrl,                   // Supabase URL, not blob URL
       };
 
       await outreachAPI.createCommunityProject(payload);
@@ -141,10 +177,10 @@ export default function OutreachProjects() {
         status: 'In Progress',
         description: '',
       });
+      setCoverImageUrl(null);
       setCoverImagePreview(null);
       setImages([]);
-      setVideoFile(null);
-      setVideoPreview(null);
+      setVideoUrl(null);
 
       fetchProjects();
     } catch (err: any) {
