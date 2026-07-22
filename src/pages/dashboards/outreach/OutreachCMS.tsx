@@ -14,8 +14,9 @@ export default function OutreachCMS() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('Blog');
-  const [coverImageBase64, setCoverImageBase64] = useState('');
-  const [coverImagePreview, setCoverImagePreview] = useState('');
+  const [researchedBy, setResearchedBy] = useState(''); // "Research by" credit field
+  const [coverImageUrl, setCoverImageUrl] = useState('');   // Final Supabase URL
+  const [coverImagePreview, setCoverImagePreview] = useState(''); // Local preview
   
   // Media State
   const [images, setImages] = useState<string[]>([]);
@@ -74,11 +75,30 @@ export default function OutreachCMS() {
     if (file.size > 5 * 1024 * 1024) return toast.error('Image must be under 5MB');
 
     try {
+      setIsUploadingMedia(true);
       const compressed = await compressImage(file);
-      setCoverImageBase64(compressed);
-      setCoverImagePreview(URL.createObjectURL(file));
+      setCoverImagePreview(URL.createObjectURL(file)); // Instant local preview
+
+      // Upload directly to Supabase — avoids sending huge base64 over HTTP
+      const match = compressed.match(/^data:([a-zA-Z0-9-+\/]+);base64,(.+)$/);
+      if (match) {
+        const contentType = match[1];
+        const buffer = Uint8Array.from(atob(match[2]), c => c.charCodeAt(0));
+        const ext = contentType.split('/')[1] || 'jpg';
+        const fileName = `blog-cover/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+        const { error } = await supabase.storage.from('outreach').upload(fileName, buffer, { contentType });
+        if (!error) {
+          const { data: { publicUrl } } = supabase.storage.from('outreach').getPublicUrl(fileName);
+          setCoverImageUrl(publicUrl);
+          toast.success('Cover image uploaded!');
+        } else {
+          toast.error('Failed to upload cover image to storage');
+        }
+      }
     } catch (err) {
       toast.error('Failed to process cover image');
+    } finally {
+      setIsUploadingMedia(false);
     }
   };
 
@@ -163,11 +183,11 @@ export default function OutreachCMS() {
         title,
         content,
         category,
-        coverImageBase64,
+        coverImage: coverImageUrl || undefined,  // Supabase URL — no base64 in body
         images,
         video: finalVideoUrl,
         status,
-        author: 'ENAKO OS Outreach Manager'
+        author: researchedBy.trim() || 'ENAKO Outreach Team',
       };
 
       if (editingPostId) {
@@ -193,7 +213,8 @@ export default function OutreachCMS() {
     setTitle('');
     setContent('');
     setCategory('Blog');
-    setCoverImageBase64('');
+    setResearchedBy('');
+    setCoverImageUrl('');
     setCoverImagePreview('');
     setImages([]);
     setVideoFile(null);
@@ -205,8 +226,9 @@ export default function OutreachCMS() {
     setTitle(post.title);
     setContent(post.content);
     setCategory(post.category || 'Blog');
+    setResearchedBy(post.author || '');
     setCoverImagePreview(post.coverImage || '');
-    setCoverImageBase64(''); // Keep empty unless changed
+    setCoverImageUrl(post.coverImage || ''); // Pre-fill existing URL
     setImages(post.images || []);
     setVideoUrl(post.video || null);
     setShowModal(true);
@@ -350,26 +372,56 @@ export default function OutreachCMS() {
                 </div>
               </div>
 
+              {/* Research / Author Credit */}
+              <div>
+                <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Published By (Research Credit)</label>
+                <input
+                  value={researchedBy}
+                  onChange={e => setResearchedBy(e.target.value)}
+                  placeholder="e.g. Dr. Amara Nwosu · ENAKO Field Research Team"
+                  className="w-full font-medium text-primary bg-surface border border-outline-variant/30 rounded-xl p-4 outline-none focus:ring-2 focus:ring-primary-container/20"
+                />
+                <p className="text-[11px] text-secondary mt-1.5">This name will appear as the author credit on the published article.</p>
+              </div>
+
               <div>
                 <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Cover Image</label>
                 <div 
                   className={`w-full h-48 rounded-xl border-2 border-dashed flex flex-col items-center justify-center relative overflow-hidden transition-all ${coverImagePreview ? 'border-primary/20' : 'border-outline-variant bg-surface-container-low hover:bg-surface-container cursor-pointer'}`}
                   onClick={() => !coverImagePreview && document.getElementById('cover-upload')?.click()}
                 >
-                  {coverImagePreview ? (
+                  {isUploadingMedia && !coverImagePreview ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                      <span className="text-sm font-bold text-secondary">Uploading cover image...</span>
+                    </div>
+                  ) : coverImagePreview ? (
                     <>
                       <img src={coverImagePreview} alt="Cover Preview" className="w-full h-full object-cover" />
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setCoverImagePreview(''); setCoverImageBase64(''); }}
-                        className="absolute top-2 right-2 bg-black/50 text-white p-2 rounded-lg hover:bg-black/70"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                      {isUploadingMedia && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <Loader2 className="w-8 h-8 text-white animate-spin" />
+                        </div>
+                      )}
+                      {!isUploadingMedia && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setCoverImagePreview(''); setCoverImageUrl(''); }}
+                          className="absolute top-2 right-2 bg-black/50 text-white p-2 rounded-lg hover:bg-black/70"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                      {coverImageUrl && (
+                        <div className="absolute bottom-2 left-2 bg-green-600/90 text-white text-[10px] font-bold px-2 py-1 rounded">
+                          ✓ Uploaded to storage
+                        </div>
+                      )}
                     </>
                   ) : (
                     <>
                       <ImageIcon className="w-8 h-8 text-secondary mb-2" />
                       <span className="text-sm font-bold text-secondary">Click to upload cover image</span>
+                      <span className="text-xs text-slate-400 mt-1">Auto-uploaded to Supabase storage</span>
                     </>
                   )}
                   <input type="file" id="cover-upload" className="hidden" accept="image/*" onChange={handleImageUpload} />
