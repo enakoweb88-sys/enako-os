@@ -35,8 +35,6 @@ export default function Profile() {
   const userEmail = user?.email ?? '';
 
   const [showCertModal, setShowCertModal] = useState(false);
-  const [showPauseModal, setShowPauseModal] = useState(false);
-  const [pauseTimer, setPauseTimer] = useState(0);
   const [stats, setStats] = useState<any>(null);
   const [activeTimer, setActiveTimer] = useState('00:00:00');
 
@@ -45,8 +43,12 @@ export default function Profile() {
   }, []);
 
   useEffect(() => {
-    if (pauseTimer) return;
-    const startTime = stats?.activeTask?.startedAt ? new Date(stats.activeTask.startedAt).getTime() : new Date(user?.createdAt || Date.now()).getTime();
+    let loginTime = sessionStorage.getItem('enako_login_time');
+    if (!loginTime) {
+      loginTime = new Date().toISOString();
+      sessionStorage.setItem('enako_login_time', loginTime);
+    }
+    const startTime = new Date(loginTime).getTime();
     
     const updateTimer = () => {
       const diff = Math.max(0, Date.now() - startTime);
@@ -59,7 +61,7 @@ export default function Profile() {
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [stats, pauseTimer, user?.createdAt]);
+  }, []);
 
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editName, setEditName] = useState(userName);
@@ -81,11 +83,7 @@ export default function Profile() {
     navigate('/select-role');
   };
 
-  const handlePause = () => {
-    setShowPauseModal(false);
-    toast.success('Operational flow paused.');
-    setPauseTimer(Date.now());
-  };
+
 
   const getRoleSpecificData = () => {
     const completion = stats ? `${stats.taskCompletion || 0}%` : '0%';
@@ -294,7 +292,7 @@ export default function Profile() {
           <section className="bg-primary text-white p-10 rounded-[2.5rem] shadow-xl relative overflow-hidden">
              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
              <h3 className="text-[10px] font-bold text-primary-fixed/60 uppercase tracking-[0.2em] mb-6">Current Work Stream</h3>
-             <div className="space-y-6">
+              <div className="space-y-6">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-primary-fixed/80">Active Task</p>
                   <p className="text-xl font-bold mt-1">{stats?.activeTask?.title || 'General Operations'}</p>
@@ -302,13 +300,10 @@ export default function Profile() {
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-primary-fixed/80">Time Logged</p>
                   <p className="text-lg font-mono font-bold mt-1">
-                    {pauseTimer ? 'PAUSED' : activeTimer}
+                    {activeTimer}
                   </p>
                 </div>
-                <button onClick={() => setShowPauseModal(true)} className="w-full py-4 bg-white text-primary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:shadow-2xl hover:scale-[1.02] active:scale-95 transition-all">
-                  {pauseTimer ? 'Resume Session' : 'Pause Session'}
-                </button>
-             </div>
+              </div>
           </section>
         </div>
       </div>
@@ -451,22 +446,7 @@ export default function Profile() {
           </div>
         )}
 
-        {showPauseModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPauseModal(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 p-8 text-center">
-              <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                <PauseCircle className="w-8 h-8" />
-              </div>
-              <h3 className="text-xl font-bold text-primary mb-2">Pause Work Session?</h3>
-              <p className="text-sm text-secondary mb-8">This will pause your active operational timer and mark your status as 'Away' across the network.</p>
-              <div className="flex gap-4">
-                <button onClick={() => setShowPauseModal(false)} className="flex-1 py-3 bg-surface border border-outline-variant/30 text-secondary rounded-xl text-[11px] font-bold uppercase tracking-widest hover:bg-surface-container transition-all">Cancel</button>
-                <button onClick={handlePause} className="flex-1 py-3 bg-yellow-500 text-white rounded-xl text-[11px] font-bold uppercase tracking-widest hover:bg-yellow-600 transition-all">Pause Flow</button>
-              </div>
-            </motion.div>
-          </div>
-        )}
+        {/* showPauseModal removed */}
       </AnimatePresence>
     </div>
   );

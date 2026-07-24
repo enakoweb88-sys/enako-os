@@ -1,7 +1,7 @@
 import { apiRequest } from './core';
 
 export const transactionsApi = {
-  transactions: (params?: { search?: string; limit?: number; page?: number; status?: string; type?: string; dateRange?: string; channel?: string }) => {
+  transactions: (params?: { search?: string; limit?: number; page?: number; status?: string; type?: string; dateRange?: string; channel?: string; specificDate?: string }) => {
     const q = new URLSearchParams();
     if (params?.search) q.set('search', params.search);
     if (params?.limit) q.set('limit', String(params.limit));
@@ -10,6 +10,7 @@ export const transactionsApi = {
     if (params?.type) q.set('type', params.type);
     if (params?.dateRange) q.set('dateRange', params.dateRange);
     if (params?.channel) q.set('channel', params.channel);
+    if (params?.specificDate) q.set('specificDate', params.specificDate);
     return apiRequest<any>(`/transactions?${q}`);
   },
   createTransaction: (body: unknown) =>

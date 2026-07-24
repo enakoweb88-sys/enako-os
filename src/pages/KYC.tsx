@@ -340,7 +340,7 @@ export default function KYC() {
                       <div className="grid grid-cols-3 gap-3">
                         {[
                           { val: 'UNDER_REVIEW', label: 'Reviewing', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-                          ...(role === 'ceo' ? [{ val: 'APPROVED', label: 'Approve', color: 'bg-green-50 text-green-700 border-green-200' }] : []),
+                          ...((role === 'ceo' || role === 'manager' || role === 'outreach_manager') ? [{ val: 'APPROVED', label: 'Approve', color: 'bg-green-50 text-green-700 border-green-200' }] : []),
                           { val: 'REJECTED', label: 'Reject', color: 'bg-red-50 text-red-700 border-red-200' },
                         ].map(opt => (
                           <button

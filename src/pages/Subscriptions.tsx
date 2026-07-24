@@ -18,6 +18,13 @@ type Subscription = {
   receiptUrl?: string;
 };
 
+const getFileUrl = (url: string) => {
+  if (!url) return '';
+  if (url.startsWith('http') || url.startsWith('blob:')) return url;
+  const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/v1\/?$/, '') : 'http://localhost:8000';
+  return `${baseUrl}${url.startsWith('/') ? url : '/' + url}`;
+};
+
 export default function Subscriptions() {
   const { user } = useAuth();
   const role = user?.role?.toLowerCase() ?? 'employee';
@@ -236,7 +243,7 @@ export default function Subscriptions() {
                     </td>
                     <td className="px-8 py-5 border-b border-outline-variant/10">
                       {sub.receiptUrl ? (
-                        <a href={sub.receiptUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1 text-xs">
+                        <a href={getFileUrl(sub.receiptUrl)} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1 text-xs">
                           <LinkIcon className="w-3 h-3" /> View
                         </a>
                       ) : (

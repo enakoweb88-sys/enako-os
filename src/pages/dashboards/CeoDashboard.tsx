@@ -7,7 +7,7 @@ import { api, outreachAPI } from '../../lib/api';
 import {
   CreditCard, Wallet, Users, Repeat, ClipboardCheck,
   ChevronRight, Briefcase, Megaphone, CircleAlert, Activity, PieChart, TrendingUp,
-  Globe
+  Globe, Heart
 } from 'lucide-react';
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
@@ -81,6 +81,12 @@ export function CEODashboard() {
       sub: `${overview?.transactions?.pending?._count ?? 0} awaiting`,
       icon: Repeat,
     },
+    {
+      label: 'Total Donations',
+      value: fmt(outreachStats?.totalDonations),
+      sub: `${outreachStats?.donationCount ?? 0} donors`,
+      icon: Heart,
+    }
   ];
 
   if (loading) return <div className="text-secondary text-sm animate-pulse">Loading dashboard data…</div>;
@@ -115,7 +121,7 @@ export function CEODashboard() {
       </div>
 
       {/* ── Top Level Stats ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {stats.map((stat, idx) => (
           <motion.div
             key={stat.label}

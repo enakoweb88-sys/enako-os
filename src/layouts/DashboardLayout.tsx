@@ -7,7 +7,7 @@ import {
   Bell, BarChart3, Settings, LogOut, Search, HelpCircle,
   MessageSquare, UtensilsCrossed, User, Briefcase, Megaphone,
   Headphones, ClipboardList, TrendingUp, Menu, ChevronLeft, ChevronRight,
-  PenTool, Calendar, FileText, Mail, X, Building2, BookOpen
+  PenTool, Calendar, FileText, Mail, X, Building2, BookOpen, Heart
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
@@ -37,6 +37,7 @@ const navItems = [
   { icon: Mail, label: 'Newsletters', path: '/app/outreach/newsletters', roles: ['outreach_manager'] },
   { icon: TrendingUp, label: 'Web Insights & SEO', path: '/app/outreach/web-insights', roles: ['outreach_manager', 'ceo', 'manager', 'digital'] },
   { icon: Target, label: 'Website Stats', path: '/app/outreach/stats', roles: ['outreach_manager'] },
+  { icon: Heart, label: 'Donations', path: '/app/outreach/donations', roles: ['outreach_manager'] },
   { icon: BookOpen, label: 'Scholarships', path: '/app/outreach/scholarships', roles: ['outreach_manager'] },
 
   { icon: HelpCircle, label: 'Help & Support', path: '/app/help', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },

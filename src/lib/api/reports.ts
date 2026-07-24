@@ -5,6 +5,6 @@ export const reportsApi = {
   generateReport: (body: { title: string; type: string }) =>
     apiRequest<any>('/reports', { method: 'POST', body: JSON.stringify(body) }),
   dailyReports: () => apiRequest<any[]>('/reports/daily'),
-  createDailyReport: (body: { content: string; loginTime?: string; logoutTime?: string; pdfUrl?: string }) =>
+  createDailyReport: (body: { content: string; type?: string; loginTime?: string; logoutTime?: string; pdfUrl?: string }) =>
     apiRequest<any>('/reports/daily', { method: 'POST', body: JSON.stringify(body) }),
 };

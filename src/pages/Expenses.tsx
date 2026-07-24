@@ -20,6 +20,7 @@ export default function Expenses() {
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ description: '', amount: '', category: 'Travel' });
+  const [customCategory, setCustomCategory] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -37,9 +38,11 @@ export default function Expenses() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.createExpense({ ...form, amount: Number(form.amount) });
+      const finalCategory = form.category === 'Other' ? customCategory : form.category;
+      await api.createExpense({ ...form, category: finalCategory, amount: Number(form.amount) });
       setShowModal(false);
       setForm({ description: '', amount: '', category: 'Travel' });
+      setCustomCategory('');
       load();
     } catch (e: any) { alert(e.message); }
     finally { setSubmitting(false); }
@@ -203,6 +206,12 @@ export default function Expenses() {
                       {['Travel', 'Hardware', 'Software', 'Welfare', 'Office', 'Other'].map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>
+                  {form.category === 'Other' && (
+                    <div className="col-span-2 animate-in fade-in slide-in-from-top-2">
+                      <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Specify Custom Category *</label>
+                      <input required value={customCategory} onChange={e => setCustomCategory(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="e.g. Consultancy Fee, Operations, etc." />
+                    </div>
+                  )}
                 </div>
                 <button type="submit" disabled={submitting} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 disabled:opacity-60">
                   {submitting ? 'Submitting…' : 'Submit Claim'}

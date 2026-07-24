@@ -10,10 +10,16 @@ import { api, apiRequest } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
 
-function fmt(val: string | number | null | undefined, currency = true) {
+function fmt(val: string | number | null | undefined, currency: string | boolean = 'XAF') {
   const n = Number(val ?? 0);
-  if (currency) return n.toLocaleString('fr-CM', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 });
-  return n.toLocaleString();
+  if (currency === false) return n.toLocaleString();
+  const currCode = typeof currency === 'string' ? currency : 'XAF';
+  const locale = currCode === 'XAF' ? 'fr-CM' : 'en-US';
+  try {
+    return n.toLocaleString(locale, { style: 'currency', currency: currCode, maximumFractionDigits: 0 });
+  } catch (e) {
+    return `${n.toLocaleString()} ${currCode}`;
+  }
 }
 
 export default function Transactions() {
@@ -23,20 +29,54 @@ export default function Transactions() {
   const [items, setItems] = useState<any[]>([]);
   const [totals, setTotals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // Filters state (Applied)
   const [search, setSearch] = useState('');
+  const [dateRange, setDateRange] = useState('All Dates');
+  const [txType, setTxType] = useState('All Types');
+  const [txStatus, setTxStatus] = useState('All Status');
+  const [txChannel, setTxChannel] = useState('All Channels');
+
+  // Filters state (Temporary UI values)
+  const [tempSearch, setTempSearch] = useState('');
+  const [tempDateRange, setTempDateRange] = useState('All Dates');
+  const [tempTxType, setTempTxType] = useState('All Types');
+  const [tempTxStatus, setTempTxStatus] = useState('All Status');
+  const [tempTxChannel, setTempTxChannel] = useState('All Channels');
+
+  const handleApply = () => {
+    setSearch(tempSearch);
+    setDateRange(tempDateRange);
+    setTxType(tempTxType);
+    setTxStatus(tempTxStatus);
+    setTxChannel(tempTxChannel);
+    setSpecificDate(tempSpecificDate);
+  };
+
+  const handleReset = () => {
+    setTempSearch('');
+    setTempDateRange('All Dates');
+    setTempTxType('All Types');
+    setTempTxStatus('All Status');
+    setTempTxChannel('All Channels');
+
+    setSearch('');
+    setDateRange('All Dates');
+    setTxType('All Types');
+    setTxStatus('All Status');
+    setTxChannel('All Channels');
+    setSpecificDate('');
+  };
+
+  const [specificDate, setSpecificDate] = useState('');
+  const [tempSpecificDate, setTempSpecificDate] = useState('');
+
   const [showModal, setShowModal] = useState(false);
   const [showFloatModal, setShowFloatModal] = useState(false);
   const [showChargesModal, setShowChargesModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ entity: '', type: 'Receive', channel: 'Bank Transfer', amount: '', description: '' });
+  const [form, setForm] = useState({ entity: '', type: 'Receive', channel: 'Bank Transfer', amount: '', currency: 'XAF', description: '' });
   const [floatForm, setFloatForm] = useState({ channel: 'MTN', balance: '' });
   const [chargesForm, setChargesForm] = useState({ id: '', charges: '' });
-
-  // Filters state
-  const [dateRange, setDateRange] = useState('This Week');
-  const [txType, setTxType] = useState('All Types');
-  const [txStatus, setTxStatus] = useState('All Status');
-  const [txChannel, setTxChannel] = useState('All Channels');
 
   const [dashboard, setDashboard] = useState<any>(null);
 
@@ -49,14 +89,15 @@ export default function Transactions() {
         dateRange,
         type: txType,
         status: txStatus,
-        channel: txChannel
+        channel: txChannel,
+        specificDate
       });
       setItems(res.items);
       setTotals(res.totals);
       setDashboard(res);
     } catch (e: any) { console.error(e); }
     finally { setLoading(false); }
-  }, [search, dateRange, txType, txStatus, txChannel]);
+  }, [search, dateRange, txType, txStatus, txChannel, specificDate]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -66,7 +107,7 @@ export default function Transactions() {
     try {
       await api.createTransaction({ ...form, amount: Number(form.amount) });
       setShowModal(false);
-      setForm({ entity: '', type: 'Receive', channel: 'Bank Transfer', amount: '', description: '' });
+      setForm({ entity: '', type: 'Receive', channel: 'Bank Transfer', amount: '', currency: 'XAF', description: '' });
       load();
     } catch (e: any) { alert(e.message); }
     finally { setSubmitting(false); }
@@ -133,7 +174,7 @@ export default function Transactions() {
           <button className="px-6 py-2.5 border border-outline-variant bg-white text-secondary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container transition-all">
             <Download className="w-4 h-4 inline mr-2" />Export CSV
           </button>
-          {role === 'ceo' && (
+          {(role === 'ceo' || role === 'manager') && (
             <button onClick={() => setShowModal(true)} className="px-6 py-2.5 bg-primary text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:shadow-lg transition-all">
               <Plus className="w-4 h-4 inline mr-2" />New Transaction
             </button>
@@ -221,7 +262,7 @@ export default function Transactions() {
                 <h3 className="font-display text-lg font-bold text-primary flex items-center gap-2">
                   <Building className="w-5 h-5" /> Float Management
                 </h3>
-                {role === 'ceo' && (
+                {(role === 'ceo' || role === 'manager') && (
                   <button onClick={() => setShowFloatModal(true)} className="text-[9px] font-bold uppercase tracking-widest text-primary bg-primary-container/20 px-3 py-1.5 rounded-lg hover:bg-primary-container/40">
                     Update Float
                   </button>
@@ -274,12 +315,35 @@ export default function Transactions() {
 
           {/* Transaction Ledger Table (Existing mostly) */}
           <div className="bg-white border border-outline-variant/30 rounded-xl shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-outline-variant/20 flex items-center justify-between gap-4">
+            <div className="p-6 border-b border-outline-variant/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <h3 className="font-display text-lg font-bold text-primary">All Transactions</h3>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative flex items-center gap-2">
+                  <label className="text-[10px] font-bold text-secondary uppercase tracking-wider">Date:</label>
+                  <input 
+                    type="date" 
+                    value={tempSpecificDate} 
+                    onChange={e => {
+                      setTempSpecificDate(e.target.value);
+                      setSpecificDate(e.target.value);
+                    }} 
+                    className="px-3 py-2 bg-surface-container-low border border-outline-variant/20 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-primary-container/20 text-primary" 
+                  />
+                  {tempSpecificDate && (
+                    <button 
+                      onClick={() => {
+                        setTempSpecificDate('');
+                        setSpecificDate('');
+                      }} 
+                      className="text-[10px] font-bold text-red-500 hover:text-red-700"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-outline w-4 h-4" />
-                  <input value={search} onChange={e => setSearch(e.target.value)} className="pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant/20 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary-container/20 w-56" placeholder="Search reference…" />
+                  <input value={tempSearch} onChange={e => setTempSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && setSearch(tempSearch)} className="pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant/20 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary-container/20 w-56 animate-in fade-in" placeholder="Search reference…" />
                 </div>
                 <button onClick={load} className="p-2 border border-outline-variant/30 rounded-xl text-secondary hover:bg-surface-container transition-all">
                   <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
@@ -330,11 +394,11 @@ export default function Transactions() {
                         )}>{tx.status}</span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <p className="font-mono font-bold text-sm text-primary">{fmt(tx.amount)}</p>
+                        <p className="font-mono font-bold text-sm text-primary">{fmt(tx.amount, tx.currency)}</p>
                         <p className="text-[9px] font-bold text-secondary uppercase mt-1">{new Date(tx.createdAt).toLocaleDateString()}</p>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        {tx.status === 'PENDING' && role === 'ceo' && (
+                        {tx.status === 'PENDING' && (role === 'ceo' || role === 'manager') && (
                           <div className="flex items-center justify-end gap-2">
                             <button onClick={() => handleSettle(tx.id, tx.type)} className="p-1 text-green-600 hover:bg-green-50 rounded" title="Mark Complete">
                               <CheckCircle2 className="w-4 h-4" />
@@ -364,7 +428,8 @@ export default function Transactions() {
             <div className="space-y-4">
               <div>
                 <label className="block text-[10px] font-bold text-secondary mb-1 uppercase tracking-widest">Date Range</label>
-                <select value={dateRange} onChange={e => setDateRange(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-lg p-2.5 text-xs outline-none focus:ring-1 focus:ring-primary">
+                <select value={tempDateRange} onChange={e => setTempDateRange(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-lg p-2.5 text-xs outline-none focus:ring-1 focus:ring-primary">
+                  <option>All Dates</option>
                   <option>Today</option>
                   <option>This Week</option>
                   <option>This Month</option>
@@ -373,7 +438,7 @@ export default function Transactions() {
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-secondary mb-1 uppercase tracking-widest">Type</label>
-                <select value={txType} onChange={e => setTxType(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-lg p-2.5 text-xs outline-none focus:ring-1 focus:ring-primary">
+                <select value={tempTxType} onChange={e => setTempTxType(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-lg p-2.5 text-xs outline-none focus:ring-1 focus:ring-primary">
                   <option>All Types</option>
                   <option>Income</option>
                   <option>Expense</option>
@@ -382,7 +447,7 @@ export default function Transactions() {
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-secondary mb-1 uppercase tracking-widest">Status</label>
-                <select value={txStatus} onChange={e => setTxStatus(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-lg p-2.5 text-xs outline-none focus:ring-1 focus:ring-primary">
+                <select value={tempTxStatus} onChange={e => setTempTxStatus(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-lg p-2.5 text-xs outline-none focus:ring-1 focus:ring-primary">
                   <option>All Status</option>
                   <option>Completed</option>
                   <option>Pending</option>
@@ -391,7 +456,7 @@ export default function Transactions() {
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-secondary mb-1 uppercase tracking-widest">Channel</label>
-                <select value={txChannel} onChange={e => setTxChannel(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-lg p-2.5 text-xs outline-none focus:ring-1 focus:ring-primary">
+                <select value={tempTxChannel} onChange={e => setTempTxChannel(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-lg p-2.5 text-xs outline-none focus:ring-1 focus:ring-primary">
                   <option>All Channels</option>
                   <option>MTN MoMo</option>
                   <option>Orange Money</option>
@@ -399,8 +464,8 @@ export default function Transactions() {
                 </select>
               </div>
               <div className="pt-2 flex gap-2">
-                <button className="flex-1 py-2.5 bg-primary text-white text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-primary/90 transition-colors">Apply</button>
-                <button className="px-3 py-2.5 border border-outline-variant/50 text-secondary text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-surface-container transition-colors">Reset</button>
+                <button onClick={handleApply} className="flex-1 py-2.5 bg-primary text-white text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-primary/90 transition-colors">Apply</button>
+                <button onClick={handleReset} className="px-3 py-2.5 border border-outline-variant/50 text-secondary text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-surface-container transition-colors">Reset</button>
               </div>
             </div>
           </div>
@@ -443,7 +508,7 @@ export default function Transactions() {
                 <div key={tx.id} className="p-2.5 bg-red-50 rounded-lg border border-red-100 text-xs">
                   <div className="flex justify-between font-bold text-red-900 mb-1">
                     <span>{tx.reference}</span>
-                    <span>{fmt(tx.amount)}</span>
+                    <span>{fmt(tx.amount, tx.currency)}</span>
                   </div>
                   <div className="flex justify-between text-red-700">
                     <span>{tx.entity}</span>
@@ -498,18 +563,28 @@ export default function Transactions() {
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Entity / Reference *</label>
                   <input required value={form.entity} onChange={e => setForm({ ...form, entity: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="e.g. Acme Corp" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Amount (XAF) *</label>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-2">
+                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Amount *</label>
                     <input required type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="0" min="0" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Type *</label>
-                    <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
-                      <option>Receive</option>
-                      <option>Send</option>
+                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Currency *</label>
+                    <select value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
+                      <option value="XAF">XAF (Franc)</option>
+                      <option value="USD">USD (Dollar)</option>
+                      <option value="EUR">EUR (Euro)</option>
+                      <option value="CNY">CNY (China)</option>
+                      <option value="NGN">NGN (Naira)</option>
                     </select>
                   </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Type *</label>
+                  <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
+                    <option>Receive</option>
+                    <option>Send</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Payment Channel *</label>
