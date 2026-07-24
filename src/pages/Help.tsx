@@ -2,11 +2,63 @@ import React, { useState } from 'react';
 import { LifeBuoy, Book, MessageCircle, FileText, X, ShieldCheck, Users, Landmark, FileSpreadsheet, Target, Megaphone, Activity, HelpCircle, CheckCircle2, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../lib/api';
+import { useAuth } from '../lib/auth';
+import { cn } from '../lib/utils';
 
 export default function Help() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'options' | 'knowledge' | 'ticket'>('options');
-  const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
+  const [form, setForm] = useState({ name: user?.fullName || '', email: user?.email || '', subject: '', message: '' });
   const [submitting, setSubmitting] = useState(false);
+
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [viewTicket, setViewTicket] = useState<any | null>(null);
+  const [replyMessage, setReplyMessage] = useState('');
+  const [replying, setReplying] = useState(false);
+  const [isFormVisible, setIsFormVisible] = useState(false);
+
+  const fetchTickets = async () => {
+    setLoadingTickets(true);
+    try {
+      const res = await api.supportTickets();
+      const isAdmin = user?.role === 'CEO' || user?.role === 'MANAGER' || user?.role === 'SUPPORT';
+      const items = res.items || [];
+      const filtered = isAdmin ? items : items.filter((t: any) => t.clientEmail === user?.email);
+      setTickets(filtered);
+      
+      if (viewTicket) {
+        const updated = items.find((t: any) => t.id === viewTicket.id);
+        if (updated) setViewTicket(updated);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingTickets(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'ticket') {
+      fetchTickets();
+    }
+  }, [activeTab]);
+
+  const handleReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!viewTicket || !replyMessage.trim()) return;
+    setReplying(true);
+    try {
+      await api.replySupportTicket(viewTicket.id, replyMessage);
+      setReplyMessage('');
+      alert('Reply sent successfully');
+      fetchTickets();
+    } catch (e: any) {
+      alert(e.message || String(e));
+    } finally {
+      setReplying(false);
+    }
+  };
 
   const options = [
     { id: 'knowledge', icon: Book, title: 'Knowledge Base', desc: 'Read comprehensive operational guides and system architecture documentation.' },
@@ -19,9 +71,10 @@ export default function Help() {
     setSubmitting(true);
     try {
       await api.createSupportTicket(form);
-      alert('Support inquiry submitted successfully! A notification email has been dispatched to noungajoseph58@gmail.com');
-      setForm({ name: '', email: '', subject: '', message: '' });
-      setActiveTab('options');
+      alert('Support ticket submitted successfully! The admin will get back to you in short time.');
+      setForm({ name: user?.fullName || '', email: user?.email || '', subject: '', message: '' });
+      setIsFormVisible(false);
+      fetchTickets();
     } catch (err: any) {
       alert(err.message || 'Failed to submit ticket');
     } finally {
@@ -80,33 +133,163 @@ export default function Help() {
 
         {/* Support Ticket Modal/Form */}
         {activeTab === 'ticket' && (
-          <motion.div key="ticket" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl p-8 border border-outline-variant/30 shadow-sm max-w-2xl mx-auto">
-            <h2 className="text-xl font-bold font-display text-primary mb-2">Submit an Executive Support Ticket</h2>
-            <p className="text-xs text-secondary mb-6">Our technical operations center will review your inquiry and respond within 2 business hours.</p>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-secondary mb-1">Your Full Name *</label>
-                  <input type="text" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full px-4 py-2.5 bg-surface border border-outline-variant/50 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm font-medium" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-secondary mb-1">Official Email Address *</label>
-                  <input type="email" required value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="w-full px-4 py-2.5 bg-surface border border-outline-variant/50 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm font-medium" />
-                </div>
-              </div>
+          <motion.div key="ticket" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="space-y-6 max-w-4xl mx-auto">
+            <div className="flex justify-between items-center bg-white rounded-2xl p-6 border border-outline-variant/30 shadow-sm">
               <div>
-                <label className="block text-xs font-bold text-secondary mb-1">Subject / Issue Title *</label>
-                <input type="text" required value={form.subject} onChange={e => setForm({...form, subject: e.target.value})} className="w-full px-4 py-2.5 bg-surface border border-outline-variant/50 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm font-medium" placeholder="e.g. Inquiry regarding transaction reconciliation" />
+                <h2 className="text-xl font-bold font-display text-primary">Support Tickets Desk</h2>
+                <p className="text-xs text-secondary mt-1">Review your tickets history or request administrative help.</p>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-secondary mb-1">Detailed Description *</label>
-                <textarea required rows={5} value={form.message} onChange={e => setForm({...form, message: e.target.value})} className="w-full px-4 py-2.5 bg-surface border border-outline-variant/50 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm font-medium resize-none" placeholder="Provide complete details including steps to reproduce any issue..." />
-              </div>
-              <p className="text-[11px] text-secondary italic">Notice: Dispatches a prioritized ticket directly to noungajoseph58@gmail.com</p>
-              <button type="submit" disabled={submitting} className="w-full bg-primary text-white font-bold py-3.5 rounded-xl shadow hover:shadow-lg transition-all text-xs uppercase tracking-widest disabled:opacity-50">
-                {submitting ? 'Transmitting Ticket...' : 'Dispatch Ticket Now'}
+              <button 
+                onClick={() => {
+                  setIsFormVisible(!isFormVisible);
+                  setViewTicket(null);
+                }} 
+                className="px-5 py-2.5 bg-primary text-white text-xs font-bold uppercase tracking-widest rounded-xl hover:opacity-90 transition-opacity"
+              >
+                {isFormVisible ? 'Back to Tickets List' : 'Submit New Ticket'}
               </button>
-            </form>
+            </div>
+
+            {isFormVisible ? (
+              <div className="bg-white rounded-2xl p-8 border border-outline-variant/30 shadow-sm">
+                <h3 className="text-lg font-bold font-display text-primary mb-2">Create a Support Ticket</h3>
+                <p className="text-xs text-secondary mb-6">Our technical team will review your inquiry shortly.</p>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-secondary mb-1 font-display uppercase tracking-wider">Your Full Name</label>
+                      <input type="text" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full px-4 py-2.5 bg-surface border border-outline-variant/50 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm font-medium" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-secondary mb-1 font-display uppercase tracking-wider">Official Email Address</label>
+                      <input type="email" required value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="w-full px-4 py-2.5 bg-surface border border-outline-variant/50 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm font-medium" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-secondary mb-1 font-display uppercase tracking-wider">Subject / Issue Title *</label>
+                    <input type="text" required value={form.subject} onChange={e => setForm({...form, subject: e.target.value})} className="w-full px-4 py-2.5 bg-surface border border-outline-variant/50 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm font-medium" placeholder="e.g. Inquiry regarding transaction reconciliation" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-secondary mb-1 font-display uppercase tracking-wider">Detailed Description *</label>
+                    <textarea required rows={5} value={form.message} onChange={e => setForm({...form, message: e.target.value})} className="w-full px-4 py-2.5 bg-surface border border-outline-variant/50 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm font-medium resize-none" placeholder="Provide complete details..." />
+                  </div>
+                  <p className="text-[11px] text-secondary italic">Notice: Dispatches a prioritized ticket directly to the administration queue.</p>
+                  <button type="submit" disabled={submitting} className="w-full bg-primary text-white font-bold py-3.5 rounded-xl shadow hover:shadow-lg transition-all text-xs uppercase tracking-widest disabled:opacity-50">
+                    {submitting ? 'Transmitting Ticket...' : 'Dispatch Ticket Now'}
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Tickets list panel */}
+                <div className="md:col-span-1 bg-white border border-outline-variant/30 rounded-2xl p-4 shadow-sm h-[450px] flex flex-col">
+                  <h4 className="text-xs font-black text-secondary uppercase tracking-widest mb-3 pl-1">Inquiries ({tickets.length})</h4>
+                  <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                    {loadingTickets ? (
+                      <p className="text-xs text-center text-secondary py-6 animate-pulse">Loading...</p>
+                    ) : tickets.length === 0 ? (
+                      <p className="text-xs text-center text-secondary py-6">No tickets filed.</p>
+                    ) : (
+                      tickets.map(t => (
+                        <button 
+                          key={t.id} 
+                          onClick={() => setViewTicket(t)}
+                          className={cn(
+                            "w-full text-left p-3.5 rounded-xl border text-xs transition-all flex flex-col gap-1.5",
+                            viewTicket?.id === t.id ? "bg-primary-container/10 border-primary" : "bg-surface hover:bg-surface-container-low border-outline-variant/20"
+                          )}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-primary truncate max-w-[130px]">{t.subject}</span>
+                            <span className={cn(
+                              "px-2 py-0.5 rounded-[4px] text-[8px] font-black uppercase tracking-wider",
+                              t.status === 'Resolved' ? "bg-green-50 text-green-700 border border-green-200" :
+                              t.status === 'Escalated' ? "bg-red-50 text-red-700 border border-red-200" :
+                              "bg-blue-50 text-blue-700 border border-blue-200"
+                            )}>
+                              {t.status}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-secondary truncate max-w-full">{t.description}</span>
+                          <span className="text-[8px] text-outline uppercase">{new Date(t.createdAt).toLocaleDateString()}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Conversation/Thread panel */}
+                <div className="md:col-span-2 bg-white border border-outline-variant/30 rounded-2xl p-6 shadow-sm h-[450px] flex flex-col">
+                  {viewTicket ? (
+                    <div className="h-full flex flex-col justify-between">
+                      <div className="border-b border-outline-variant/20 pb-3 mb-4">
+                        <div className="flex justify-between items-start">
+                          <h4 className="text-sm font-bold text-primary">{viewTicket.subject}</h4>
+                          <span className="text-[9px] text-outline font-bold uppercase tracking-wider">#{viewTicket.id.substring(0, 8)}</span>
+                        </div>
+                        <p className="text-[10px] text-secondary mt-1">Status: <span className="font-bold text-primary">{viewTicket.status}</span></p>
+                      </div>
+
+                      {/* Chat messages */}
+                      <div className="flex-1 overflow-y-auto space-y-4 pr-1 mb-4 text-xs">
+                        {/* Client original message */}
+                        <div className="bg-surface-container-low rounded-2xl p-4 border border-outline-variant/10">
+                          <div className="flex justify-between items-center text-[10px] font-bold text-secondary mb-2 uppercase tracking-wider">
+                            <span>{viewTicket.customer || 'You'}</span>
+                            <span>{new Date(viewTicket.createdAt).toLocaleString()}</span>
+                          </div>
+                          <p className="text-on-surface leading-relaxed whitespace-pre-wrap">{viewTicket.description}</p>
+                        </div>
+
+                        {/* Replies */}
+                        {(viewTicket.replies || []).map((reply: any) => (
+                          <div 
+                            key={reply.id} 
+                            className={cn(
+                              "rounded-2xl p-4 max-w-[85%] border",
+                              reply.isAdmin 
+                                ? "bg-primary/5 border-primary/10 ml-auto" 
+                                : "bg-surface border-outline-variant/20 mr-auto"
+                            )}
+                          >
+                            <div className="flex justify-between items-center text-[10px] font-bold text-secondary mb-2 uppercase tracking-wider gap-4">
+                              <span>{reply.isAdmin ? 'ENAKO Admin' : (viewTicket.customer || 'You')}</span>
+                              <span>{new Date(reply.createdAt).toLocaleString()}</span>
+                            </div>
+                            <p className="text-on-surface leading-relaxed whitespace-pre-wrap">{reply.message}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Reply Form */}
+                      <form onSubmit={handleReply} className="flex gap-2 items-center border-t border-outline-variant/20 pt-4">
+                        <input 
+                          type="text"
+                          required
+                          value={replyMessage}
+                          onChange={e => setReplyMessage(e.target.value)}
+                          placeholder="Write a message to support..."
+                          className="flex-1 bg-surface-container-low border border-outline-variant/30 rounded-xl px-4 py-2.5 text-xs outline-none focus:ring-1 focus:ring-primary font-medium"
+                        />
+                        <button 
+                          type="submit" 
+                          disabled={replying || !replyMessage.trim()}
+                          className="px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:opacity-90 disabled:opacity-50 shrink-0"
+                        >
+                          {replying ? 'Sending...' : 'Reply'}
+                        </button>
+                      </form>
+                    </div>
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-center space-y-3">
+                      <HelpCircle className="w-12 h-12 text-outline-variant/40" />
+                      <h4 className="text-sm font-bold text-primary">No Ticket Selected</h4>
+                      <p className="text-xs text-secondary max-w-xs">Select a ticket from the left panel to view replies and talk with the support staff.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -279,7 +462,7 @@ export default function Help() {
               <ul className="list-disc pl-5 space-y-2 text-sm text-slate-700">
                 <li><strong>Session Expiration:</strong> Authentication tokens expire after 24 hours of inactivity. Re-authenticate by signing out and logging back in if requests return 401 Unauthorized errors.</li>
                 <li><strong>Role Permissions:</strong> Ensure your account is assigned the appropriate role for restricted actions (e.g. approving expenses requires Finance or CEO role).</li>
-                <li><strong>Technical Support:</strong> If an operational issue persists, click <strong>Submit a Support Ticket</strong> above to dispatch an automated issue alert to our senior systems engineer at <code>noungajoseph58@gmail.com</code>.</li>
+                <li><strong>Technical Support:</strong> If an operational issue persists, click <strong>Submit a Support Ticket</strong> above to dispatch an automated issue alert to the administration team.</li>
               </ul>
             </section>
 

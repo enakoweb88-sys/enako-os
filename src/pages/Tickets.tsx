@@ -48,16 +48,7 @@ export default function Tickets() {
     if (!viewTicket || !replyMessage.trim()) return;
     setReplying(true);
     try {
-      const defaultHost = window.location.hostname.replace(/^(www\.|app\.|os\.|client\.|dashboard\.)/, '');
-      const url = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'https://api.enakoos.com/api/v1' : `https://api.${defaultHost}/api/v1`);
-      const token = sessionStorage.getItem('enako_access_token');
-      const res = await fetch(`${url}/tickets/${viewTicket.id}/reply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ message: replyMessage })
-      });
-      if (!res.ok) throw new Error('Failed to send reply');
-      const reply = await res.json();
+      const reply = await api.replySupportTicket(viewTicket.id, replyMessage);
       
       setViewTicket(prev => prev ? { 
         ...prev, 
