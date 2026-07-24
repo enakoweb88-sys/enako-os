@@ -7,11 +7,12 @@ import {
   Bell, BarChart3, Settings, LogOut, Search, HelpCircle,
   MessageSquare, UtensilsCrossed, User, Briefcase, Megaphone,
   Headphones, ClipboardList, TrendingUp, Menu, ChevronLeft, ChevronRight,
-  PenTool, Calendar, FileText, Mail, X, Building2
+  PenTool, Calendar, FileText, Mail, X, Building2, BookOpen
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
-import { api } from '../lib/api';
+import { api, outreachAPI } from '../lib/api';
+import { Loader2 } from 'lucide-react';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/app/dashboard', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
@@ -35,6 +36,8 @@ const navItems = [
   { icon: FileText, label: 'Applications', path: '/app/outreach/applications', roles: ['outreach_manager'] },
   { icon: Mail, label: 'Newsletters', path: '/app/outreach/newsletters', roles: ['outreach_manager'] },
   { icon: TrendingUp, label: 'Web Insights & SEO', path: '/app/outreach/web-insights', roles: ['outreach_manager', 'ceo', 'manager', 'digital'] },
+  { icon: Target, label: 'Website Stats', path: '/app/outreach/stats', roles: ['outreach_manager'] },
+  { icon: BookOpen, label: 'Scholarships', path: '/app/outreach/scholarships', roles: ['outreach_manager'] },
 
   { icon: HelpCircle, label: 'Help & Support', path: '/app/help', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
   { icon: User, label: 'Profile', path: '/app/profile', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
@@ -55,7 +58,31 @@ export default function DashboardLayout() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (!searchQuery || searchQuery.trim() === '') {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await api.globalSearch(searchQuery);
+        setSearchResults(results || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const role = (user?.role ?? 'EMPLOYEE').toLowerCase();
   const fullName = user?.fullName ?? 'Executive';
@@ -240,22 +267,39 @@ export default function DashboardLayout() {
 
               {/* Global Search Dropdown */}
               <AnimatePresence>
-                {showSearch && (
+                {showSearch && searchQuery.trim() !== '' && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
                     className="absolute top-full mt-2 w-full bg-white border border-outline-variant/30 rounded-xl shadow-xl overflow-hidden z-50"
                   >
                     <div className="p-2 space-y-1 max-h-64 overflow-y-auto">
-                      <p className="px-3 py-1 text-[9px] font-bold text-secondary uppercase tracking-widest">Transactions</p>
-                      <button onClick={() => navigate('/app/transactions')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-surface-container-low transition-colors flex items-center gap-3">
-                        <CreditCard className="w-4 h-4 text-primary" />
-                        <div><p className="text-sm font-bold text-primary">TX-99824</p><p className="text-[10px] text-secondary">Acme Corp • 150,000 FCFA</p></div>
-                      </button>
-                      <p className="px-3 py-1 text-[9px] font-bold text-secondary uppercase tracking-widest mt-2">Employees</p>
-                      <button onClick={() => navigate('/app/employees')} className="w-full text-left px-3 py-2 rounded-lg hover:bg-surface-container-low transition-colors flex items-center gap-3">
-                        <User className="w-4 h-4 text-green-600" />
-                        <div><p className="text-sm font-bold text-primary">Sarah Jenkins</p><p className="text-[10px] text-secondary">BD Officer</p></div>
-                      </button>
+                      {isSearching ? (
+                        <div className="flex items-center justify-center p-4">
+                          <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                        </div>
+                      ) : searchResults.length > 0 ? (
+                        searchResults.map(result => (
+                          <button 
+                            key={`${result.type}-${result.id}`}
+                            onClick={() => {
+                              navigate(result.link);
+                              setShowSearch(false);
+                              setSearchQuery('');
+                            }} 
+                            className="w-full text-left px-3 py-2 rounded-lg hover:bg-surface-container-low transition-colors flex flex-col"
+                          >
+                            <p className="text-sm font-bold text-primary">{result.title}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-container text-secondary">{result.type}</span>
+                              <p className="text-[10px] text-secondary">{result.subtitle}</p>
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="p-4 text-center text-sm text-secondary">
+                          No results found for "{searchQuery}"
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}

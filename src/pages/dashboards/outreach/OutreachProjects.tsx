@@ -30,6 +30,8 @@ export default function OutreachProjects() {
   const [images, setImages] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isCompressingMedia, setIsCompressingMedia] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [videoPhase, setVideoPhase] = useState<'idle' | 'compressing' | 'uploading' | 'done'>('idle');
 
   const fetchProjects = async () => {
     setLoading(true);
@@ -123,25 +125,98 @@ export default function OutreachProjects() {
     }
   };
 
+  // ─── Browser-side video compression via MediaRecorder ─────────────────────
+  const compressVideoInBrowser = (file: File, onProgress: (p: number) => void): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      video.src = URL.createObjectURL(file);
+      video.muted = true;
+      video.crossOrigin = 'anonymous';
+      video.preload = 'metadata';
+
+      video.onloadedmetadata = () => {
+        const duration = video.duration;
+        const MAX_W = 1280;
+        let w = video.videoWidth || 1280;
+        let h = video.videoHeight || 720;
+        if (w > MAX_W) { h = Math.round((h * MAX_W) / w); w = MAX_W; }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d')!;
+        const stream = canvas.captureStream(25);
+
+        const mimeType = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
+          .find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
+
+        const recorder = new MediaRecorder(stream, {
+          mimeType,
+          videoBitsPerSecond: 1_500_000,
+        });
+        const chunks: BlobPart[] = [];
+        recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+        recorder.onstop = () => {
+          URL.revokeObjectURL(video.src);
+          resolve(new Blob(chunks, { type: mimeType.split(';')[0] }));
+        };
+        recorder.onerror = (e) => reject(e);
+        recorder.start(500);
+
+        const startedAt = Date.now();
+        const drawFrame = () => {
+          if (video.ended || video.paused) { recorder.stop(); return; }
+          ctx.drawImage(video, 0, 0, w, h);
+          const elapsed = (Date.now() - startedAt) / 1000;
+          onProgress(Math.min((elapsed / duration) * 100, 95));
+          requestAnimationFrame(drawFrame);
+        };
+        video.play().then(() => requestAnimationFrame(drawFrame)).catch(reject);
+        video.onended = () => recorder.stop();
+      };
+      video.onerror = () => reject(new Error('Failed to load video'));
+    });
+  };
+
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 200 * 1024 * 1024) return toast.error('Video must be under 200MB');
+    if (file.size > 500 * 1024 * 1024) {
+      toast.error('Video must be under 500MB. Please trim or compress it first.');
+      return;
+    }
     setIsCompressingMedia(true);
-    toast.info('Uploading video to storage...');
+    setVideoProgress(0);
+    setVideoUrl(null);
     try {
-      const ext = file.name.split('.').pop();
+      let uploadBlob: Blob = file;
+      if (file.size > 50 * 1024 * 1024) {
+        setVideoPhase('compressing');
+        toast.info(`Compressing video (${(file.size / 1024 / 1024).toFixed(0)}MB)…`);
+        uploadBlob = await compressVideoInBrowser(file, (p) => setVideoProgress(p * 0.7));
+        const savedMB = ((file.size - uploadBlob.size) / 1024 / 1024).toFixed(1);
+        toast.success(`Compressed! Saved ${savedMB}MB. Uploading…`);
+      } else {
+        toast.info('Uploading video…');
+      }
+      setVideoPhase('uploading');
+      const ext = file.name.split('.').pop() || 'webm';
       const fileName = `project-video/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-      const { error } = await supabase.storage.from('outreach').upload(fileName, file, { contentType: file.type });
+      const { error } = await supabase.storage.from('outreach').upload(fileName, uploadBlob, {
+        contentType: uploadBlob.type || file.type,
+      });
       if (!error) {
         const { data: { publicUrl } } = supabase.storage.from('outreach').getPublicUrl(fileName);
         setVideoUrl(publicUrl);
+        setVideoProgress(100);
+        setVideoPhase('done');
         toast.success('Video uploaded successfully!');
       } else {
-        toast.error('Failed to upload video');
+        toast.error('Failed to upload video to storage');
+        setVideoPhase('idle');
       }
     } catch (err) {
-      toast.error('Video upload failed');
+      toast.error('Video processing failed. Try a smaller file.');
+      setVideoPhase('idle');
     } finally {
       setIsCompressingMedia(false);
     }
@@ -433,17 +508,54 @@ export default function OutreachProjects() {
                     <span className="text-[10px] text-slate-400 font-normal">JPG, PNG format</span>
                   </div>
 
-                  {/* Video Input */}
-                  <div className="relative border-2 border-dashed border-outline-variant/50 rounded-xl p-4 text-center hover:border-primary/40 transition-colors cursor-pointer bg-surface-container-low">
-                    <input
-                      type="file"
-                      accept="video/*"
-                      onChange={handleVideoUpload}
-                      className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                    />
-                    <Film className="w-6 h-6 text-secondary mx-auto mb-1" />
-                    <span className="text-[11px] font-bold text-primary block">Select Video File</span>
-                    <span className="text-[10px] text-slate-400 font-normal">MP4, WEBM format</span>
+                  {/* Video Input with compression progress */}
+                  <div className="relative">
+                    <div className={`relative border-2 border-dashed rounded-xl p-4 text-center transition-all ${
+                      videoPhase === 'done' ? 'border-green-500/50 bg-green-50'
+                      : videoPhase === 'compressing' || videoPhase === 'uploading' ? 'border-primary/50 bg-primary/5 cursor-not-allowed'
+                      : 'border-outline-variant/50 hover:border-primary/40 bg-surface-container-low cursor-pointer'
+                    }`}>
+                      {(videoPhase === 'compressing' || videoPhase === 'uploading') ? (
+                        <div className="space-y-1.5 py-1">
+                          <div className="flex justify-between text-[10px] font-bold text-primary">
+                            <span>{videoPhase === 'compressing' ? '🗜 Compressing…' : '⬆ Uploading…'}</span>
+                            <span>{Math.round(videoProgress)}%</span>
+                          </div>
+                          <div className="w-full h-2 bg-primary/10 rounded-full overflow-hidden">
+                            <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${videoProgress}%` }} />
+                          </div>
+                          <div className="text-[10px] text-secondary">
+                            {videoPhase === 'compressing' ? 'Reducing file size…' : 'Uploading to Supabase…'}
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <input
+                            type="file"
+                            accept="video/*"
+                            onChange={handleVideoUpload}
+                            disabled={isCompressingMedia}
+                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                          />
+                          <Film className={`w-6 h-6 mx-auto mb-1 ${videoPhase === 'done' ? 'text-green-600' : 'text-secondary'}`} />
+                          <span className={`text-[11px] font-bold block ${videoPhase === 'done' ? 'text-green-700' : 'text-primary'}`}>
+                            {videoPhase === 'done' ? '✓ Video Uploaded' : 'Select Video File'}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-normal">
+                            {videoPhase === 'done' ? 'Click to replace' : 'Max 500MB · Auto-compressed if >50MB'}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    {videoPhase === 'done' && videoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => { setVideoUrl(null); setVideoProgress(0); setVideoPhase('idle'); }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow hover:bg-red-600 z-20"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 </div>
 

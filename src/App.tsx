@@ -34,6 +34,8 @@ import OutreachApplications from './pages/dashboards/outreach/OutreachApplicatio
 import OutreachCMS from './pages/dashboards/outreach/OutreachCMS';
 import OutreachNewsletters from './pages/dashboards/outreach/OutreachNewsletters';
 import WebInsights from './pages/dashboards/outreach/WebInsights';
+import OutreachStats from './pages/dashboards/outreach/OutreachStats';
+import OutreachScholarships from './pages/dashboards/outreach/OutreachScholarships';
 
 export default function App() {
   return (
@@ -127,6 +129,16 @@ export default function App() {
             <Route path="outreach/web-insights" element={
               <ProtectedRoute roles={['OUTREACH_MANAGER', 'CEO', 'MANAGER', 'DIGITAL']}>
                 <WebInsights />
+              </ProtectedRoute>
+            } />
+            <Route path="outreach/stats" element={
+              <ProtectedRoute roles={['OUTREACH_MANAGER']}>
+                <OutreachStats />
+              </ProtectedRoute>
+            } />
+            <Route path="outreach/scholarships" element={
+              <ProtectedRoute roles={['OUTREACH_MANAGER']}>
+                <OutreachScholarships />
               </ProtectedRoute>
             } />
           </Route>

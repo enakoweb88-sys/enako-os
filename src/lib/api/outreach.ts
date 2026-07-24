@@ -12,6 +12,7 @@ export interface CreatePostDTO {
 }
 
 export const outreachAPI = {
+  searchOutreach: (query: string) => apiRequest<any[]>(`/outreach/search?q=${encodeURIComponent(query)}`),
   getDonations: () => apiRequest<any>('/outreach/donations'),
   getStats: () => apiRequest<any>('/outreach/stats'),
   getApplications: () => apiRequest<any[]>('/outreach/applications'),
