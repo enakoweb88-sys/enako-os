@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, ClipboardCheck, CheckCircle2, Clock, Plus, X, AlertCircle } from 'lucide-react';
+import { RefreshCw, ClipboardCheck, CheckCircle2, Clock, Plus, X, AlertCircle, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';
@@ -11,6 +11,7 @@ export default function Tasks() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
   const [form, setForm] = useState({ title: '', description: '', priority: 'NORMAL', dueDate: '' });
   const [submitting, setSubmitting] = useState(false);
@@ -74,6 +75,16 @@ export default function Tasks() {
     }
   };
 
+  const filteredTasks = tasks.filter(t => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (t.title && t.title.toLowerCase().includes(q)) ||
+      (t.description && t.description.toLowerCase().includes(q)) ||
+      (t.status && t.status.replace('_', ' ').toLowerCase().includes(q))
+    );
+  });
+
   return (
     <div className="space-y-8 font-sans">
       <div className="flex justify-between items-center bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm">
@@ -82,10 +93,20 @@ export default function Tasks() {
           <p className="text-xs text-secondary mt-1 uppercase tracking-widest font-bold">Track and manage operational tasks</p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={() => setShowCreate(true)} className="bg-primary text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:shadow-lg transition-all">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
+            <input 
+              type="text"
+              placeholder="Search tasks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-4 py-2 border border-outline-variant/30 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-64 bg-surface-container-low"
+            />
+          </div>
+          <button onClick={() => setShowCreate(true)} className="bg-primary text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:shadow-lg transition-all shrink-0">
             <Plus className="w-4 h-4" /> Create Task
           </button>
-          <button onClick={load} className="p-2 border border-outline-variant/30 rounded-xl text-secondary hover:bg-surface-container transition-all">
+          <button onClick={load} className="p-2 border border-outline-variant/30 rounded-xl text-secondary hover:bg-surface-container transition-all shrink-0">
             <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
           </button>
         </div>
@@ -108,9 +129,16 @@ export default function Tasks() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/20">
-                {tasks.map(task => (
-                  <tr key={task.id} onClick={() => setSelectedTask(task)} className="hover:bg-surface-container-low/30 transition-colors cursor-pointer">
-                    <td className="px-4 py-4">
+                {filteredTasks.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-8 text-center text-sm text-secondary">
+                      No tasks match your search query.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredTasks.map(task => (
+                    <tr key={task.id} onClick={() => setSelectedTask(task)} className="hover:bg-surface-container-low/30 transition-colors cursor-pointer">
+                      <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
                         <div className={cn(
                           "p-2 rounded-lg shrink-0",
@@ -147,7 +175,7 @@ export default function Tasks() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                )))}
               </tbody>
             </table>
           </div>

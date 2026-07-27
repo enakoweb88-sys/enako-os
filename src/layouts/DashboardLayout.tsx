@@ -16,7 +16,9 @@ import { Loader2 } from 'lucide-react';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/app/dashboard', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
+  { icon: ClipboardList, label: 'Tasks', path: '/app/tasks', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
   { icon: Users, label: 'Employees', path: '/app/employees', roles: ['ceo', 'manager', 'admin'] },
+  { icon: Calendar, label: 'Leaves', path: '/app/leaves', roles: ['ceo', 'manager', 'admin', 'employee'] },
   { icon: CreditCard, label: 'Transactions', path: '/app/transactions', roles: ['ceo', 'manager', 'finance'] },
   { icon: Wallet, label: 'Expenses', path: '/app/expenses', roles: ['ceo', 'manager', 'finance', 'employee'] },
   { icon: ShieldCheck, label: 'KYC Compliance', path: '/app/kyc', roles: ['ceo', 'manager', 'bd', 'support'] },
@@ -28,7 +30,7 @@ const navItems = [
   { icon: Bell, label: 'Announcements', path: '/app/announcements', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
   { icon: BarChart3, label: 'Reports', path: '/app/reports', roles: ['ceo', 'manager', 'finance', 'admin', 'employee', 'outreach_manager'] },
   { icon: CreditCard, label: 'Subscriptions', path: '/app/subscriptions', roles: ['ceo', 'manager', 'finance', 'admin', 'employee', 'outreach_manager'] },
-  
+
   // Outreach Manager specifics
   { icon: PenTool, label: 'Blog & Content', path: '/app/outreach/cms', roles: ['outreach_manager'] },
   { icon: Building2, label: 'Projects & Initiatives', path: '/app/outreach/projects', roles: ['outreach_manager'] },
@@ -53,7 +55,7 @@ export default function DashboardLayout() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotif, setShowNotif] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  
+
   const [announcement, setAnnouncement] = useState<any>(null);
   const [showBanner, setShowBanner] = useState(true);
 
@@ -62,7 +64,7 @@ export default function DashboardLayout() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     if (!searchQuery || searchQuery.trim() === '') {
       setSearchResults([]);
@@ -73,8 +75,21 @@ export default function DashboardLayout() {
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
+        const q = searchQuery.toLowerCase();
+
+        // Find matching local dashboard pages
+        const localMatches = navItems
+          .filter(item => item.label.toLowerCase().includes(q) && item.roles.includes(role))
+          .map(item => ({
+            id: `nav-${item.path}`,
+            type: 'PAGE',
+            title: item.label,
+            subtitle: 'Dashboard Navigation',
+            link: item.path
+          }));
+
         const results = await api.globalSearch(searchQuery);
-        setSearchResults(results || []);
+        setSearchResults([...localMatches, ...(results || [])]);
       } catch (err) {
         console.error(err);
       } finally {
@@ -235,7 +250,7 @@ export default function DashboardLayout() {
 
       {/* ── Main Content ── */}
       <main className={cn("flex-1 min-w-0 flex flex-col transition-all duration-300", sidebarOpen ? "ml-64" : "ml-20")}>
-        
+
         {/* Banner */}
         <AnimatePresence>
           {announcement && showBanner && (
@@ -280,13 +295,13 @@ export default function DashboardLayout() {
                         </div>
                       ) : searchResults.length > 0 ? (
                         searchResults.map(result => (
-                          <button 
+                          <button
                             key={`${result.type}-${result.id}`}
                             onClick={() => {
                               navigate(result.link);
                               setShowSearch(false);
                               setSearchQuery('');
-                            }} 
+                            }}
                             className="w-full text-left px-3 py-2 rounded-lg hover:bg-surface-container-low transition-colors flex flex-col"
                           >
                             <p className="text-sm font-bold text-primary">{result.title}</p>

@@ -118,8 +118,8 @@ ${dailyForm.recommendation}`;
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
     const isGeneral = report.type === 'GENERAL';
-    const brandGreen = [21, 87, 36]; // #155724
-    const brandGreenLight = [232, 245, 233]; // #E8F5E9
+    const brandGreen = [0, 31, 91]; // #001f5b
+    const brandGreenLight = [230, 237, 245]; // #e6edf5
     const darkText = [33, 37, 41];
     const mutedText = [108, 117, 125];
     const borderColor = [206, 212, 218];
