@@ -148,6 +148,40 @@ export default function Transactions() {
     finally { setSubmitting(false); }
   };
 
+  const handleExportCSV = () => {
+    if (!items || items.length === 0) {
+      alert("No transactions to export.");
+      return;
+    }
+
+    const headers = ['Reference', 'Entity', 'Type', 'Channel', 'Amount', 'Currency', 'Status', 'Date', 'Description'];
+    const rows = items.map(tx => [
+      tx.reference || '',
+      `"${(tx.entity || '').replace(/"/g, '""')}"`,
+      tx.type || '',
+      tx.channel || '',
+      tx.amount || 0,
+      tx.currency || '',
+      tx.status || '',
+      new Date(tx.createdAt).toISOString(),
+      `"${(tx.description || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(r => r.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `transactions_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (role === 'employee') {
     return (
       <div className="h-[60vh] flex flex-col items-center justify-center text-center space-y-4">
@@ -171,7 +205,7 @@ export default function Transactions() {
           <p className="text-secondary text-base">Real-time monitoring of capital movement and collections.</p>
         </div>
         <div className="flex gap-4">
-          <button className="px-6 py-2.5 border border-outline-variant bg-white text-secondary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container transition-all">
+          <button onClick={handleExportCSV} className="px-6 py-2.5 border border-outline-variant bg-white text-secondary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container transition-all">
             <Download className="w-4 h-4 inline mr-2" />Export CSV
           </button>
           {(role === 'ceo' || role === 'manager') && (
