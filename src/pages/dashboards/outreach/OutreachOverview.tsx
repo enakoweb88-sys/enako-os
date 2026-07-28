@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Globe, PenTool, FileText, Users, Heart, Cookie } from 'lucide-react';
 import { outreachAPI } from '../../../lib/api';
 import { TasksWidget } from '../../../components/TasksWidget';

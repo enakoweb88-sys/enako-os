@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Megaphone, ThumbsUp, MessageCircle, X, Plus, RefreshCw, Send, CornerDownRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';

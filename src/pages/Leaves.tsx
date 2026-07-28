@@ -3,8 +3,14 @@ import { RefreshCw, UserMinus, CheckCircle2, XCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';
 import { toast } from 'sonner';
+import { useAuth } from '../lib/auth';
 
 export default function Leaves() {
+  const { user } = useAuth();
+  const role = (user?.role ?? 'EMPLOYEE').toLowerCase();
+  const isManager = role === 'manager' || role === 'outreach_manager' || role === 'ceo';
+  const isCeo = role === 'ceo';
+
   const [data, setData] = useState<any>({ totalStaff: 0, presentToday: 0, onLeave: 0, leaveRequests: [], employees: [] });
   const [loading, setLoading] = useState(true);
   const [selectedEmployee, setSelectedEmployee] = useState('');
@@ -38,7 +44,7 @@ export default function Leaves() {
 
   const handleCreateLeave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedEmployee) return toast.error("Please select an employee");
+    if (isCeo && !selectedEmployee) return toast.error("Please select an employee");
     setIsSubmitting(true);
     try {
       // Create leave via new API endpoint
@@ -47,9 +53,9 @@ export default function Leaves() {
         type: leaveType,
         duration: leaveDuration
       });
-      toast.success("Leave assigned successfully");
+      toast.success(isCeo ? "Leave assigned successfully" : "Leave requested successfully");
       load();
-      setSelectedEmployee('');
+      if (isCeo) setSelectedEmployee('');
       setLeaveDuration('1 day');
     } catch (err) {
       toast.error("Failed to assign leave");
@@ -71,6 +77,7 @@ export default function Leaves() {
         </button>
       </div>
 
+      {isManager && (
       <div className="grid grid-cols-3 gap-6">
         <div className="bg-white border border-outline-variant/30 rounded-xl p-5 shadow-sm">
           <p className="text-secondary text-[11px] font-bold uppercase tracking-wider mb-2">Total Staff</p>
@@ -85,10 +92,12 @@ export default function Leaves() {
           <p className="text-3xl font-bold font-display text-orange-600">{data.onLeave}</p>
         </div>
       </div>
+      )}
 
       <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm">
-        <h3 className="font-display text-lg font-bold text-primary mb-4">Assign Leave (CEO/Manager)</h3>
+        <h3 className="font-display text-lg font-bold text-primary mb-4">{isCeo ? 'Assign Leave' : 'Request Leave'}</h3>
         <form onSubmit={handleCreateLeave} className="flex gap-4 items-end">
+          {isCeo && (
           <div className="flex-1 space-y-2">
             <label className="text-xs font-bold text-secondary uppercase tracking-widest">Select Employee</label>
             <select 
@@ -102,6 +111,7 @@ export default function Leaves() {
               ))}
             </select>
           </div>
+          )}
           <div className="w-32 space-y-2">
             <label className="text-xs font-bold text-secondary uppercase tracking-widest">Duration</label>
             <input 
@@ -130,7 +140,7 @@ export default function Leaves() {
             disabled={isSubmitting}
             className="px-6 py-2 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 h-[38px]"
           >
-            {isSubmitting ? 'Assigning...' : 'Assign Leave'}
+            {isSubmitting ? (isCeo ? 'Assigning...' : 'Requesting...') : (isCeo ? 'Assign Leave' : 'Request Leave')}
           </button>
         </form>
       </div>
@@ -177,7 +187,7 @@ export default function Leaves() {
                       </span>
                     </td>
                     <td className="px-4 py-4 text-right">
-                      {req.status === 'Pending' && (
+                      {req.status === 'Pending' && isCeo && (
                         <div className="flex items-center justify-end gap-2">
                           <button onClick={() => handleAction(req.id, 'approved')} className="p-1.5 rounded hover:bg-green-50 text-green-600" title="Approve">
                             <CheckCircle2 className="w-5 h-5" />

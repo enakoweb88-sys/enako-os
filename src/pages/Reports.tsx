@@ -9,13 +9,16 @@ import {
   Calendar,
   Save,
   Users,
-  Archive
+  Archive,
+  Edit,
+  BarChart,
+  Check
 } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
-import { api } from '../lib/api';
+import { api, apiRequest } from '../lib/api';
 import { ENAKO_LOGO_BASE64 } from '../lib/logo-base64';
 
 export default function Reports() {
@@ -35,28 +38,22 @@ export default function Reports() {
   
   // Create Report View State
   const [isCreatingReport, setIsCreatingReport] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [dailyForm, setDailyForm] = useState({
     title: '',
     type: 'DAILY',
     category: 'General',
     impact: 'Low',
     details: '',
-    recommendation: ''
-  });
-  
-  // Basic session timer states
-  const [loginTime, setLoginTime] = useState<string | null>(null);
-
-  useEffect(() => {
-    const stored = sessionStorage.getItem('enako_login_time');
-    if (stored) {
-      setLoginTime(stored);
-    } else {
-      const now = new Date().toISOString();
-      sessionStorage.setItem('enako_login_time', now);
-      setLoginTime(now);
+    recommendation: '',
+    attachments: {
+      transactions: false,
+      expenses: false,
+      foodAndMeal: false,
+      subscriptions: false
     }
-  }, []);
+  });
+
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,12 +69,10 @@ export default function Reports() {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleCreateDaily = async (e: React.FormEvent) => {
+  const handleSaveReport = async (e: React.FormEvent, status: 'DRAFT' | 'SUBMITTED') => {
     e.preventDefault();
     setIsGenerating(true);
     try {
-      const logoutTime = new Date().toISOString();
-      
       const formattedContent = `Title: ${dailyForm.title}
 Category: ${dailyForm.category}
 Impact Level: ${dailyForm.impact}
@@ -88,32 +83,81 @@ ${dailyForm.details}
 Recommendation:
 ${dailyForm.recommendation}`;
 
-      await api.createDailyReport({
+      const payload = {
         content: formattedContent,
         type: isManager ? dailyForm.type : 'DAILY',
-        loginTime: loginTime || undefined,
-        logoutTime
-      });
+        status,
+        attachments: dailyForm.attachments
+      };
+
+      if (editingId) {
+        await api.updateDailyReport(editingId, payload);
+      } else {
+        await api.createDailyReport(payload);
+      }
       
-      setIsCreatingReport(false);
-      setDailyForm({
-        title: '',
-        type: 'DAILY',
-        category: 'General',
-        impact: 'Low',
-        details: '',
-        recommendation: ''
-      });
-      toast.success('Report submitted successfully');
+      if (status === 'SUBMITTED') {
+        setIsCreatingReport(false);
+        setEditingId(null);
+        setDailyForm({
+          title: '',
+          type: 'DAILY',
+          category: 'General',
+          impact: 'Low',
+          details: '',
+          recommendation: '',
+          attachments: { transactions: false, expenses: false, foodAndMeal: false, subscriptions: false }
+        });
+        toast.success('Report submitted successfully');
+      } else {
+        toast.success('Draft saved successfully');
+      }
       load();
     } catch (e: any) {
-      toast.error(e.message || 'Failed to submit report');
+      toast.error(e.message || 'Failed to save report');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const downloadDailyPdf = (report: any) => {
+  const handleEditDraft = (report: any) => {
+    setEditingId(report.id);
+    // Parse existing content
+    const contentLines = (report.content || '').split('\n');
+    let details = '';
+    let recommendation = '';
+    let inDetails = false;
+    let inRecs = false;
+    
+    const parsed = {
+      title: '',
+      type: report.type || 'DAILY',
+      category: 'General',
+      impact: 'Low',
+      details: '',
+      recommendation: '',
+      attachments: report.attachments || { transactions: false, expenses: false, foodAndMeal: false, subscriptions: false }
+    };
+
+    contentLines.forEach(line => {
+      if (line.startsWith('Title: ')) parsed.title = line.replace('Title: ', '').trim();
+      else if (line.startsWith('Category: ')) parsed.category = line.replace('Category: ', '').trim();
+      else if (line.startsWith('Impact Level: ')) parsed.impact = line.replace('Impact Level: ', '').trim();
+      else if (line.startsWith('Details:')) { inDetails = true; inRecs = false; }
+      else if (line.startsWith('Recommendation:')) { inDetails = false; inRecs = true; }
+      else {
+        if (inDetails && line.trim()) details += line + '\n';
+        if (inRecs && line.trim()) recommendation += line + '\n';
+      }
+    });
+
+    parsed.details = details.trim();
+    parsed.recommendation = recommendation.trim();
+    setDailyForm(parsed);
+    setIsCreatingReport(true);
+  };
+
+  const downloadDailyPdf = async (report: any) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
@@ -133,7 +177,7 @@ ${dailyForm.recommendation}`;
     doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
     // Draw diagonal watermark text across the page
     for (let y = 40; y < pageHeight; y += 80) {
-      doc.text('E-NANO FOUNDATION', pageWidth / 2, y, { angle: 35, align: 'center' });
+      doc.text('ENAKO FINTECH', pageWidth / 2, y, { angle: 35, align: 'center' });
     }
     doc.restoreGraphicsState();
 
@@ -151,7 +195,7 @@ ${dailyForm.recommendation}`;
     doc.setFontSize(20);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
-    doc.text('E-NANO FOUNDATION', 50, 20);
+    doc.text('ENAKO FINTECH', 50, 20);
 
     doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
@@ -207,14 +251,9 @@ ${dailyForm.recommendation}`;
 
     // Row 2
     doc.setFont(undefined, 'bold');
-    doc.text('Session In:', 20, 75);
+    doc.text('Submitted At:', 20, 75);
     doc.setFont(undefined, 'normal');
-    doc.text(report.loginTime ? new Date(report.loginTime).toLocaleTimeString() : 'N/A', 52, 75);
-
-    doc.setFont(undefined, 'bold');
-    doc.text('Session Out:', 115, 75);
-    doc.setFont(undefined, 'normal');
-    doc.text(report.logoutTime ? new Date(report.logoutTime).toLocaleTimeString() : 'N/A', 147, 75);
+    doc.text(new Date(report.date).toLocaleTimeString(), 52, 75);
 
     // Row 3
     if (report.user?.email) {
@@ -261,7 +300,7 @@ ${dailyForm.recommendation}`;
         doc.setFont(undefined, 'bold');
         doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
         for (let y = 40; y < pageHeight; y += 80) {
-          doc.text('E-NANO FOUNDATION', pageWidth / 2, y, { angle: 35, align: 'center' });
+          doc.text('ENAKO FINTECH', pageWidth / 2, y, { angle: 35, align: 'center' });
         }
         doc.restoreGraphicsState();
         doc.setFontSize(10);
@@ -302,7 +341,7 @@ ${dailyForm.recommendation}`;
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(8);
     doc.setFont(undefined, 'normal');
-    doc.text('E-Nano Foundation | Empowering Communities Through Innovation', 15, pageHeight - 12);
+    doc.text('Enako Fintech | Empowering Communities Through Innovation', 15, pageHeight - 12);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 15, pageHeight - 6);
 
     // Page number
@@ -313,16 +352,148 @@ ${dailyForm.recommendation}`;
       doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(8);
-      doc.text('E-Nano Foundation | Empowering Communities Through Innovation', 15, pageHeight - 12);
+      doc.text('Enako Fintech | Empowering Communities Through Innovation', 15, pageHeight - 12);
       doc.text(`Generated: ${new Date().toLocaleString()}`, 15, pageHeight - 6);
       doc.text(`Page ${i} of ${totalPages}`, pageWidth - 40, pageHeight - 9);
+    }
+
+    // ─── DATA ATTACHMENTS (NEW PAGES) ───
+    if (report.attachments) {
+      const atts = typeof report.attachments === 'string' ? JSON.parse(report.attachments) : report.attachments;
+      
+      const drawAttachmentHeader = (title: string) => {
+        doc.addPage();
+        doc.setFillColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+        doc.rect(0, 0, pageWidth, 12, 'F');
+        doc.setFontSize(14);
+        doc.setTextColor(255, 255, 255);
+        doc.setFont(undefined, 'bold');
+        doc.text(`ATTACHED DATA: ${title}`, 15, 8);
+        return 25;
+      };
+
+      const drawMiniBarChart = (title: string, data: {label: string, value: number}[], x: number, y: number, w: number, h: number) => {
+        doc.setFontSize(10);
+        doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+        doc.setFont(undefined, 'bold');
+        doc.text(title, x, y - 5);
+        
+        if (data.length === 0) {
+          doc.setFontSize(8);
+          doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
+          doc.text('No data available for chart.', x, y + 10);
+          return;
+        }
+
+        const maxVal = Math.max(...data.map(d => d.value), 1);
+        const barWidth = Math.max((w / data.length) - 4, 10);
+        
+        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+        doc.setLineWidth(0.5);
+        doc.line(x, y, x, y + h); // Y
+        doc.line(x, y + h, x + w, y + h); // X
+        
+        data.slice(0, 10).forEach((d, i) => { // max 10 bars
+          const barHeight = (d.value / maxVal) * h;
+          const barX = x + i * (barWidth + 4) + 2;
+          const barY = y + h - barHeight;
+          
+          doc.setFillColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+          doc.rect(barX, barY, barWidth, barHeight, 'F');
+          
+          doc.setFontSize(6);
+          doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
+          doc.text(d.label.substring(0, 8), barX + barWidth/2, y + h + 4, { align: 'center' });
+          
+          doc.setFontSize(5);
+          doc.text(d.value.toString(), barX + barWidth/2, barY - 2, { align: 'center' });
+        });
+      };
+
+      try {
+        if (atts.expenses) {
+          let cy = drawAttachmentHeader('COMPANY EXPENSES');
+          const exps: any = await api.expenses();
+          const recent = (exps?.items || exps || []).slice(0, 20);
+          const byCat: Record<string, number> = {};
+          recent.forEach((e: any) => {
+            byCat[e.category] = (byCat[e.category] || 0) + Number(e.amount || 0);
+          });
+          const chartData = Object.keys(byCat).map(k => ({ label: k, value: byCat[k] }));
+          
+          drawMiniBarChart('Expenses by Category', chartData, 20, cy + 10, 160, 60);
+          cy += 90;
+          
+          doc.setFontSize(10);
+          doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+          doc.text('Recent Expenses:', 15, cy);
+          cy += 8;
+          recent.slice(0, 15).forEach((e: any) => {
+            doc.setFontSize(8);
+            doc.text(`${new Date(e.createdAt).toLocaleDateString()} - ${e.category}: ${e.description} (${e.amount} ${e.currency}) - ${e.status}`, 15, cy);
+            cy += 6;
+          });
+        }
+        
+        if (atts.transactions) {
+          let cy = drawAttachmentHeader('FX TRANSACTIONS');
+          const txs = await (api as any).transactions?.() || await apiRequest('/finance/transactions') || [];
+          const recent = (txs?.items || txs || []).slice(0, 20);
+          const byType: Record<string, number> = {};
+          recent.forEach((t: any) => {
+            byType[t.type] = (byType[t.type] || 0) + Number(t.amount || 0);
+          });
+          const chartData = Object.keys(byType).map(k => ({ label: k, value: byType[k] }));
+          
+          drawMiniBarChart('Transactions by Type', chartData, 20, cy + 10, 160, 60);
+          cy += 90;
+          
+          doc.setFontSize(10);
+          doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+          doc.text('Recent Transactions:', 15, cy);
+          cy += 8;
+          recent.slice(0, 15).forEach((t: any) => {
+            doc.setFontSize(8);
+            doc.text(`${new Date(t.createdAt).toLocaleDateString()} - [${t.type}] ${t.entity} (${t.amount} ${t.currency}) - ${t.status}`, 15, cy);
+            cy += 6;
+          });
+        }
+
+        if (atts.foodAndMeal) {
+          let cy = drawAttachmentHeader('FOOD & MEALS');
+          const meals = await (api as any).meals?.() || await apiRequest('/meals/records') || [];
+          const recent = (meals?.items || meals || []).slice(0, 20);
+          doc.setFontSize(10);
+          doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+          recent.forEach((m: any) => {
+            doc.setFontSize(8);
+            doc.text(`${new Date(m.date).toLocaleDateString()} - ${m.employee?.fullName || 'Emp'}: ${m.mealName || 'Meal'} (${m.status})`, 15, cy);
+            cy += 6;
+          });
+        }
+
+        if (atts.subscriptions) {
+          let cy = drawAttachmentHeader('SUBSCRIPTIONS');
+          const subs = await (api as any).subscriptions?.() || await apiRequest('/subscriptions') || [];
+          const recent = (subs?.items || subs || []).slice(0, 20);
+          doc.setFontSize(10);
+          doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+          recent.forEach((s: any) => {
+            doc.setFontSize(8);
+            doc.text(`${s.name} - ${s.cost} (${s.cycle}) - ${s.status}`, 15, cy);
+            cy += 6;
+          });
+        }
+      } catch (err) {
+        console.error('Failed to attach data', err);
+      }
     }
 
     // ─── CONFIDENTIALITY NOTICE ───
     doc.setPage(1);
     doc.setFontSize(7);
     doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
-    doc.text('CONFIDENTIAL - This report is the property of E-Nano Foundation. Unauthorized distribution is prohibited.', pageWidth / 2, pageHeight - 24, { align: 'center' });
+    doc.text('CONFIDENTIAL - This report is the property of Enako Fintech. Unauthorized distribution is prohibited.', pageWidth / 2, pageHeight - 24, { align: 'center' });
 
     // Save
     const fileName = isGeneral ? 'ENano_General_Report' : 'ENano_Daily_Report';
@@ -332,8 +503,8 @@ ${dailyForm.recommendation}`;
   // Filter Logic
   const getFilteredReports = () => {
     let filtered = reports.filter(r => 
-      r.user?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      r.content?.toLowerCase().includes(searchTerm.toLowerCase())
+      (r.user?.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (r.content || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     if (isManager) {
@@ -341,7 +512,6 @@ ${dailyForm.recommendation}`;
         const today = new Date().toLocaleDateString();
         filtered = filtered.filter(r => 
           new Date(r.date).toLocaleDateString() === today && 
-          r.userId !== user?.id &&
           r.type === 'DAILY'
         );
       }
@@ -434,13 +604,21 @@ ${dailyForm.recommendation}`;
                             <div className="flex items-center gap-2">
                               <p className="text-base font-bold text-primary leading-tight">{report.user?.fullName || 'Unknown'}</p>
                               {report.type === 'GENERAL' && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">General</span>}
+                              {report.status === 'DRAFT' && <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">Draft</span>}
+                              {report.status === 'SUBMITTED' && <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">Submitted</span>}
                             </div>
                             <p className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mt-1.5">
-                              {new Date(report.date).toLocaleDateString()} {report.loginTime && `• In: ${new Date(report.loginTime).toLocaleTimeString()}`} {report.logoutTime && `• Out: ${new Date(report.logoutTime).toLocaleTimeString()}`}
+                              {new Date(report.date).toLocaleDateString()} • {new Date(report.date).toLocaleTimeString()}
                             </p>
                           </div>
                       </div>
                       <div className="flex items-center gap-3">
+                          {report.status === 'DRAFT' && report.userId === user?.id && (
+                            <button onClick={() => handleEditDraft(report)} className="py-3 px-5 bg-orange-50 text-orange-600 rounded-xl hover:bg-orange-100 transition-all flex items-center gap-2 border border-orange-200">
+                              <Edit className="w-4 h-4" />
+                              <span className="text-[11px] font-bold uppercase tracking-widest">Edit Draft</span>
+                            </button>
+                          )}
                           <button onClick={() => downloadDailyPdf(report)} className="py-3 px-5 bg-primary text-white rounded-xl hover:shadow-lg transition-all flex items-center gap-2">
                             <Download className="w-4 h-4" />
                             <span className="text-[11px] font-bold uppercase tracking-widest">Print / PDF</span>
@@ -456,18 +634,25 @@ ${dailyForm.recommendation}`;
         <div className="space-y-6">
           <div className="flex items-center gap-4">
             <button 
-              onClick={() => setIsCreatingReport(false)}
+              onClick={() => {
+                setIsCreatingReport(false);
+                setEditingId(null);
+                setDailyForm({
+                  title: '', type: 'DAILY', category: 'General', impact: 'Low', details: '', recommendation: '',
+                  attachments: { transactions: false, expenses: false, foodAndMeal: false, subscriptions: false }
+                });
+              }}
               className="w-10 h-10 flex items-center justify-center bg-white rounded-xl border border-outline-variant/30 text-secondary hover:text-primary hover:border-primary transition-all shadow-sm"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h2 className="text-2xl font-black text-primary">Create New Report</h2>
+              <h2 className="text-2xl font-black text-primary">{editingId ? 'Edit Draft Report' : 'Create New Report'}</h2>
               <p className="text-sm text-secondary">Fill out the details for your shift or activity report.</p>
             </div>
           </div>
 
-          <form onSubmit={handleCreateDaily} className="bg-white rounded-[2rem] border border-outline-variant/30 shadow-sm p-8 max-w-4xl space-y-6">
+          <form onSubmit={(e) => e.preventDefault()} className="bg-white rounded-[2rem] border border-outline-variant/30 shadow-sm p-8 max-w-4xl space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               {isManager && (
@@ -562,14 +747,45 @@ ${dailyForm.recommendation}`;
 
 
 
-            <div className="flex justify-end pt-4 border-t border-outline-variant/20">
+            <div className="pt-4 border-t border-outline-variant/20">
+              <label className="block text-xs font-bold text-secondary mb-4 uppercase tracking-wider">Attach Data Modules (Auto-generates charts & tables)</label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {Object.keys(dailyForm.attachments).map(key => (
+                  <label key={key} className={cn("flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all", dailyForm.attachments[key as keyof typeof dailyForm.attachments] ? "bg-primary/5 border-primary" : "bg-white border-outline-variant/30 hover:border-primary/50")}>
+                    <div className={cn("w-5 h-5 rounded flex items-center justify-center transition-all", dailyForm.attachments[key as keyof typeof dailyForm.attachments] ? "bg-primary text-white" : "border border-outline-variant/50")}>
+                      {dailyForm.attachments[key as keyof typeof dailyForm.attachments] && <Check className="w-3.5 h-3.5" />}
+                    </div>
+                    <span className="text-sm font-bold text-primary capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                    <input 
+                      type="checkbox" 
+                      className="hidden" 
+                      checked={dailyForm.attachments[key as keyof typeof dailyForm.attachments]}
+                      onChange={(e) => setDailyForm({...dailyForm, attachments: {...dailyForm.attachments, [key]: e.target.checked}})}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-4 border-t border-outline-variant/20">
               <button 
                 disabled={isGenerating} 
-                type="submit" 
-                className="px-8 py-4 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transition-all disabled:opacity-50"
+                onClick={(e) => handleSaveReport(e, 'DRAFT')}
+                type="button" 
+                className="px-6 py-3 bg-white border border-outline-variant/30 text-secondary rounded-xl text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-surface-container-low transition-all disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
-                {isGenerating ? 'Submitting...' : 'Save and Submit Report'}
+                {isGenerating ? 'Saving...' : 'Save Draft'}
+              </button>
+              
+              <button 
+                disabled={isGenerating} 
+                onClick={(e) => handleSaveReport(e, 'SUBMITTED')}
+                type="button" 
+                className="px-8 py-4 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transition-all disabled:opacity-50"
+              >
+                <FileText className="w-4 h-4" />
+                {isGenerating ? 'Submitting...' : 'Review & Submit Report'}
               </button>
             </div>
           </form>

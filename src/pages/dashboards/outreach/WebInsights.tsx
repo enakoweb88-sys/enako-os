@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { 
   Globe, Activity, Cookie, MousePointer, ShieldCheck, Eye, 
   TrendingUp, Search, BarChart3, PieChart as PieChartIcon, 

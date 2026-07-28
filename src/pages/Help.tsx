@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LifeBuoy, Book, MessageCircle, FileText, X, ShieldCheck, Users, Landmark, FileSpreadsheet, Target, Megaphone, Activity, HelpCircle, CheckCircle2, ChevronRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { cn } from '../lib/utils';
