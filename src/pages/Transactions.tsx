@@ -9,6 +9,8 @@ import { cn } from '../lib/utils';
 import { api, apiRequest } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
+import jsPDF from 'jspdf';
+import { ENAKO_LOGO_BASE64 } from '../lib/logo-base64';
 
 function fmt(val: string | number | null | undefined, currency: string | boolean = 'XAF') {
   const n = Number(val ?? 0);
@@ -148,38 +150,157 @@ export default function Transactions() {
     finally { setSubmitting(false); }
   };
 
-  const handleExportCSV = () => {
-    if (!items || items.length === 0) {
-      alert("No transactions to export.");
-      return;
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const downloadTransactionsPdf = async () => {
+    setDownloadingPdf(true);
+    try {
+      const res = await api.transactions({ limit: 1000 });
+      const allTx = res.items || [];
+      
+      const doc = new jsPDF();
+      let cy = 20;
+
+      const brandBlue = [0, 31, 91] as [number, number, number];
+      const darkText = [30, 41, 59] as [number, number, number];
+      const mutedText = [100, 116, 139] as [number, number, number];
+      const borderColor = [226, 232, 240] as [number, number, number];
+
+      doc.addImage(ENAKO_LOGO_BASE64, 'PNG', 15, cy, 30, 10);
+      doc.setFontSize(10);
+      doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
+      doc.text('ENAKO FINTECH', 150, cy + 5);
+      doc.text(new Date().toLocaleDateString(), 150, cy + 10);
+      cy += 20;
+
+      doc.setFontSize(16);
+      doc.setTextColor(brandBlue[0], brandBlue[1], brandBlue[2]);
+      doc.setFont(undefined, 'bold');
+      doc.text('Transactions Report', 15, cy);
+      cy += 15;
+
+      const drawMiniBarChart = (title: string, data: {label: string, value: number}[], x: number, y: number, w: number, h: number) => {
+        doc.setFontSize(10);
+        doc.setTextColor(brandBlue[0], brandBlue[1], brandBlue[2]);
+        doc.setFont(undefined, 'bold');
+        doc.text(title, x, y - 5);
+        
+        if (data.length === 0) {
+          doc.setFontSize(8);
+          doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
+          doc.text('No data available for chart.', x, y + 10);
+          return;
+        }
+
+        const maxVal = Math.max(...data.map(d => d.value), 1);
+        const barWidth = Math.max((w / data.length) - 4, 3);
+        
+        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+        doc.setLineWidth(0.5);
+        doc.line(x, y, x, y + h); 
+        doc.line(x, y + h, x + w, y + h); 
+        
+        data.forEach((d, i) => {
+          const barH = (d.value / maxVal) * h;
+          const barX = x + 2 + i * (barWidth + (w > 100 && data.length > 10 ? 1.5 : 4));
+          const barY = y + h - barH;
+          
+          doc.setFillColor(brandBlue[0], brandBlue[1], brandBlue[2]);
+          doc.rect(barX, barY, barWidth, barH, 'F');
+          
+          doc.setFontSize(6);
+          doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
+          const label = d.label.length > 6 ? d.label.substring(0, 6) + '..' : d.label;
+          
+          doc.text(label, barX, y + h + 5);
+          
+          if (d.value > 0 && barWidth > 8) {
+            doc.text(fmt(d.value, false), barX, barY - 2);
+          }
+        });
+      };
+
+      const last28Days = Array.from({ length: 28 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (27 - i));
+        return { 
+          date: d, 
+          label: `${d.getDate()}/${d.getMonth()+1}`, 
+          value: 0 
+        };
+      });
+
+      const now = new Date();
+      const twentyEightDaysAgo = new Date();
+      twentyEightDaysAgo.setDate(now.getDate() - 28);
+
+      allTx.forEach((tx: any) => {
+        const txDate = new Date(tx.createdAt);
+        if (txDate >= twentyEightDaysAgo) {
+          const dayMatch = last28Days.find(d => d.date.getDate() === txDate.getDate() && d.date.getMonth() === txDate.getMonth());
+          if (dayMatch) {
+            dayMatch.value += Number(tx.amount || 0);
+          }
+        }
+      });
+
+      drawMiniBarChart('Transaction Volume (Last 28 Days)', last28Days, 20, cy + 10, 160, 40);
+      cy += 70;
+
+      const channelMap: Record<string, number> = {};
+      allTx.forEach((tx: any) => {
+        const ch = tx.channel || 'None';
+        channelMap[ch] = (channelMap[ch] || 0) + Number(tx.amount || 0);
+      });
+      const channelData = Object.keys(channelMap).map(k => ({ label: k, value: channelMap[k] }));
+
+      drawMiniBarChart('Payment Channels (Volume)', channelData, 20, cy + 10, 160, 40);
+      cy += 70;
+
+      doc.addPage();
+      cy = 20;
+      doc.setFontSize(14);
+      doc.setTextColor(brandBlue[0], brandBlue[1], brandBlue[2]);
+      doc.text('Filtered Transactions', 15, cy);
+      cy += 10;
+
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+      doc.text('Date', 15, cy);
+      doc.text('Entity', 45, cy);
+      doc.text('Type/Channel', 95, cy);
+      doc.text('Amount', 140, cy);
+      doc.text('Status', 175, cy);
+      cy += 5;
+      
+      doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+      doc.line(15, cy, 195, cy);
+      cy += 5;
+
+      doc.setFont(undefined, 'normal');
+      items.forEach((tx: any) => {
+        if (cy > 270) {
+          doc.addPage();
+          cy = 20;
+        }
+        
+        doc.setFontSize(8);
+        doc.text(new Date(tx.createdAt).toLocaleDateString(), 15, cy);
+        doc.text((tx.entity || '').substring(0, 25), 45, cy);
+        doc.text(`${tx.type} / ${tx.channel || 'N/A'}`, 95, cy);
+        doc.text(fmt(tx.amount, tx.currency), 140, cy);
+        doc.text(tx.status, 175, cy);
+        cy += 7;
+      });
+
+      doc.save(`transactions_report_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error(error);
+      alert('Error generating PDF');
+    } finally {
+      setDownloadingPdf(false);
     }
-
-    const headers = ['Reference', 'Entity', 'Type', 'Channel', 'Amount', 'Currency', 'Status', 'Date', 'Description'];
-    const rows = items.map(tx => [
-      tx.reference || '',
-      `"${(tx.entity || '').replace(/"/g, '""')}"`,
-      tx.type || '',
-      tx.channel || '',
-      tx.amount || 0,
-      tx.currency || '',
-      tx.status || '',
-      new Date(tx.createdAt).toISOString(),
-      `"${(tx.description || '').replace(/"/g, '""')}"`
-    ]);
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(r => r.join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `transactions_export_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   if (role === 'employee') {
@@ -205,8 +326,8 @@ export default function Transactions() {
           <p className="text-secondary text-base">Real-time monitoring of capital movement and collections.</p>
         </div>
         <div className="flex gap-4">
-          <button onClick={handleExportCSV} className="px-6 py-2.5 border border-outline-variant bg-white text-secondary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container transition-all">
-            <Download className="w-4 h-4 inline mr-2" />Export CSV
+          <button onClick={downloadTransactionsPdf} disabled={downloadingPdf} className="px-6 py-2.5 border border-outline-variant bg-white text-secondary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container transition-all">
+            <Download className="w-4 h-4 inline mr-2" />{downloadingPdf ? 'Exporting...' : 'Export PDF'}
           </button>
           {(role === 'ceo' || role === 'manager') && (
             <button onClick={() => setShowModal(true)} className="px-6 py-2.5 bg-primary text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:shadow-lg transition-all">
