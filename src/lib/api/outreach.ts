@@ -23,7 +23,7 @@ export const outreachAPI = {
   createPost: (data: CreatePostDTO) => apiRequest<any>('/outreach/posts', { method: 'POST', body: JSON.stringify(data) }),
   updatePost: (id: string, data: Partial<CreatePostDTO>) => apiRequest<any>(`/outreach/posts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   updatePostStatus: (id: string, status: string) => apiRequest<any>(`/outreach/posts/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) }),
-  getWebInsights: () => apiRequest<any>('/outreach/analytics/insights'),
+  getWebInsights: (site?: string) => apiRequest<any>(`/outreach/analytics/insights${site ? `?site=${site}` : ''}`),
   
   // Community Projects
   getCommunityProjects: (communitySlug?: string) => apiRequest<any[]>(`/outreach/community-projects${communitySlug ? `?communitySlug=${communitySlug}` : ''}`),

@@ -13,20 +13,25 @@ export default function Tasks() {
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   
-  const [form, setForm] = useState({ title: '', description: '', priority: 'NORMAL', dueDate: '' });
+  const [form, setForm] = useState<{ title: string; description: string; priority: string; dueDate: string; assigneeIds: string[] }>({ title: '', description: '', priority: 'NORMAL', dueDate: '', assigneeIds: [] });
   const [submitting, setSubmitting] = useState(false);
+  const [usersList, setUsersList] = useState<any[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.tasks();
       setTasks(res);
+      if (user && ['CEO', 'MANAGER'].includes(user.role)) {
+        const usersRes = await api.listUsers();
+        setUsersList(usersRes);
+      }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     load();
@@ -37,12 +42,17 @@ export default function Tasks() {
     if (!form.title) return;
     setSubmitting(true);
     try {
-      // If dueDate is empty, don't send it or set as undefined
-      const payload: any = { ...form, assigneeId: user?.id };
+      const payload: any = { ...form };
       if (!payload.dueDate) delete payload.dueDate;
+      
+      if (payload.assigneeIds.length === 0) {
+        payload.assigneeId = user?.id;
+        delete payload.assigneeIds;
+      }
+
       await api.createTask(payload);
       setShowCreate(false);
-      setForm({ title: '', description: '', priority: 'NORMAL', dueDate: '' });
+      setForm({ title: '', description: '', priority: 'NORMAL', dueDate: '', assigneeIds: [] });
       load();
     } catch (e: any) {
       alert(e.message);
@@ -149,6 +159,12 @@ export default function Tasks() {
                         <div>
                           <p className="text-sm font-bold text-primary">{task.title}</p>
                           <p className="text-xs text-secondary mt-0.5 line-clamp-1 max-w-xs">{task.description}</p>
+                          {user && ['CEO', 'MANAGER'].includes(user.role) && task.assignee && (
+                            <p className="text-[10px] text-primary/70 mt-1 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-primary/30" />
+                              Assigned to: {task.assignee.fullName}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -215,6 +231,31 @@ export default function Tasks() {
                     <input type="date" value={form.dueDate} onChange={e => setForm({...form, dueDate: e.target.value})} className="w-full px-3 py-2 border border-outline-variant/50 rounded-lg text-sm focus:outline-none" />
                   </div>
                 </div>
+                {user && ['CEO', 'MANAGER'].includes(user.role) && (
+                  <div>
+                    <label className="block text-xs font-bold text-secondary mb-1">Assign To (Optional)</label>
+                    <div className="max-h-32 overflow-y-auto border border-outline-variant/50 rounded-lg p-2 space-y-2 bg-surface-container-low">
+                      {usersList.map(u => (
+                        <label key={u.id} className="flex items-center gap-2 text-sm text-primary cursor-pointer hover:bg-surface-container/50 p-1 rounded">
+                          <input 
+                            type="checkbox" 
+                            checked={form.assigneeIds.includes(u.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setForm({...form, assigneeIds: [...form.assigneeIds, u.id]});
+                              } else {
+                                setForm({...form, assigneeIds: form.assigneeIds.filter(id => id !== u.id)});
+                              }
+                            }}
+                            className="rounded text-primary focus:ring-primary w-4 h-4"
+                          />
+                          <span className="truncate">{u.fullName} {u.id === user.id ? '(Me)' : ''}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-secondary mt-1">Leave empty to assign to yourself. Select multiple to create individual tasks for each person.</p>
+                  </div>
+                )}
                 <div className="pt-4 flex justify-end gap-3">
                   <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm font-bold text-secondary hover:bg-surface-container rounded-lg transition-colors">Cancel</button>
                   <button type="submit" disabled={submitting} className="px-4 py-2 text-sm font-bold bg-primary text-white rounded-lg hover:shadow-lg disabled:opacity-50 transition-all flex items-center gap-2">
@@ -240,6 +281,12 @@ export default function Tasks() {
                 <div>
                   <h2 className="text-xl font-bold text-primary">{selectedTask.title}</h2>
                   <p className="text-sm text-secondary mt-2 whitespace-pre-wrap">{selectedTask.description || 'No description provided.'}</p>
+                  {user && ['CEO', 'MANAGER'].includes(user.role) && selectedTask.assignee && (
+                    <div className="mt-4 inline-flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-lg border border-outline-variant/30">
+                      <span className="text-xs font-bold text-secondary uppercase tracking-wider">Assignee:</span>
+                      <span className="text-sm font-bold text-primary">{selectedTask.assignee.fullName}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-surface-container-low p-3 rounded-xl border border-outline-variant/30">

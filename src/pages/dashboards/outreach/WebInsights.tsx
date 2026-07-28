@@ -6,17 +6,21 @@ import {
   Smartphone, Monitor, Filter, RefreshCw, ArrowUpRight, CheckCircle2
 } from 'lucide-react';
 import { outreachAPI } from '../../../lib/api';
+import { useAuth } from '../../../lib/auth';
 
 export default function WebInsights() {
+  const { user } = useAuth();
+  const isCeo = user?.role?.toLowerCase() === 'ceo';
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedHeatmapPath, setSelectedHeatmapPath] = useState('/');
   const [timeframe, setTimeframe] = useState('30d');
+  const [selectedSite, setSelectedSite] = useState('outreach');
 
   const fetchInsights = async () => {
     setLoading(true);
     try {
-      const res = await outreachAPI.getWebInsights();
+      const res = await outreachAPI.getWebInsights(selectedSite);
       setData(res);
     } catch (err) {
       console.error('Failed to fetch web insights:', err);
@@ -27,7 +31,7 @@ export default function WebInsights() {
 
   useEffect(() => {
     fetchInsights();
-  }, [timeframe]);
+  }, [timeframe, selectedSite]);
 
   if (loading) {
     return (
@@ -62,6 +66,16 @@ export default function WebInsights() {
         </div>
 
         <div className="flex items-center gap-3">
+          {isCeo && (
+            <select 
+              value={selectedSite}
+              onChange={(e) => setSelectedSite(e.target.value)}
+              className="bg-white border border-outline-variant/50 rounded-lg px-3 py-2 text-xs font-bold text-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="outreach">Outreach Website</option>
+              <option value="main">Main Website</option>
+            </select>
+          )}
           <select 
             value={timeframe} 
             onChange={(e) => setTimeframe(e.target.value)}
