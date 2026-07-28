@@ -51,7 +51,7 @@ export function TasksWidget({ limit }: { limit?: number }) {
 
   const handleUpdateStatus = async (taskId: string, status: string) => {
     try {
-      await api.updateTaskStatus(taskId, status);
+      await api.setTaskStatus(taskId, status);
       if (selectedTask && selectedTask.id === taskId) {
         setSelectedTask({ ...selectedTask, status });
       }

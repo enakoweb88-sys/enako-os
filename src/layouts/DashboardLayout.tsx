@@ -58,6 +58,7 @@ export default function DashboardLayout() {
 
   const [announcement, setAnnouncement] = useState<any>(null);
   const [showBanner, setShowBanner] = useState(true);
+  const [showNotifBanner, setShowNotifBanner] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -252,17 +253,33 @@ export default function DashboardLayout() {
       <main className={cn("flex-1 min-w-0 flex flex-col transition-all duration-300", sidebarOpen ? "ml-64" : "ml-20")}>
 
         {/* Banner */}
-        <AnimatePresence>
-          {announcement && showBanner && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="bg-primary-fixed text-primary px-4 py-2 flex items-center justify-between z-50">
-              <div className="flex items-center gap-3">
-                <Megaphone className="w-4 h-4" />
-                <p className="text-sm font-bold">{announcement.title}: <span className="font-normal">{announcement.content}</span></p>
-              </div>
-              <button onClick={() => setShowBanner(false)} className="p-1 hover:bg-black/10 rounded-full transition-colors"><X className="w-4 h-4" /></button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="flex flex-col z-50 sticky top-0">
+          <AnimatePresence>
+            {announcement && showBanner && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="bg-primary-fixed text-primary px-4 py-2 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Megaphone className="w-4 h-4" />
+                  <p className="text-sm font-bold">{announcement.title}: <span className="font-normal">{announcement.content}</span></p>
+                </div>
+                <button onClick={() => setShowBanner(false)} className="p-1 hover:bg-black/10 rounded-full transition-colors"><X className="w-4 h-4" /></button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
+            {unreadCount > 0 && showNotifBanner && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="bg-blue-600 text-white px-4 py-2 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Bell className="w-4 h-4" />
+                  <p className="text-sm font-bold">You have {unreadCount} new notification{unreadCount > 1 ? 's' : ''}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setShowNotif(true)} className="text-xs font-bold uppercase tracking-widest hover:underline text-white/90">View</button>
+                  <button onClick={() => setShowNotifBanner(false)} className="p-1 hover:bg-black/10 rounded-full transition-colors"><X className="w-4 h-4" /></button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Top Header */}
         <header className="sticky top-0 z-40 bg-surface/70 backdrop-blur-xl border-b border-outline-variant/30 flex justify-between items-center px-8 py-4">
