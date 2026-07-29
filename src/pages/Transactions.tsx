@@ -14,13 +14,15 @@ import { ENAKO_LOGO_BASE64 } from '../lib/logo-base64';
 
 function fmt(val: string | number | null | undefined, currency: string | boolean = 'XAF') {
   const n = Number(val ?? 0);
-  if (currency === false) return n.toLocaleString();
+  if (currency === false) return n.toLocaleString('en-US');
   const currCode = typeof currency === 'string' ? currency : 'XAF';
-  const locale = currCode === 'XAF' ? 'fr-CM' : 'en-US';
+  if (currCode === 'XAF') {
+    return `${n.toLocaleString('en-US')} FCFA`;
+  }
   try {
-    return n.toLocaleString(locale, { style: 'currency', currency: currCode, maximumFractionDigits: 0 });
+    return n.toLocaleString('en-US', { style: 'currency', currency: currCode, maximumFractionDigits: 0 });
   } catch (e) {
-    return `${n.toLocaleString()} ${currCode}`;
+    return `${n.toLocaleString('en-US')} ${currCode}`;
   }
 }
 
@@ -166,7 +168,7 @@ export default function Transactions() {
       const mutedText = [100, 116, 139] as [number, number, number];
       const borderColor = [226, 232, 240] as [number, number, number];
 
-      doc.addImage(ENAKO_LOGO_BASE64, 'PNG', 15, cy, 30, 10);
+      doc.addImage(ENAKO_LOGO_BASE64, 'PNG', 15, cy, 12, 12);
       doc.setFontSize(10);
       doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
       doc.text('ENAKO FINTECH', 150, cy + 5);
@@ -177,6 +179,72 @@ export default function Transactions() {
       doc.setTextColor(brandBlue[0], brandBlue[1], brandBlue[2]);
       doc.setFont(undefined, 'bold');
       doc.text('Transactions Report', 15, cy);
+      cy += 15;
+
+      // Filtered Transactions Table - Now drawn first
+      doc.setFontSize(14);
+      doc.setTextColor(brandBlue[0], brandBlue[1], brandBlue[2]);
+      doc.text('Filtered Transactions', 15, cy);
+      cy += 10;
+
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+      doc.text('Date', 15, cy);
+      doc.text('Entity', 45, cy);
+      doc.text('Type/Channel', 95, cy);
+      doc.text('Amount', 140, cy);
+      doc.text('Status', 175, cy);
+      cy += 5;
+      
+      doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+      doc.line(15, cy, 195, cy);
+      cy += 5;
+
+      doc.setFont(undefined, 'normal');
+      items.forEach((tx: any) => {
+        if (cy > 270) {
+          doc.addPage();
+          cy = 20;
+          
+          // Re-draw table header on new page for clarity
+          doc.setFontSize(9);
+          doc.setFont(undefined, 'bold');
+          doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+          doc.text('Date', 15, cy);
+          doc.text('Entity', 45, cy);
+          doc.text('Type/Channel', 95, cy);
+          doc.text('Amount', 140, cy);
+          doc.text('Status', 175, cy);
+          cy += 5;
+          doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+          doc.line(15, cy, 195, cy);
+          cy += 5;
+          doc.setFont(undefined, 'normal');
+        }
+        
+        doc.setFontSize(8);
+        doc.text(new Date(tx.createdAt).toLocaleDateString(), 15, cy);
+        doc.text((tx.entity || '').substring(0, 25), 45, cy);
+        doc.text(`${tx.type} / ${tx.channel || 'N/A'}`, 95, cy);
+        doc.text(fmt(tx.amount, tx.currency), 140, cy);
+        doc.text(tx.status, 175, cy);
+        cy += 4; // reduced from 7 to give room for line
+        
+        // Draw separating line
+        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+        doc.setLineWidth(0.2);
+        doc.line(15, cy, 195, cy);
+        cy += 6; // advance for next row
+      });
+
+      // Now draw Charts on next page
+      doc.addPage();
+      cy = 20;
+      doc.setFontSize(16);
+      doc.setTextColor(brandBlue[0], brandBlue[1], brandBlue[2]);
+      doc.setFont(undefined, 'bold');
+      doc.text('Transactions Analytics', 15, cy);
       cy += 15;
 
       const drawMiniBarChart = (title: string, data: {label: string, value: number}[], x: number, y: number, w: number, h: number) => {
@@ -256,43 +324,6 @@ export default function Transactions() {
 
       drawMiniBarChart('Payment Channels (Volume)', channelData, 20, cy + 10, 160, 40);
       cy += 70;
-
-      doc.addPage();
-      cy = 20;
-      doc.setFontSize(14);
-      doc.setTextColor(brandBlue[0], brandBlue[1], brandBlue[2]);
-      doc.text('Filtered Transactions', 15, cy);
-      cy += 10;
-
-      doc.setFontSize(9);
-      doc.setFont(undefined, 'bold');
-      doc.setTextColor(darkText[0], darkText[1], darkText[2]);
-      doc.text('Date', 15, cy);
-      doc.text('Entity', 45, cy);
-      doc.text('Type/Channel', 95, cy);
-      doc.text('Amount', 140, cy);
-      doc.text('Status', 175, cy);
-      cy += 5;
-      
-      doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-      doc.line(15, cy, 195, cy);
-      cy += 5;
-
-      doc.setFont(undefined, 'normal');
-      items.forEach((tx: any) => {
-        if (cy > 270) {
-          doc.addPage();
-          cy = 20;
-        }
-        
-        doc.setFontSize(8);
-        doc.text(new Date(tx.createdAt).toLocaleDateString(), 15, cy);
-        doc.text((tx.entity || '').substring(0, 25), 45, cy);
-        doc.text(`${tx.type} / ${tx.channel || 'N/A'}`, 95, cy);
-        doc.text(fmt(tx.amount, tx.currency), 140, cy);
-        doc.text(tx.status, 175, cy);
-        cy += 7;
-      });
 
       doc.save(`transactions_report_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
