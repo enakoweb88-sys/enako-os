@@ -10,6 +10,7 @@ import { api, apiRequest } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { ENAKO_LOGO_BASE64 } from '../lib/logo-base64';
 
 function fmt(val: string | number | null | undefined, currency: string | boolean = 'XAF') {
@@ -157,7 +158,15 @@ export default function Transactions() {
   const downloadTransactionsPdf = async () => {
     setDownloadingPdf(true);
     try {
-      const res = await api.transactions({ limit: 1000 });
+      const res = await api.transactions({ 
+        search, 
+        limit: 1000,
+        dateRange,
+        type: txType,
+        status: txStatus,
+        channel: txChannel,
+        specificDate
+      });
       const allTx = res.items || [];
       
       const doc = new jsPDF();
@@ -185,58 +194,36 @@ export default function Transactions() {
       doc.setFontSize(14);
       doc.setTextColor(brandBlue[0], brandBlue[1], brandBlue[2]);
       doc.text('Filtered Transactions', 15, cy);
-      cy += 10;
-
-      doc.setFontSize(9);
-      doc.setFont(undefined, 'bold');
-      doc.setTextColor(darkText[0], darkText[1], darkText[2]);
-      doc.text('Date', 15, cy);
-      doc.text('Entity', 45, cy);
-      doc.text('Type/Channel', 95, cy);
-      doc.text('Amount', 140, cy);
-      doc.text('Status', 175, cy);
-      cy += 5;
-      
-      doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-      doc.line(15, cy, 195, cy);
       cy += 5;
 
-      doc.setFont(undefined, 'normal');
-      items.forEach((tx: any) => {
-        if (cy > 270) {
-          doc.addPage();
-          cy = 20;
-          
-          // Re-draw table header on new page for clarity
-          doc.setFontSize(9);
-          doc.setFont(undefined, 'bold');
-          doc.setTextColor(darkText[0], darkText[1], darkText[2]);
-          doc.text('Date', 15, cy);
-          doc.text('Entity', 45, cy);
-          doc.text('Type/Channel', 95, cy);
-          doc.text('Amount', 140, cy);
-          doc.text('Status', 175, cy);
-          cy += 5;
-          doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-          doc.line(15, cy, 195, cy);
-          cy += 5;
-          doc.setFont(undefined, 'normal');
+      const tableData = allTx.map((tx: any) => [
+        new Date(tx.createdAt).toLocaleDateString(),
+        (tx.entity || '').substring(0, 25),
+        `${tx.type} / ${tx.channel || 'N/A'}`,
+        fmt(tx.amount, tx.currency),
+        tx.status
+      ]);
+
+      autoTable(doc, {
+        startY: cy,
+        head: [['Date', 'Entity', 'Type/Channel', 'Amount', 'Status']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: brandBlue,
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+        },
+        styles: {
+          fontSize: 8,
+          cellPadding: 3,
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252]
         }
-        
-        doc.setFontSize(8);
-        doc.text(new Date(tx.createdAt).toLocaleDateString(), 15, cy);
-        doc.text((tx.entity || '').substring(0, 25), 45, cy);
-        doc.text(`${tx.type} / ${tx.channel || 'N/A'}`, 95, cy);
-        doc.text(fmt(tx.amount, tx.currency), 140, cy);
-        doc.text(tx.status, 175, cy);
-        cy += 4; // reduced from 7 to give room for line
-        
-        // Draw separating line
-        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-        doc.setLineWidth(0.2);
-        doc.line(15, cy, 195, cy);
-        cy += 6; // advance for next row
       });
+      
+      cy = (doc as any).lastAutoTable.finalY + 15;
 
       // Now draw Charts on next page
       doc.addPage();
