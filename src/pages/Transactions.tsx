@@ -865,18 +865,16 @@ export default function Transactions() {
                     </select>
                   </div>
                 </div>
-                {form.currency !== 'XAF' && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Exchange Rate</label>
-                      <input type="number" value={form.exchangeRate} onChange={e => setForm({ ...form, exchangeRate: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="Rate" min="0" step="any" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Amount in XAF</label>
-                      <input type="number" value={form.amountInXaf} onChange={e => setForm({ ...form, amountInXaf: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="Total XAF" min="0" step="any" />
-                    </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Exchange Rate</label>
+                    <input type="number" value={form.exchangeRate} onChange={e => setForm({ ...form, exchangeRate: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="Rate" min="0" step="any" />
                   </div>
-                )}
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Amount in XAF</label>
+                    <input type="number" value={form.amountInXaf} onChange={e => setForm({ ...form, amountInXaf: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="Total XAF" min="0" step="any" />
+                  </div>
+                </div>
                 <div>
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Type *</label>
                   <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
