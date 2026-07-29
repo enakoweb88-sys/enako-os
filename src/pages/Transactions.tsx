@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   ArrowUpRight, Search, Download, Filter, CheckCircle2, Clock,
   AlertCircle, CreditCard, X, Plus, RefreshCw, BarChart3,
-  PieChart, Activity, Building, Smartphone, FileText
+  PieChart, Activity, Building, Smartphone, FileText, ChevronDown
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { api, apiRequest } from '../lib/api';
@@ -11,6 +11,7 @@ import { useAuth } from '../lib/auth';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import { ENAKO_LOGO_BASE64 } from '../lib/logo-base64';
 
 function fmt(val: string | number | null | undefined, currency: string | boolean = 'XAF') {
@@ -79,9 +80,18 @@ export default function Transactions() {
   const [showFloatModal, setShowFloatModal] = useState(false);
   const [showChargesModal, setShowChargesModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ entity: '', type: 'Receive', channel: 'Bank Transfer', amount: '', currency: 'XAF', description: '' });
+  const [form, setForm] = useState({ entity: '', type: 'Receive', channel: 'Bank Transfer', amount: '', amountInXaf: '', exchangeRate: '', currency: 'XAF', description: '' });
   const [floatForm, setFloatForm] = useState({ channel: 'MTN', balance: '' });
   const [chargesForm, setChargesForm] = useState({ id: '', charges: '' });
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  useEffect(() => {
+    if (form.currency !== 'XAF' && form.amount && form.exchangeRate) {
+      setForm(f => ({ ...f, amountInXaf: (Number(f.amount) * Number(f.exchangeRate)).toString() }));
+    } else if (form.currency === 'XAF') {
+      setForm(f => ({ ...f, amountInXaf: f.amount, exchangeRate: '1' }));
+    }
+  }, [form.amount, form.exchangeRate, form.currency]);
 
   const [dashboard, setDashboard] = useState<any>(null);
 
@@ -110,9 +120,14 @@ export default function Transactions() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.createTransaction({ ...form, amount: Number(form.amount) });
+      await api.createTransaction({ 
+        ...form, 
+        amount: Number(form.amount),
+        amountInXaf: form.amountInXaf ? Number(form.amountInXaf) : undefined,
+        exchangeRate: form.exchangeRate ? Number(form.exchangeRate) : undefined,
+      });
       setShowModal(false);
-      setForm({ entity: '', type: 'Receive', channel: 'Bank Transfer', amount: '', currency: 'XAF', description: '' });
+      setForm({ entity: '', type: 'Receive', channel: 'Bank Transfer', amount: '', amountInXaf: '', exchangeRate: '', currency: 'XAF', description: '' });
       load();
     } catch (e: any) { alert(e.message); }
     finally { setSubmitting(false); }
@@ -155,13 +170,19 @@ export default function Transactions() {
 
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
-  const downloadTransactionsPdf = async () => {
+  const downloadTransactionsPdf = async (period: 'Daily' | 'Weekly' | 'Monthly' | 'All') => {
     setDownloadingPdf(true);
+    setShowExportMenu(false);
     try {
+      let filterRange = dateRange;
+      if (period === 'Daily') filterRange = 'Today';
+      else if (period === 'Weekly') filterRange = 'This Week';
+      else if (period === 'Monthly') filterRange = 'This Month';
+
       const res = await api.transactions({ 
         search, 
         limit: 1000,
-        dateRange,
+        dateRange: filterRange,
         type: txType,
         status: txStatus,
         channel: txChannel,
@@ -187,7 +208,7 @@ export default function Transactions() {
       doc.setFontSize(16);
       doc.setTextColor(brandBlue[0], brandBlue[1], brandBlue[2]);
       doc.setFont(undefined, 'bold');
-      doc.text('Transactions Report', 15, cy);
+      doc.text(`Transactions Report - ${period}`, 15, cy);
       cy += 15;
 
       // Filtered Transactions Table - Now drawn first
@@ -201,12 +222,14 @@ export default function Transactions() {
         (tx.entity || '').substring(0, 25),
         `${tx.type} / ${tx.channel || 'N/A'}`,
         fmt(tx.amount, tx.currency),
+        tx.amountInXaf ? fmt(tx.amountInXaf, 'XAF') : '-',
+        tx.exchangeRate ? tx.exchangeRate : '-',
         tx.status
       ]);
 
       autoTable(doc, {
         startY: cy,
-        head: [['Date', 'Entity', 'Type/Channel', 'Amount', 'Status']],
+        head: [['Date', 'Entity', 'Type/Channel', 'Amount', 'XAF Amount', 'Rate', 'Status']],
         body: tableData,
         theme: 'grid',
         headStyles: {
@@ -312,10 +335,71 @@ export default function Transactions() {
       drawMiniBarChart('Payment Channels (Volume)', channelData, 20, cy + 10, 160, 40);
       cy += 70;
 
-      doc.save(`transactions_report_${new Date().toISOString().split('T')[0]}.pdf`);
+      doc.save(`transactions_${period.toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
       console.error(error);
       alert('Error generating PDF');
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const downloadTransactionsExcel = async (period: 'Daily' | 'Weekly' | 'Monthly' | 'All') => {
+    setDownloadingPdf(true);
+    setShowExportMenu(false);
+    try {
+      let filterRange = dateRange;
+      if (period === 'Daily') filterRange = 'Today';
+      else if (period === 'Weekly') filterRange = 'This Week';
+      else if (period === 'Monthly') filterRange = 'This Month';
+
+      const res = await api.transactions({ 
+        search, 
+        limit: 1000,
+        dateRange: filterRange,
+        type: txType,
+        status: txStatus,
+        channel: txChannel,
+        specificDate
+      });
+      const allTx = res.items || [];
+      
+      const wsData = [
+        [`ENAKO FINTECH - Transactions Report - ${period}`],
+        [`Generated: ${new Date().toLocaleDateString()}`],
+        [],
+        ['Date', 'Entity', 'Type', 'Channel', 'Currency', 'Amount', 'Amount (XAF)', 'Exchange Rate', 'Status', 'Description']
+      ];
+      
+      allTx.forEach((tx: any) => {
+        wsData.push([
+          new Date(tx.createdAt).toLocaleDateString(),
+          tx.entity || 'N/A',
+          tx.type,
+          tx.channel || 'N/A',
+          tx.currency,
+          Number(tx.amount),
+          Number(tx.amountInXaf || tx.amount),
+          Number(tx.exchangeRate || 1),
+          tx.status,
+          tx.description || ''
+        ]);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      
+      ws['!cols'] = [
+        { wch: 12 }, { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 10 }, 
+        { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 30 }
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+      
+      XLSX.writeFile(wb, `transactions_${period.toLowerCase()}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (error) {
+      console.error(error);
+      alert('Error generating Excel');
     } finally {
       setDownloadingPdf(false);
     }
@@ -344,9 +428,38 @@ export default function Transactions() {
           <p className="text-secondary text-base">Real-time monitoring of capital movement and collections.</p>
         </div>
         <div className="flex gap-4">
-          <button onClick={downloadTransactionsPdf} disabled={downloadingPdf} className="px-6 py-2.5 border border-outline-variant bg-white text-secondary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container transition-all">
-            <Download className="w-4 h-4 inline mr-2" />{downloadingPdf ? 'Exporting...' : 'Export PDF'}
-          </button>
+          <div className="relative">
+            <button onClick={() => setShowExportMenu(!showExportMenu)} disabled={downloadingPdf} className="px-6 py-2.5 border border-outline-variant bg-white text-secondary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container transition-all flex items-center">
+              <Download className="w-4 h-4 inline mr-2" />
+              {downloadingPdf ? 'Exporting...' : 'Export Report'}
+              <ChevronDown className="w-4 h-4 ml-2" />
+            </button>
+            
+            <AnimatePresence>
+              {showExportMenu && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute right-0 mt-2 w-56 bg-white border border-outline-variant/30 rounded-xl shadow-xl z-50 overflow-hidden">
+                  <div className="p-3 border-b border-outline-variant/20 bg-surface-container-low">
+                    <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Download PDF</p>
+                  </div>
+                  <div className="p-2 space-y-1">
+                    <button onClick={() => downloadTransactionsPdf('Daily')} className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-surface-container-low rounded-lg transition-colors">Daily Report</button>
+                    <button onClick={() => downloadTransactionsPdf('Weekly')} className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-surface-container-low rounded-lg transition-colors">Weekly Report</button>
+                    <button onClick={() => downloadTransactionsPdf('Monthly')} className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-surface-container-low rounded-lg transition-colors">Monthly Report</button>
+                    <button onClick={() => downloadTransactionsPdf('All')} className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-surface-container-low rounded-lg transition-colors text-primary">All Dates</button>
+                  </div>
+                  <div className="p-3 border-y border-outline-variant/20 bg-surface-container-low">
+                    <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Download Excel</p>
+                  </div>
+                  <div className="p-2 space-y-1">
+                    <button onClick={() => downloadTransactionsExcel('Daily')} className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-surface-container-low rounded-lg transition-colors text-green-700">Daily Report</button>
+                    <button onClick={() => downloadTransactionsExcel('Weekly')} className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-surface-container-low rounded-lg transition-colors text-green-700">Weekly Report</button>
+                    <button onClick={() => downloadTransactionsExcel('Monthly')} className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-surface-container-low rounded-lg transition-colors text-green-700">Monthly Report</button>
+                    <button onClick={() => downloadTransactionsExcel('All')} className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-surface-container-low rounded-lg transition-colors text-green-800">All Dates</button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
           {(role === 'ceo' || role === 'manager') && (
             <button onClick={() => setShowModal(true)} className="px-6 py-2.5 bg-primary text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:shadow-lg transition-all">
               <Plus className="w-4 h-4 inline mr-2" />New Transaction
@@ -739,7 +852,7 @@ export default function Transactions() {
                 <div className="grid grid-cols-3 gap-4">
                   <div className="col-span-2">
                     <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Amount *</label>
-                    <input required type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="0" min="0" />
+                    <input required type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="0" min="0" step="any" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Currency *</label>
@@ -752,6 +865,18 @@ export default function Transactions() {
                     </select>
                   </div>
                 </div>
+                {form.currency !== 'XAF' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Exchange Rate</label>
+                      <input type="number" value={form.exchangeRate} onChange={e => setForm({ ...form, exchangeRate: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="Rate" min="0" step="any" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Amount in XAF</label>
+                      <input type="number" value={form.amountInXaf} onChange={e => setForm({ ...form, amountInXaf: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="Total XAF" min="0" step="any" />
+                    </div>
+                  </div>
+                )}
                 <div>
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Type *</label>
                   <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
