@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Edit2, Trash2, X, Target, SaveAll } from 'lucide-react';
-import { supabase } from '../../../lib/supabase';
+import { outreachAPI } from '../../../lib/api';
 import { toast } from 'sonner';
 
 export default function OutreachStats() {
@@ -13,12 +13,7 @@ export default function OutreachStats() {
     const fetchStats = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('public_impact_stats')
-                .select('*')
-                .order('order', { ascending: true });
-
-            if (error) throw error;
+            const data = await outreachAPI.getPublicImpactStats();
             setStats(data || []);
         } catch (error: any) {
             toast.error(error.message || 'Failed to fetch statistics');
@@ -36,29 +31,22 @@ export default function OutreachStats() {
         setIsSaving(true);
         try {
             if (editingStat.id) {
-                const { error } = await supabase
-                    .from('public_impact_stats')
-                    .update({
-                        key: editingStat.key,
-                        value: editingStat.value,
-                        label: editingStat.label,
-                        section: editingStat.section,
-                        order: parseInt(editingStat.order) || 0
-                    })
-                    .eq('id', editingStat.id);
-                if (error) throw error;
+                await outreachAPI.updatePublicImpactStat(editingStat.id, {
+                    key: editingStat.key,
+                    value: editingStat.value,
+                    label: editingStat.label,
+                    section: editingStat.section,
+                    order: parseInt(editingStat.order) || 0
+                });
                 toast.success('Statistic updated successfully');
             } else {
-                const { error } = await supabase
-                    .from('public_impact_stats')
-                    .insert([{
-                        key: editingStat.key,
-                        value: editingStat.value,
-                        label: editingStat.label,
-                        section: editingStat.section,
-                        order: parseInt(editingStat.order) || 0
-                    }]);
-                if (error) throw error;
+                await outreachAPI.createPublicImpactStat({
+                    key: editingStat.key,
+                    value: editingStat.value,
+                    label: editingStat.label,
+                    section: editingStat.section,
+                    order: parseInt(editingStat.order) || 0
+                });
                 toast.success('Statistic created successfully');
             }
             setEditingStat(null);
@@ -73,8 +61,7 @@ export default function OutreachStats() {
     const handleDelete = async (id: string) => {
         if (!window.confirm('Are you sure you want to delete this statistic?')) return;
         try {
-            const { error } = await supabase.from('public_impact_stats').delete().eq('id', id);
-            if (error) throw error;
+            await outreachAPI.deletePublicImpactStat(id);
             toast.success('Statistic deleted');
             fetchStats();
         } catch (error: any) {

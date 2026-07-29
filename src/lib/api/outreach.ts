@@ -30,4 +30,10 @@ export const outreachAPI = {
   createCommunityProject: (data: any) => apiRequest<any>('/outreach/community-projects', { method: 'POST', body: JSON.stringify(data) }),
   updateCommunityProject: (id: string, data: any) => apiRequest<any>(`/outreach/community-projects/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteCommunityProject: (id: string) => apiRequest<any>(`/outreach/community-projects/${id}`, { method: 'DELETE' }),
+
+  // Public Impact Stats
+  getPublicImpactStats: () => apiRequest<any[]>('/outreach/public-impact-stats'),
+  createPublicImpactStat: (data: any) => apiRequest<any>('/outreach/public-impact-stats', { method: 'POST', body: JSON.stringify(data) }),
+  updatePublicImpactStat: (id: string, data: any) => apiRequest<any>(`/outreach/public-impact-stats/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deletePublicImpactStat: (id: string) => apiRequest<any>(`/outreach/public-impact-stats/${id}`, { method: 'DELETE' }),
 };
