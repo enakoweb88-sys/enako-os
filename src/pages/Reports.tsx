@@ -400,44 +400,6 @@ ${dailyForm.recommendation}`;
         return 25;
       };
 
-      const drawMiniBarChart = (title: string, data: {label: string, value: number}[], x: number, y: number, w: number, h: number) => {
-        doc.setFontSize(10);
-        doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
-        doc.setFont(undefined, 'bold');
-        doc.text(title, x, y - 5);
-        
-        if (data.length === 0) {
-          doc.setFontSize(8);
-          doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
-          doc.text('No data available for chart.', x, y + 10);
-          return;
-        }
-
-        const maxVal = Math.max(...data.map(d => d.value), 1);
-        const barWidth = Math.max((w / data.length) - 4, 10);
-        
-        doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-        doc.setLineWidth(0.5);
-        doc.line(x, y, x, y + h); // Y
-        doc.line(x, y + h, x + w, y + h); // X
-        
-        data.slice(0, 10).forEach((d, i) => { // max 10 bars
-          const barHeight = (d.value / maxVal) * h;
-          const barX = x + i * (barWidth + 4) + 2;
-          const barY = y + h - barHeight;
-          
-          doc.setFillColor(brandGreen[0], brandGreen[1], brandGreen[2]);
-          doc.rect(barX, barY, barWidth, barHeight, 'F');
-          
-          doc.setFontSize(6);
-          doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
-          doc.text(d.label.substring(0, 8), barX + barWidth/2, y + h + 4, { align: 'center' });
-          
-          doc.setFontSize(5);
-          doc.text(d.value.toString(), barX + barWidth/2, barY - 2, { align: 'center' });
-        });
-      };
-
       const renderAttachmentSection = async (key: string, title: string, fetcher: () => Promise<any[]>, generateInsight: (data: any[]) => string, renderData: (doc: any, cy: number, data: any[]) => void) => {
         if (!atts[key]) return;
         try {
@@ -458,18 +420,15 @@ ${dailyForm.recommendation}`;
             cy += 6;
           } else {
             description = generateInsight(data);
-            doc.setFont(undefined, 'bold');
-            doc.text('Auto-Generated Smart Insight:', 15, cy);
-            cy += 6;
           }
           
           doc.setFont(undefined, 'normal');
           doc.setFontSize(9);
           const wrapped = doc.splitTextToSize(description, pageWidth - 30);
           doc.text(wrapped, 15, cy);
-          cy += (wrapped.length * 5) + 10;
+          cy += (wrapped.length * 5) + 8;
           
-          // Render specific data (tables/charts)
+          // Render specific data (tables/calculations)
           renderData(doc, cy, data);
         } catch (err) {
           console.error(`Failed to attach data for ${key}`, err);
@@ -482,16 +441,21 @@ ${dailyForm.recommendation}`;
         },
         (data) => {
           const total = data.reduce((sum, d) => sum + Number(d.amount || 0), 0);
-          return `This month, the company recorded ${data.length} expense transactions amounting to ${fmt(total)}. This indicates a structured expenditure flow across operational categories.`;
+          return `Summary: This month, the company recorded ${data.length} expense transactions amounting to ${fmt(total)}. This indicates a structured expenditure flow across operational categories.`;
         },
         (doc, cy, data) => {
-          const byCat: Record<string, number> = {};
-          data.slice(0, 20).forEach((e: any) => { byCat[e.category || 'Other'] = (byCat[e.category || 'Other'] || 0) + Number(e.amount || 0); });
-          const chartData = Object.keys(byCat).map(k => ({ label: k, value: byCat[k] }));
-          drawMiniBarChart('Expenses by Category', chartData, 20, cy + 5, 160, 50);
-          cy += 70;
+          const total = data.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+          doc.setFontSize(12);
+          doc.setFont(undefined, 'bold');
+          doc.text('Expenses Calculation', 15, cy);
+          cy += 6;
+          doc.setFontSize(10);
+          doc.setFont(undefined, 'normal');
+          doc.text(`Total Records: ${data.length}`, 15, cy);
+          doc.text(`Total Amount: ${fmt(total)}`, 70, cy);
+          cy += 8;
           
-          const tableData = data.slice(0, 15).map((e: any) => [new Date(e.createdAt).toLocaleDateString(), e.category || 'Other', e.description || '-', `${e.amount} ${e.currency || 'XAF'}`, e.status]);
+          const tableData = data.slice(0, 30).map((e: any) => [new Date(e.createdAt).toLocaleDateString(), e.category || 'Other', e.description || '-', fmt(e.amount), e.status]);
           autoTable(doc, { startY: cy, head: [['Date', 'Category', 'Description', 'Amount', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
         }
       );
@@ -502,16 +466,21 @@ ${dailyForm.recommendation}`;
         },
         (data) => {
           const total = data.reduce((sum, d) => sum + Number(d.amount || 0), 0);
-          return `A total of ${data.length} FX transactions were processed over the period, with a cumulative volume of ${fmt(total)}. The distribution of these transactions reflects active client engagement across platforms.`;
+          return `Summary: A total of ${data.length} FX transactions were processed over the period, with a cumulative volume of ${fmt(total)}. The distribution of these transactions reflects active client engagement across platforms.`;
         },
         (doc, cy, data) => {
-          const byType: Record<string, number> = {};
-          data.slice(0, 20).forEach((t: any) => { byType[t.type || 'Other'] = (byType[t.type || 'Other'] || 0) + Number(t.amount || 0); });
-          const chartData = Object.keys(byType).map(k => ({ label: k, value: byType[k] }));
-          drawMiniBarChart('Transactions by Type', chartData, 20, cy + 5, 160, 50);
-          cy += 70;
+          const total = data.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+          doc.setFontSize(12);
+          doc.setFont(undefined, 'bold');
+          doc.text('Transactions Calculation', 15, cy);
+          cy += 6;
+          doc.setFontSize(10);
+          doc.setFont(undefined, 'normal');
+          doc.text(`Total Transactions: ${data.length}`, 15, cy);
+          doc.text(`Total Volume: ${fmt(total)}`, 70, cy);
+          cy += 8;
           
-          const tableData = data.slice(0, 15).map((t: any) => [new Date(t.createdAt).toLocaleDateString(), t.type, t.entity, `${t.amount} ${t.currency || 'XAF'}`, t.status]);
+          const tableData = data.slice(0, 30).map((t: any) => [new Date(t.createdAt).toLocaleDateString(), t.type, t.entity, fmt(t.amount), t.status]);
           autoTable(doc, { startY: cy, head: [['Date', 'Type', 'Entity', 'Amount', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
         }
       );
@@ -523,11 +492,25 @@ ${dailyForm.recommendation}`;
         (data) => {
           const active = data.filter(d => d.status === 'Active');
           const mrr = active.reduce((sum, d) => sum + (d.cycle === 'Monthly' ? Number(d.costInXaf || d.cost || 0) : Number(d.costInXaf || d.cost || 0)/12), 0);
-          return `Currently tracking ${data.length} subscriptions (${active.length} active). The estimated Monthly Run Rate (MRR) stands at ${fmt(mrr)}, ensuring continuous service delivery across our infrastructure stack.`;
+          return `Summary: Currently tracking ${data.length} subscriptions (${active.length} active). The estimated Monthly Run Rate (MRR) stands at ${fmt(mrr)}, ensuring continuous service delivery across our infrastructure stack.`;
         },
         (doc, cy, data) => {
-          const tableData = data.slice(0, 20).map((s: any) => [s.name, s.cycle, `${s.costInXaf || s.cost} ${s.currency || 'USD'}`, new Date(s.startDate).toLocaleDateString(), new Date(s.nextBilling).toLocaleDateString(), s.status]);
-          autoTable(doc, { startY: cy, head: [['Service', 'Cycle', 'Cost', 'Start Date', 'Expiry/Next Bill', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          const active = data.filter(d => d.status === 'Active');
+          const mrr = active.reduce((sum, d) => sum + (d.cycle === 'Monthly' ? Number(d.costInXaf || d.cost || 0) : Number(d.costInXaf || d.cost || 0)/12), 0);
+          
+          doc.setFontSize(12);
+          doc.setFont(undefined, 'bold');
+          doc.text('Subscriptions Calculation', 15, cy);
+          cy += 6;
+          doc.setFontSize(10);
+          doc.setFont(undefined, 'normal');
+          doc.text(`Total Subscriptions: ${data.length}`, 15, cy);
+          doc.text(`Active: ${active.length}`, 70, cy);
+          doc.text(`MRR: ${fmt(mrr)}`, 110, cy);
+          cy += 8;
+
+          const tableData = data.slice(0, 30).map((s: any) => [s.name, s.cycle, fmt(s.costInXaf || s.cost), new Date(s.startDate).toLocaleDateString(), new Date(s.nextBilling).toLocaleDateString(), s.status]);
+          autoTable(doc, { startY: cy, head: [['Service', 'Cycle', 'Cost', 'Start Date', 'Next Bill', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
         }
       );
 
@@ -538,11 +521,54 @@ ${dailyForm.recommendation}`;
         (data) => {
           const ate = data.filter(d => d.status === 'ATE');
           const cost = ate.reduce((sum, d) => sum + Number(d.totalAmount || 0), 0);
-          return `The staff welfare program recorded ${data.length} meal entries this month. ${ate.length} meals were successfully consumed, representing an operational cost of ${fmt(cost)}.`;
+          return `Summary: The staff welfare program recorded ${data.length} meal entries this month. ${ate.length} meals were successfully consumed, representing an operational cost of ${fmt(cost)}.`;
         },
         (doc, cy, data) => {
-          const tableData = data.slice(0, 20).map((m: any) => [new Date(m.date).toLocaleDateString(), m.employee?.fullName || 'Unknown', m.mealName || '-', m.status, m.status === 'ATE' ? fmt(m.totalAmount) : '-']);
-          autoTable(doc, { startY: cy, head: [['Date', 'Employee', 'Meal', 'Status', 'Cost']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          const ateMeals = data.filter(m => m.status === 'ATE');
+          const totalCost = ateMeals.reduce((sum, m) => sum + Number(m.totalAmount || 0), 0);
+          const totalCompany = ateMeals.reduce((sum, m) => sum + Number(m.companyAmount || 0), 0);
+          const totalEmployee = ateMeals.reduce((sum, m) => sum + Number(m.employeeAmount || 0), 0);
+          
+          doc.setFontSize(12);
+          doc.setFont(undefined, 'bold');
+          doc.text('Meals Grand Totals', 15, cy);
+          cy += 6;
+          doc.setFontSize(10);
+          doc.setFont(undefined, 'normal');
+          doc.text(`Total Meals Cost: ${fmt(totalCost)}`, 15, cy);
+          doc.text(`Company Pays: ${fmt(totalCompany)}`, 75, cy);
+          doc.text(`Employees Pay: ${fmt(totalEmployee)}`, 135, cy);
+          cy += 8;
+          
+          const employeeTotals: Record<string, any> = {};
+          ateMeals.forEach(m => {
+            const empId = m.employeeId;
+            if (!employeeTotals[empId]) employeeTotals[empId] = { name: m.employee?.fullName || 'Unknown', count: 0, total: 0, company: 0, employee: 0 };
+            employeeTotals[empId].count += 1;
+            employeeTotals[empId].total += Number(m.totalAmount || 0);
+            employeeTotals[empId].company += Number(m.companyAmount || 0);
+            employeeTotals[empId].employee += Number(m.employeeAmount || 0);
+          });
+          
+          const empData = Object.values(employeeTotals).map(emp => [emp.name, emp.count.toString(), fmt(emp.total), fmt(emp.company), fmt(emp.employee)]);
+          
+          doc.setFontSize(11);
+          doc.setFont(undefined, 'bold');
+          doc.text('Employee Cost Breakdown', 15, cy);
+          cy += 4;
+          
+          autoTable(doc, { startY: cy, head: [['Employee Name', 'Meals Eaten', 'Total Cost', 'Company Pays', 'Employee Pays']], body: empData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          
+          cy = (doc as any).lastAutoTable.finalY + 10;
+          if (cy > pageHeight - 40) { doc.addPage(); cy = 20; }
+          
+          doc.setFontSize(11);
+          doc.setFont(undefined, 'bold');
+          doc.text('Detailed Meal Records', 15, cy);
+          cy += 4;
+          
+          const tableData = data.slice(0, 30).map((m: any) => [new Date(m.date).toLocaleDateString(), m.employee?.fullName || 'Unknown', m.mealName || '-', m.status, m.status === 'ATE' ? fmt(m.totalAmount) : '-', m.status === 'ATE' ? fmt(m.companyAmount) : '-', m.status === 'ATE' ? fmt(m.employeeAmount) : '-']);
+          autoTable(doc, { startY: cy, head: [['Date', 'Employee', 'Meal', 'Status', 'Total', 'Company', 'Employee']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
         }
       );
 
@@ -552,10 +578,21 @@ ${dailyForm.recommendation}`;
         },
         (data) => {
           const approved = data.filter(d => d.status === 'APPROVED');
-          return `Compliance operations reviewed ${data.length} KYC requests recently. Of these, ${approved.length} were successfully verified and approved, maintaining our strict security guidelines and onboarding efficiency.`;
+          return `Summary: Compliance operations reviewed ${data.length} KYC requests recently. Of these, ${approved.length} were successfully verified and approved.`;
         },
         (doc, cy, data) => {
-          const tableData = data.slice(0, 20).map((k: any) => [new Date(k.createdAt).toLocaleDateString(), k.user?.fullName || k.userId, k.documentType || 'ID', k.status]);
+          const approved = data.filter(d => d.status === 'APPROVED').length;
+          doc.setFontSize(12);
+          doc.setFont(undefined, 'bold');
+          doc.text('KYC Calculation', 15, cy);
+          cy += 6;
+          doc.setFontSize(10);
+          doc.setFont(undefined, 'normal');
+          doc.text(`Total Requests: ${data.length}`, 15, cy);
+          doc.text(`Approved: ${approved}`, 80, cy);
+          cy += 8;
+          
+          const tableData = data.slice(0, 30).map((k: any) => [new Date(k.createdAt).toLocaleDateString(), k.user?.fullName || k.userId, k.documentType || 'ID', k.status]);
           autoTable(doc, { startY: cy, head: [['Date', 'User', 'Document Type', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
         }
       );
@@ -566,10 +603,21 @@ ${dailyForm.recommendation}`;
         },
         (data) => {
           const active = data.filter(d => d.status === 'APPROVED');
-          return `HR processed ${data.length} leave requests during this period. There are currently ${active.length} approved leaves, ensuring proper shift balancing and workforce continuity.`;
+          return `Summary: HR processed ${data.length} leave requests during this period. There are currently ${active.length} approved leaves.`;
         },
         (doc, cy, data) => {
-          const tableData = data.slice(0, 20).map((l: any) => [l.employee?.fullName || 'Unknown', l.leaveType || 'Annual', new Date(l.startDate).toLocaleDateString(), new Date(l.endDate).toLocaleDateString(), l.status]);
+          const approved = data.filter(d => d.status === 'APPROVED').length;
+          doc.setFontSize(12);
+          doc.setFont(undefined, 'bold');
+          doc.text('Leaves Calculation', 15, cy);
+          cy += 6;
+          doc.setFontSize(10);
+          doc.setFont(undefined, 'normal');
+          doc.text(`Total Requests: ${data.length}`, 15, cy);
+          doc.text(`Approved: ${approved}`, 80, cy);
+          cy += 8;
+          
+          const tableData = data.slice(0, 30).map((l: any) => [l.employee?.fullName || 'Unknown', l.leaveType || 'Annual', new Date(l.startDate).toLocaleDateString(), new Date(l.endDate).toLocaleDateString(), l.status]);
           autoTable(doc, { startY: cy, head: [['Employee', 'Type', 'Start Date', 'End Date', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
         }
       );
@@ -579,10 +627,19 @@ ${dailyForm.recommendation}`;
           try { return await apiRequest('/analytics/events'); } catch { return []; }
         },
         (data) => {
-          return `Digital outreach generated ${data.length} recorded events/sessions. The traffic metrics indicate a robust engagement rate and successful retention across both the main corporate portal and our outreach campaigns.`;
+          return `Summary: Digital outreach generated ${data.length} recorded events/sessions. The traffic metrics indicate a robust engagement rate and successful retention across both the main corporate portal and our outreach campaigns.`;
         },
         (doc, cy, data) => {
-          const tableData = data.slice(0, 20).map((e: any) => [new Date(e.timestamp || e.createdAt).toLocaleDateString(), e.eventType || 'Pageview', e.path || '/', e.metadata?.referrer || 'Direct']);
+          doc.setFontSize(12);
+          doc.setFont(undefined, 'bold');
+          doc.text('Performance Calculation', 15, cy);
+          cy += 6;
+          doc.setFontSize(10);
+          doc.setFont(undefined, 'normal');
+          doc.text(`Total Events: ${data.length}`, 15, cy);
+          cy += 8;
+          
+          const tableData = data.slice(0, 30).map((e: any) => [new Date(e.timestamp || e.createdAt).toLocaleDateString(), e.eventType || 'Pageview', e.path || '/', e.metadata?.referrer || 'Direct']);
           autoTable(doc, { startY: cy, head: [['Date', 'Event Type', 'Page/Path', 'Referrer']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
         }
       );
