@@ -24,7 +24,8 @@ import {
   Trash2,
   CheckCircle2,
   Github,
-  Slack
+  Slack,
+  X
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
@@ -50,6 +51,11 @@ export default function Settings() {
   });
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
   React.useEffect(() => {
     const loadData = async () => {
@@ -111,14 +117,8 @@ export default function Settings() {
     toast.info('Identity update request initiated. Please check your email.');
   };
 
-  const handleChangePassword = async () => {
-    try {
-      // In a real app, this would open a modal to ask for current and new password.
-      await api.settings.changePassword('current', 'new');
-      toast.success('Password updated successfully.');
-    } catch (err) {
-      toast.error('Failed to update password');
-    }
+  const handleChangePassword = () => {
+    setShowChangePassword(true);
   };
 
   const handleRevokeSession = async (id: string) => {
@@ -249,6 +249,7 @@ export default function Settings() {
                         const form = e.target as HTMLFormElement;
                         const data = {
                           fullName: (form.elements.namedItem('fullName') as HTMLInputElement).value,
+                          email: (form.elements.namedItem('email') as HTMLInputElement).value,
                           phone: (form.elements.namedItem('phone') as HTMLInputElement).value,
                           title: (form.elements.namedItem('title') as HTMLInputElement).value,
                           address: (form.elements.namedItem('address') as HTMLInputElement).value,
@@ -282,8 +283,8 @@ export default function Settings() {
                               <input name="fullName" defaultValue={userName} required className="w-full bg-surface-container-low border border-outline-variant/10 rounded-2xl px-6 py-4 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container/20" />
                           </div>
                           <div className="space-y-2">
-                              <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Corporate Email</label>
-                              <input readOnly value={userEmail} className="w-full bg-surface-container-low border border-outline-variant/10 rounded-2xl px-6 py-4 text-sm font-medium text-primary/50 outline-none cursor-not-allowed" />
+                              <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Corporate Email (Login)</label>
+                              <input name="email" defaultValue={userEmail} required type="email" className="w-full bg-surface-container-low border border-outline-variant/10 rounded-2xl px-6 py-4 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container/20" />
                           </div>
                           <div className="space-y-2">
                               <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Title</label>
@@ -497,6 +498,45 @@ export default function Settings() {
 
             </motion.div>
           </AnimatePresence>
+
+          {showChangePassword && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowChangePassword(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 z-10">
+                <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
+                  <h3 className="text-lg font-bold text-primary flex items-center gap-2"><Lock className="w-5 h-5 text-secondary" /> Change Password</h3>
+                  <button onClick={() => setShowChangePassword(false)}><X className="w-5 h-5 text-secondary" /></button>
+                </div>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  setUpdatingPassword(true);
+                  try {
+                    await api.settings.changePassword(currentPassword, newPassword);
+                    toast.success('Password updated successfully!');
+                    setShowChangePassword(false);
+                    setCurrentPassword('');
+                    setNewPassword('');
+                  } catch (err: any) {
+                    toast.error(err.message || 'Failed to change password');
+                  } finally {
+                    setUpdatingPassword(false);
+                  }
+                }} className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Current Password</label>
+                    <input required type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">New Password</label>
+                    <input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" minLength={8} />
+                  </div>
+                  <button type="submit" disabled={updatingPassword} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 disabled:opacity-50">
+                    {updatingPassword ? 'Updating...' : 'Update Password'}
+                  </button>
+                </form>
+              </motion.div>
+            </div>
+          )}
 
           {(activeTab === 'Profile Account' || activeTab === 'Notifications') && (
             <div className="flex justify-end gap-4 mt-8">
