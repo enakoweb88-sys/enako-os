@@ -10,7 +10,7 @@ import { useAuth } from '../../../lib/auth';
 
 export default function WebInsights() {
   const { user } = useAuth();
-  const isCeo = user?.role?.toLowerCase() === 'ceo';
+  const isCeoOrManager = user?.role?.toLowerCase() === 'ceo' || user?.role?.toLowerCase() === 'manager';
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedHeatmapPath, setSelectedHeatmapPath] = useState('/');
@@ -66,7 +66,7 @@ export default function WebInsights() {
         </div>
 
         <div className="flex items-center gap-3">
-          {isCeo && (
+          {isCeoOrManager && (
             <select 
               value={selectedSite}
               onChange={(e) => setSelectedSite(e.target.value)}
