@@ -87,7 +87,14 @@ export default function Transactions() {
 
   useEffect(() => {
     if (form.currency !== 'XAF' && form.amount && form.exchangeRate) {
-      setForm(f => ({ ...f, amountInXaf: (Number(f.amount) * Number(f.exchangeRate)).toString() }));
+      if (form.currency === 'NGN') {
+        const rate = Number(form.exchangeRate);
+        if (rate > 0) {
+          setForm(f => ({ ...f, amountInXaf: ((Number(f.amount) / rate) * 1000).toString() }));
+        }
+      } else {
+        setForm(f => ({ ...f, amountInXaf: (Number(f.amount) * Number(f.exchangeRate)).toString() }));
+      }
     } else if (form.currency === 'XAF') {
       setForm(f => ({ ...f, amountInXaf: f.amount, exchangeRate: '1' }));
     }
@@ -862,6 +869,7 @@ export default function Transactions() {
                       <option value="EUR">EUR (Euro)</option>
                       <option value="CNY">CNY (China)</option>
                       <option value="NGN">NGN (Naira)</option>
+                      <option value="USDT">USDT (Tether)</option>
                     </select>
                   </div>
                 </div>
