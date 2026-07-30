@@ -11,6 +11,9 @@ type Subscription = {
   id: string;
   name: string;
   cost: string | number;
+  currency?: string;
+  costInXaf?: string | number;
+  exchangeRate?: string | number;
   cycle: 'Monthly' | 'Yearly';
   status: 'Active' | 'Paused' | 'Cancelled';
   startDate: string;
@@ -73,7 +76,13 @@ export default function Subscriptions() {
 
   const monthlyTotal = subs.reduce((acc, curr) => {
     if (curr.status !== 'Active') return acc;
-    const costNum = typeof curr.cost === 'string' ? parseFloat(curr.cost) : curr.cost;
+    let costNum = 0;
+    if (curr.costInXaf) {
+      costNum = typeof curr.costInXaf === 'string' ? parseFloat(curr.costInXaf) : curr.costInXaf;
+    } else {
+      const baseCost = typeof curr.cost === 'string' ? parseFloat(curr.cost) : curr.cost;
+      costNum = curr.currency === 'XAF' ? baseCost : baseCost * 600;
+    }
     return acc + (curr.cycle === 'Monthly' ? costNum : costNum / 12);
   }, 0);
 
@@ -109,12 +118,15 @@ export default function Subscriptions() {
 
       await api.createSubscription({
         name: newName,
-        cost: parseFloat(newCostInXaf || newCost),
+        cost: parseFloat(newCost),
+        currency: newCurrency,
+        costInXaf: newCostInXaf ? parseFloat(newCostInXaf) : undefined,
+        exchangeRate: newExchangeRate ? parseFloat(newExchangeRate) : undefined,
         cycle: newCycle,
         startDate: newStartDate,
         nextBilling: nextBilling.toISOString(),
         receiptUrl: finalReceiptUrl || undefined
-      });
+      } as any);
       
       setShowAddForm(false);
       setNewName('');
@@ -243,7 +255,15 @@ export default function Subscriptions() {
                       <span className="font-bold text-primary text-sm">{sub.name}</span>
                     </td>
                     <td className="px-8 py-5 border-b border-outline-variant/10">
-                      <span className="font-medium text-secondary">{parseFloat(sub.cost as string).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} FCFA</span>
+                      <span className="font-medium text-secondary">
+                        {sub.costInXaf 
+                          ? parseFloat(sub.costInXaf as string).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) 
+                          : (sub.currency === 'XAF' 
+                              ? parseFloat(sub.cost as string) 
+                              : parseFloat(sub.cost as string) * 600
+                            ).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                        } FCFA
+                      </span>
                     </td>
                     <td className="px-8 py-5 border-b border-outline-variant/10">
                       <span className="text-xs text-secondary">{sub.cycle}</span>
