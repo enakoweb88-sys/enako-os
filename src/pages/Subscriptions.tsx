@@ -42,6 +42,18 @@ export default function Subscriptions() {
   const [newReceiptUrl, setNewReceiptUrl] = useState('');
   const [newReceiptFile, setNewReceiptFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [newCurrency, setNewCurrency] = useState('XAF');
+  const [newExchangeRate, setNewExchangeRate] = useState('');
+  const [newCostInXaf, setNewCostInXaf] = useState('');
+
+  useEffect(() => {
+    if (newCurrency !== 'XAF' && newCost && newExchangeRate) {
+      setNewCostInXaf((Number(newCost) * Number(newExchangeRate)).toString());
+    } else if (newCurrency === 'XAF') {
+      setNewCostInXaf(newCost);
+      setNewExchangeRate('1');
+    }
+  }, [newCost, newExchangeRate, newCurrency]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -97,7 +109,7 @@ export default function Subscriptions() {
 
       await api.createSubscription({
         name: newName,
-        cost: parseFloat(newCost),
+        cost: parseFloat(newCostInXaf || newCost),
         cycle: newCycle,
         startDate: newStartDate,
         nextBilling: nextBilling.toISOString(),
@@ -107,6 +119,9 @@ export default function Subscriptions() {
       setShowAddForm(false);
       setNewName('');
       setNewCost('');
+      setNewCostInXaf('');
+      setNewExchangeRate('');
+      setNewCurrency('XAF');
       setNewCycle('Monthly');
       setNewStartDate(new Date().toISOString().split('T')[0]);
       setNewReceiptUrl('');
@@ -318,21 +333,60 @@ export default function Subscriptions() {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-2">Cost (USD) *</label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
+                    <label className="block text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-2">Currency *</label>
+                    <select 
+                      value={newCurrency}
+                      onChange={(e) => setNewCurrency(e.target.value)}
+                      className="w-full bg-surface-container-low border border-outline-variant/30 rounded-2xl px-5 py-3.5 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container appearance-none"
+                    >
+                      <option value="XAF">FCFA (XAF)</option>
+                      <option value="USD">USD</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-2">Amount *</label>
+                    <input 
+                      type="number" 
+                      required
+                      value={newCost}
+                      onChange={(e) => setNewCost(e.target.value)}
+                      className="w-full bg-surface-container-low border border-outline-variant/30 rounded-2xl px-5 py-3.5 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container"
+                      placeholder="0.00"
+                      min="0"
+                      step="any"
+                    />
+                  </div>
+                </div>
+
+                {newCurrency !== 'XAF' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-2">Exchange Rate *</label>
                       <input 
                         type="number" 
                         required
-                        value={newCost}
-                        onChange={(e) => setNewCost(e.target.value)}
-                        className="w-full bg-surface-container-low border border-outline-variant/30 rounded-2xl pl-10 pr-4 py-3.5 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container"
-                        placeholder="0.00"
+                        value={newExchangeRate}
+                        onChange={(e) => setNewExchangeRate(e.target.value)}
+                        className="w-full bg-surface-container-low border border-outline-variant/30 rounded-2xl px-5 py-3.5 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container"
+                        placeholder="e.g. 600"
                         min="0"
-                        step="0.01"
+                        step="any"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-2">Cost (XAF)</label>
+                      <input 
+                        type="number" 
+                        readOnly
+                        value={newCostInXaf}
+                        className="w-full bg-surface-container-low border border-outline-variant/30 rounded-2xl px-5 py-3.5 text-sm font-medium text-primary/50 outline-none cursor-not-allowed"
+                        placeholder="0.00"
                       />
                     </div>
                   </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-2">Billing Cycle</label>
                     <select 
@@ -344,9 +398,6 @@ export default function Subscriptions() {
                       <option value="Yearly">Yearly</option>
                     </select>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-2">Start Date *</label>
                     <input 
