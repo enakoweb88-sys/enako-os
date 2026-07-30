@@ -6,7 +6,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
 function fmt(val: string | number | null | undefined) {
-  return Number(val ?? 0).toLocaleString('fr-CM', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 });
+  return `${Number(val ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 })} FCFA`;
 }
 
 export default function Expenses() {

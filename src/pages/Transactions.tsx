@@ -18,14 +18,7 @@ function fmt(val: string | number | null | undefined, currency: string | boolean
   const n = Number(val ?? 0);
   if (currency === false) return n.toLocaleString('en-US');
   const currCode = typeof currency === 'string' ? currency : 'XAF';
-  if (currCode === 'XAF') {
-    return `${n.toLocaleString('en-US')} FCFA`;
-  }
-  try {
-    return n.toLocaleString('en-US', { style: 'currency', currency: currCode, maximumFractionDigits: 0 });
-  } catch (e) {
-    return `${n.toLocaleString('en-US')} ${currCode}`;
-  }
+  return `${n.toLocaleString('en-US', { maximumFractionDigits: 0 })} ${currCode}`;
 }
 
 export default function Transactions() {

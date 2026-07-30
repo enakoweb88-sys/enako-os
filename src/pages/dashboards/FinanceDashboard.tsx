@@ -11,7 +11,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 
 function fmt(val: string | number | null | undefined, currency = true) {
   const n = Number(val ?? 0);
-  if (currency) return n.toLocaleString('fr-CM', { style: 'currency', maximumFractionDigits: 0 });
+  if (currency) return `${n.toLocaleString('en-US', { maximumFractionDigits: 0 })} FCFA`;
   return n.toLocaleString();
 }
 

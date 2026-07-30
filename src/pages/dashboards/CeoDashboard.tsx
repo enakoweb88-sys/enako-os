@@ -13,7 +13,7 @@ import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, LineChart
 
 function fmt(val: string | number | null | undefined, currency = true) {
   const n = Number(val ?? 0);
-  if (currency) return n.toLocaleString('fr-CM', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 });
+  if (currency) return `${n.toLocaleString('en-US', { maximumFractionDigits: 0 })} FCFA`;
   return n.toLocaleString();
 }
 

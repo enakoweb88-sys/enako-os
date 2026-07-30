@@ -11,7 +11,7 @@ import autoTable from 'jspdf-autotable';
 import { ENAKO_LOGO_BASE64 } from '../lib/logo-base64';
 
 function fmt(val: string | number | null | undefined) {
-  return Number(val ?? 0).toLocaleString('fr-CM', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 });
+  return `${Number(val ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 })} FCFA`;
 }
 
 export default function StaffMeals() {

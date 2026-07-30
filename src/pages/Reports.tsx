@@ -21,6 +21,10 @@ import { useAuth } from '../lib/auth';
 import { api, apiRequest } from '../lib/api';
 import { ENAKO_LOGO_BASE64 } from '../lib/logo-base64';
 
+function fmt(val: string | number | null | undefined) {
+  return `${Number(val ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 })} FCFA`;
+}
+
 export default function Reports() {
   const { user } = useAuth();
   const role = (user?.role ?? 'EMPLOYEE').toLowerCase();
