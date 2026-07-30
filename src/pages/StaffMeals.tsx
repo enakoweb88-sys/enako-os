@@ -118,30 +118,101 @@ export default function StaffMeals() {
       const totalMeals = filteredMeals.length;
       const ateMeals = filteredMeals.filter(m => m.status === 'ATE');
       const totalCost = ateMeals.reduce((sum, m) => sum + Number(m.totalAmount || 0), 0);
+      const totalCompany = ateMeals.reduce((sum, m) => sum + Number(m.companyAmount || 0), 0);
+      const totalEmployee = ateMeals.reduce((sum, m) => sum + Number(m.employeeAmount || 0), 0);
+      
+      // Group by employee
+      const employeeTotals: Record<string, { total: number; company: number; employee: number; count: number; name: string }> = {};
+      ateMeals.forEach(m => {
+        const empId = m.employeeId;
+        if (!employeeTotals[empId]) {
+          employeeTotals[empId] = {
+            name: m.employee?.fullName || 'Unknown',
+            count: 0,
+            total: 0,
+            company: 0,
+            employee: 0
+          };
+        }
+        employeeTotals[empId].count += 1;
+        employeeTotals[empId].total += Number(m.totalAmount || 0);
+        employeeTotals[empId].company += Number(m.companyAmount || 0);
+        employeeTotals[empId].employee += Number(m.employeeAmount || 0);
+      });
       
       doc.setFontSize(11);
       doc.setTextColor(15, 23, 42);
       doc.text(`Total Records: ${totalMeals}`, 15, 45);
-      doc.text(`Meals Eaten: ${ateMeals.length}`, 80, 45);
-      doc.text(`Total Cost: ${fmt(totalCost)}`, 140, 45);
+      doc.text(`Meals Eaten: ${ateMeals.length}`, 70, 45);
+      doc.text(`Total Cost: ${fmt(totalCost)}`, 120, 45);
 
       const tableData = filteredMeals.map(m => [
         new Date(m.date).toLocaleDateString(),
         m.employee?.fullName || 'Unknown',
         m.status,
         m.mealName || '-',
-        m.status === 'ATE' ? fmt(m.totalAmount) : '-'
+        m.status === 'ATE' ? fmt(m.totalAmount) : '-',
+        m.status === 'ATE' ? fmt(m.companyAmount) : '-',
+        m.status === 'ATE' ? fmt(m.employeeAmount) : '-'
       ]);
 
       autoTable(doc, {
         startY: 55,
-        head: [['Date', 'Employee', 'Status', 'Meal Name', 'Cost']],
+        head: [['Date', 'Employee', 'Status', 'Meal Name', 'Total', 'Company Pays', 'Employee Pays']],
         body: tableData,
         theme: 'grid',
         styles: { fontSize: 8, cellPadding: 3 },
         headStyles: { fillColor: [4, 53, 91], textColor: 255, fontStyle: 'bold' },
         alternateRowStyles: { fillColor: [248, 250, 252] }
       });
+
+      let finalY = (doc as any).lastAutoTable.finalY + 15;
+
+      // Ensure we don't draw off the page
+      if (finalY > pageHeight - 60) {
+        doc.addPage();
+        finalY = 20;
+      }
+
+      doc.setFontSize(14);
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Employee Cost Breakdown', 15, finalY);
+
+      const empData = Object.values(employeeTotals).map(emp => [
+        emp.name,
+        emp.count.toString(),
+        fmt(emp.total),
+        fmt(emp.company),
+        fmt(emp.employee)
+      ]);
+
+      autoTable(doc, {
+        startY: finalY + 5,
+        head: [['Employee Name', 'Meals Eaten', 'Total Cost', 'Company Pays', 'Employee Pays']],
+        body: empData,
+        theme: 'grid',
+        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { fillColor: [4, 53, 91], textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [248, 250, 252] }
+      });
+      
+      finalY = (doc as any).lastAutoTable.finalY + 15;
+      
+      if (finalY > pageHeight - 40) {
+        doc.addPage();
+        finalY = 20;
+      }
+      
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Grand Totals', 15, finalY);
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Total Meals Cost: ${fmt(totalCost)}`, 15, finalY + 8);
+      doc.text(`Total Company Pays: ${fmt(totalCompany)}`, 15, finalY + 14);
+      doc.text(`Total Employees Pay: ${fmt(totalEmployee)}`, 15, finalY + 20);
 
       doc.save(`Enako_Staff_Meals_${period.replace(' ', '_')}.pdf`);
       setShowExportMenu(false);
