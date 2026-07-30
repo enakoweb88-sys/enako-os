@@ -170,7 +170,7 @@ export default function Subscriptions() {
           </div>
           <div>
             <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Monthly Run Rate</p>
-            <p className="text-2xl font-bold text-primary mt-1">${monthlyTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p className="text-2xl font-bold text-primary mt-1">{monthlyTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} FCFA</p>
           </div>
         </div>
         <div className="bg-white p-6 rounded-3xl border border-outline-variant/30 shadow-sm flex items-center gap-6">
@@ -243,7 +243,7 @@ export default function Subscriptions() {
                       <span className="font-bold text-primary text-sm">{sub.name}</span>
                     </td>
                     <td className="px-8 py-5 border-b border-outline-variant/10">
-                      <span className="font-medium text-secondary">${parseFloat(sub.cost as string).toLocaleString()}</span>
+                      <span className="font-medium text-secondary">{parseFloat(sub.cost as string).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} FCFA</span>
                     </td>
                     <td className="px-8 py-5 border-b border-outline-variant/10">
                       <span className="text-xs text-secondary">{sub.cycle}</span>
