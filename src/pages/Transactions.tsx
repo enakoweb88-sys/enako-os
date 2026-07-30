@@ -123,6 +123,13 @@ export default function Transactions() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(tempSearch);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [tempSearch]);
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
