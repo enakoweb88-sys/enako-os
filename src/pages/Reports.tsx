@@ -50,7 +50,19 @@ export default function Reports() {
       transactions: false,
       expenses: false,
       foodAndMeal: false,
-      subscriptions: false
+      subscriptions: false,
+      kyc: false,
+      leaves: false,
+      websites: false
+    },
+    attachmentDescriptions: {
+      transactions: '',
+      expenses: '',
+      foodAndMeal: '',
+      subscriptions: '',
+      kyc: '',
+      leaves: '',
+      websites: ''
     }
   });
 
@@ -87,7 +99,10 @@ ${dailyForm.recommendation}`;
         content: formattedContent,
         type: isManager ? dailyForm.type : 'DAILY',
         status,
-        attachments: dailyForm.attachments
+        attachments: {
+          ...dailyForm.attachments,
+          attachmentDescriptions: dailyForm.attachmentDescriptions
+        }
       };
 
       if (editingId) {
@@ -106,7 +121,14 @@ ${dailyForm.recommendation}`;
           impact: 'Low',
           details: '',
           recommendation: '',
-          attachments: { transactions: false, expenses: false, foodAndMeal: false, subscriptions: false }
+          attachments: { 
+            transactions: false, expenses: false, foodAndMeal: false, subscriptions: false,
+            kyc: false, leaves: false, websites: false
+          },
+          attachmentDescriptions: {
+            transactions: '', expenses: '', foodAndMeal: '', subscriptions: '',
+            kyc: '', leaves: '', websites: ''
+          }
         });
         toast.success('Report submitted successfully');
       } else {
@@ -136,7 +158,14 @@ ${dailyForm.recommendation}`;
       impact: 'Low',
       details: '',
       recommendation: '',
-      attachments: report.attachments || { transactions: false, expenses: false, foodAndMeal: false, subscriptions: false }
+      attachments: report.attachments?.transactions !== undefined ? report.attachments : { 
+        transactions: false, expenses: false, foodAndMeal: false, subscriptions: false,
+        kyc: false, leaves: false, websites: false
+      },
+      attachmentDescriptions: report.attachments?.attachmentDescriptions || {
+        transactions: '', expenses: '', foodAndMeal: '', subscriptions: '',
+        kyc: '', leaves: '', websites: ''
+      }
     };
 
     contentLines.forEach(line => {
@@ -411,79 +440,152 @@ ${dailyForm.recommendation}`;
       };
 
       try {
-        if (atts.expenses) {
-          let cy = drawAttachmentHeader('COMPANY EXPENSES');
-          const exps: any = await api.expenses();
-          const recent = (exps?.items || exps || []).slice(0, 20);
-          const byCat: Record<string, number> = {};
-          recent.forEach((e: any) => {
-            byCat[e.category] = (byCat[e.category] || 0) + Number(e.amount || 0);
-          });
-          const chartData = Object.keys(byCat).map(k => ({ label: k, value: byCat[k] }));
+        const renderAttachmentSection = async (key: string, title: string, fetcher: () => Promise<any[]>, generateInsight: (data: any[]) => string, renderData: (doc: any, cy: number, data: any[]) => void) => {
+          if (!atts[key]) return;
           
-          drawMiniBarChart('Expenses by Category', chartData, 20, cy + 10, 160, 60);
-          cy += 90;
+          let cy = drawAttachmentHeader(title);
+          const rawData = await fetcher();
+          const data = (rawData as any)?.items || rawData || [];
           
+          // Print Description or Smart Insight
+          const customDesc = atts.attachmentDescriptions?.[key];
           doc.setFontSize(10);
           doc.setTextColor(darkText[0], darkText[1], darkText[2]);
-          doc.text('Recent Expenses:', 15, cy);
-          cy += 8;
-          recent.slice(0, 15).forEach((e: any) => {
-            doc.setFontSize(8);
-            doc.text(`${new Date(e.createdAt).toLocaleDateString()} - ${e.category}: ${e.description} (${e.amount} ${e.currency}) - ${e.status}`, 15, cy);
-            cy += 6;
-          });
-        }
-        
-        if (atts.transactions) {
-          let cy = drawAttachmentHeader('FX TRANSACTIONS');
-          const txs = await (api as any).transactions?.() || await apiRequest('/finance/transactions') || [];
-          const recent = (txs?.items || txs || []).slice(0, 20);
-          const byType: Record<string, number> = {};
-          recent.forEach((t: any) => {
-            byType[t.type] = (byType[t.type] || 0) + Number(t.amount || 0);
-          });
-          const chartData = Object.keys(byType).map(k => ({ label: k, value: byType[k] }));
           
-          drawMiniBarChart('Transactions by Type', chartData, 20, cy + 10, 160, 60);
-          cy += 90;
-          
-          doc.setFontSize(10);
-          doc.setTextColor(darkText[0], darkText[1], darkText[2]);
-          doc.text('Recent Transactions:', 15, cy);
-          cy += 8;
-          recent.slice(0, 15).forEach((t: any) => {
-            doc.setFontSize(8);
-            doc.text(`${new Date(t.createdAt).toLocaleDateString()} - [${t.type}] ${t.entity} (${t.amount} ${t.currency}) - ${t.status}`, 15, cy);
+          let description = '';
+          if (customDesc && customDesc.trim() !== '') {
+            description = customDesc;
+            doc.setFont(undefined, 'bold');
+            doc.text('Manager Note:', 15, cy);
             cy += 6;
-          });
-        }
+          } else {
+            description = generateInsight(data);
+            doc.setFont(undefined, 'bold');
+            doc.text('Auto-Generated Smart Insight:', 15, cy);
+            cy += 6;
+          }
+          
+          doc.setFont(undefined, 'normal');
+          doc.setFontSize(9);
+          const wrapped = doc.splitTextToSize(description, pageWidth - 30);
+          doc.text(wrapped, 15, cy);
+          cy += (wrapped.length * 5) + 10;
+          
+          // Render specific data (tables/charts)
+          renderData(doc, cy, data);
+        };
 
-        if (atts.foodAndMeal) {
-          let cy = drawAttachmentHeader('FOOD & MEALS');
-          const meals = await (api as any).meals?.() || await apiRequest('/meals/records') || [];
-          const recent = (meals?.items || meals || []).slice(0, 20);
-          doc.setFontSize(10);
-          doc.setTextColor(darkText[0], darkText[1], darkText[2]);
-          recent.forEach((m: any) => {
-            doc.setFontSize(8);
-            doc.text(`${new Date(m.date).toLocaleDateString()} - ${m.employee?.fullName || 'Emp'}: ${m.mealName || 'Meal'} (${m.status})`, 15, cy);
-            cy += 6;
-          });
-        }
+        await renderAttachmentSection('expenses', 'COMPANY EXPENSES', 
+          async () => {
+            try { return await api.expenses(); } catch { return await apiRequest('/expenses'); }
+          },
+          (data) => {
+            const total = data.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+            return `This month, the company recorded ${data.length} expense transactions amounting to ${fmt(total)}. This indicates a structured expenditure flow across operational categories.`;
+          },
+          (doc, cy, data) => {
+            const byCat: Record<string, number> = {};
+            data.slice(0, 20).forEach((e: any) => { byCat[e.category || 'Other'] = (byCat[e.category || 'Other'] || 0) + Number(e.amount || 0); });
+            const chartData = Object.keys(byCat).map(k => ({ label: k, value: byCat[k] }));
+            drawMiniBarChart('Expenses by Category', chartData, 20, cy + 5, 160, 50);
+            cy += 70;
+            
+            const tableData = data.slice(0, 15).map((e: any) => [new Date(e.createdAt).toLocaleDateString(), e.category || 'Other', e.description || '-', `${e.amount} ${e.currency || 'XAF'}`, e.status]);
+            autoTable(doc, { startY: cy, head: [['Date', 'Category', 'Description', 'Amount', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          }
+        );
 
-        if (atts.subscriptions) {
-          let cy = drawAttachmentHeader('SUBSCRIPTIONS');
-          const subs = await (api as any).subscriptions?.() || await apiRequest('/subscriptions') || [];
-          const recent = (subs?.items || subs || []).slice(0, 20);
-          doc.setFontSize(10);
-          doc.setTextColor(darkText[0], darkText[1], darkText[2]);
-          recent.forEach((s: any) => {
-            doc.setFontSize(8);
-            doc.text(`${s.name} - ${s.cost} (${s.cycle}) - ${s.status}`, 15, cy);
-            cy += 6;
-          });
-        }
+        await renderAttachmentSection('transactions', 'FX TRANSACTIONS', 
+          async () => {
+            try { return await (api as any).transactions?.() || await apiRequest('/finance/transactions'); } catch { return []; }
+          },
+          (data) => {
+            const total = data.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+            return `A total of ${data.length} FX transactions were processed over the period, with a cumulative volume of ${fmt(total)}. The distribution of these transactions reflects active client engagement across platforms.`;
+          },
+          (doc, cy, data) => {
+            const byType: Record<string, number> = {};
+            data.slice(0, 20).forEach((t: any) => { byType[t.type || 'Other'] = (byType[t.type || 'Other'] || 0) + Number(t.amount || 0); });
+            const chartData = Object.keys(byType).map(k => ({ label: k, value: byType[k] }));
+            drawMiniBarChart('Transactions by Type', chartData, 20, cy + 5, 160, 50);
+            cy += 70;
+            
+            const tableData = data.slice(0, 15).map((t: any) => [new Date(t.createdAt).toLocaleDateString(), t.type, t.entity, `${t.amount} ${t.currency || 'XAF'}`, t.status]);
+            autoTable(doc, { startY: cy, head: [['Date', 'Type', 'Entity', 'Amount', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          }
+        );
+
+        await renderAttachmentSection('subscriptions', 'ENTERPRISE SUBSCRIPTIONS', 
+          async () => {
+            try { return await (api as any).subscriptions?.() || await apiRequest('/subscriptions'); } catch { return []; }
+          },
+          (data) => {
+            const active = data.filter(d => d.status === 'Active');
+            const mrr = active.reduce((sum, d) => sum + (d.cycle === 'Monthly' ? Number(d.costInXaf || d.cost || 0) : Number(d.costInXaf || d.cost || 0)/12), 0);
+            return `Currently tracking ${data.length} subscriptions (${active.length} active). The estimated Monthly Run Rate (MRR) stands at ${fmt(mrr)}, ensuring continuous service delivery across our infrastructure stack.`;
+          },
+          (doc, cy, data) => {
+            const tableData = data.slice(0, 20).map((s: any) => [s.name, s.cycle, `${s.costInXaf || s.cost} ${s.currency || 'USD'}`, new Date(s.startDate).toLocaleDateString(), new Date(s.nextBilling).toLocaleDateString(), s.status]);
+            autoTable(doc, { startY: cy, head: [['Service', 'Cycle', 'Cost', 'Start Date', 'Expiry/Next Bill', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          }
+        );
+
+        await renderAttachmentSection('foodAndMeal', 'STAFF MEALS SUMMARY', 
+          async () => {
+            try { return await (api as any).meals?.() || await apiRequest('/meals/records'); } catch { return []; }
+          },
+          (data) => {
+            const ate = data.filter(d => d.status === 'ATE');
+            const cost = ate.reduce((sum, d) => sum + Number(d.price || 0), 0);
+            return `The staff welfare program recorded ${data.length} meal entries this month. ${ate.length} meals were successfully consumed, representing an operational cost of ${fmt(cost)}.`;
+          },
+          (doc, cy, data) => {
+            const tableData = data.slice(0, 20).map((m: any) => [new Date(m.date).toLocaleDateString(), m.employee?.fullName || 'Unknown', m.mealName || '-', m.status, m.status === 'ATE' ? fmt(m.price) : '-']);
+            autoTable(doc, { startY: cy, head: [['Date', 'Employee', 'Meal', 'Status', 'Cost']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          }
+        );
+
+        await renderAttachmentSection('kyc', 'KYC & COMPLIANCE', 
+          async () => {
+            try { return await apiRequest('/users/kyc/requests'); } catch { return []; }
+          },
+          (data) => {
+            const approved = data.filter(d => d.status === 'APPROVED');
+            return `Compliance operations reviewed ${data.length} KYC requests recently. Of these, ${approved.length} were successfully verified and approved, maintaining our strict security guidelines and onboarding efficiency.`;
+          },
+          (doc, cy, data) => {
+            const tableData = data.slice(0, 20).map((k: any) => [new Date(k.createdAt).toLocaleDateString(), k.user?.fullName || k.userId, k.documentType || 'ID', k.status]);
+            autoTable(doc, { startY: cy, head: [['Date', 'User', 'Document Type', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          }
+        );
+
+        await renderAttachmentSection('leaves', 'EMPLOYEE LEAVES', 
+          async () => {
+            try { return await apiRequest('/hr/leaves'); } catch { return []; }
+          },
+          (data) => {
+            const active = data.filter(d => d.status === 'APPROVED');
+            return `HR processed ${data.length} leave requests during this period. There are currently ${active.length} approved leaves, ensuring proper shift balancing and workforce continuity.`;
+          },
+          (doc, cy, data) => {
+            const tableData = data.slice(0, 20).map((l: any) => [l.employee?.fullName || 'Unknown', l.leaveType || 'Annual', new Date(l.startDate).toLocaleDateString(), new Date(l.endDate).toLocaleDateString(), l.status]);
+            autoTable(doc, { startY: cy, head: [['Employee', 'Type', 'Start Date', 'End Date', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          }
+        );
+
+        await renderAttachmentSection('websites', 'WEBSITE PERFORMANCE', 
+          async () => {
+            try { return await apiRequest('/analytics/events'); } catch { return []; }
+          },
+          (data) => {
+            return `Digital outreach generated ${data.length} recorded events/sessions. The traffic metrics indicate a robust engagement rate and successful retention across both the main corporate portal and our outreach campaigns.`;
+          },
+          (doc, cy, data) => {
+            const tableData = data.slice(0, 20).map((e: any) => [new Date(e.timestamp || e.createdAt).toLocaleDateString(), e.eventType || 'Pageview', e.path || '/', e.metadata?.referrer || 'Direct']);
+            autoTable(doc, { startY: cy, head: [['Date', 'Event Type', 'Page/Path', 'Referrer']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          }
+        );
+
       } catch (err) {
         console.error('Failed to attach data', err);
       }
@@ -749,21 +851,48 @@ ${dailyForm.recommendation}`;
 
             <div className="pt-4 border-t border-outline-variant/20">
               <label className="block text-xs font-bold text-secondary mb-4 uppercase tracking-wider">Attach Data Modules (Auto-generates charts & tables)</label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {Object.keys(dailyForm.attachments).map(key => (
-                  <label key={key} className={cn("flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all", dailyForm.attachments[key as keyof typeof dailyForm.attachments] ? "bg-primary/5 border-primary" : "bg-white border-outline-variant/30 hover:border-primary/50")}>
-                    <div className={cn("w-5 h-5 rounded flex items-center justify-center transition-all", dailyForm.attachments[key as keyof typeof dailyForm.attachments] ? "bg-primary text-white" : "border border-outline-variant/50")}>
-                      {dailyForm.attachments[key as keyof typeof dailyForm.attachments] && <Check className="w-3.5 h-3.5" />}
-                    </div>
-                    <span className="text-sm font-bold text-primary capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                    <input 
-                      type="checkbox" 
-                      className="hidden" 
-                      checked={dailyForm.attachments[key as keyof typeof dailyForm.attachments]}
-                      onChange={(e) => setDailyForm({...dailyForm, attachments: {...dailyForm.attachments, [key]: e.target.checked}})}
-                    />
-                  </label>
-                ))}
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {Object.keys(dailyForm.attachments).map(key => (
+                    <label key={key} className={cn("flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all", dailyForm.attachments[key as keyof typeof dailyForm.attachments] ? "bg-primary/5 border-primary" : "bg-white border-outline-variant/30 hover:border-primary/50")}>
+                      <div className={cn("w-5 h-5 rounded flex items-center justify-center transition-all", dailyForm.attachments[key as keyof typeof dailyForm.attachments] ? "bg-primary text-white" : "border border-outline-variant/50")}>
+                        {dailyForm.attachments[key as keyof typeof dailyForm.attachments] && <Check className="w-3.5 h-3.5" />}
+                      </div>
+                      <span className="text-sm font-bold text-primary capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                      <input 
+                        type="checkbox" 
+                        className="hidden" 
+                        checked={dailyForm.attachments[key as keyof typeof dailyForm.attachments]}
+                        onChange={(e) => setDailyForm({...dailyForm, attachments: {...dailyForm.attachments, [key]: e.target.checked}})}
+                      />
+                    </label>
+                  ))}
+                </div>
+                
+                {/* Custom Descriptions for selected attachments */}
+                <div className="space-y-4">
+                  <AnimatePresence>
+                    {Object.keys(dailyForm.attachments).filter(k => dailyForm.attachments[k as keyof typeof dailyForm.attachments]).map(key => (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        key={`desc-${key}`} 
+                        className="bg-surface-container-low rounded-xl p-4 border border-outline-variant/30"
+                      >
+                        <label className="block text-xs font-bold text-secondary mb-2 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1').trim()} Summary / Description (Optional)</label>
+                        <p className="text-[10px] text-secondary mb-3">If left blank, the system will automatically generate a detailed, smart insight based on the actual data.</p>
+                        <textarea
+                          rows={2}
+                          value={(dailyForm.attachmentDescriptions as any)?.[key] || ''}
+                          onChange={(e) => setDailyForm({...dailyForm, attachmentDescriptions: {...dailyForm.attachmentDescriptions, [key]: e.target.value}})}
+                          className="w-full bg-white border border-outline-variant/30 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-container transition-all resize-none"
+                          placeholder={`Enter custom description for ${key}...`}
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
 

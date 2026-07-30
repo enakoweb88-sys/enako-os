@@ -5,6 +5,11 @@ import { cn } from '../lib/utils';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
+import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { ENAKO_LOGO_BASE64 } from '../lib/logo-base64';
+
 function fmt(val: string | number | null | undefined) {
   return Number(val ?? 0).toLocaleString('fr-CM', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 });
 }
@@ -19,6 +24,7 @@ export default function StaffMeals() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const [form, setForm] = useState({ employeeId: '', date: new Date().toISOString().split('T')[0], status: 'ATE' as 'ATE' | 'DID_NOT_EAT', mealName: '', mealTime: '', price: '' });
   const [disputeId, setDisputeId] = useState<string | null>(null);
   const [disputeReason, setDisputeReason] = useState('');
@@ -76,6 +82,75 @@ export default function StaffMeals() {
     finally { setSubmitting(false); }
   };
 
+  const downloadMealReportPdf = async (period: '7 Days' | '28 Days' | '3 Months' | '6 Months' | '1 Year') => {
+    try {
+      const now = new Date();
+      let startDate = new Date();
+      if (period === '7 Days') startDate.setDate(now.getDate() - 7);
+      else if (period === '28 Days') startDate.setDate(now.getDate() - 28);
+      else if (period === '3 Months') startDate.setMonth(now.getMonth() - 3);
+      else if (period === '6 Months') startDate.setMonth(now.getMonth() - 6);
+      else if (period === '1 Year') startDate.setFullYear(now.getFullYear() - 1);
+
+      const filteredMeals = items.filter(m => new Date(m.date) >= startDate && new Date(m.date) <= now);
+      
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
+
+      // Add Watermark
+      doc.setTextColor(240, 245, 250);
+      doc.setFontSize(60);
+      doc.setFont('helvetica', 'bold');
+      doc.text('ENAKO OS', pageWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
+
+      // Add Logo and Header
+      doc.addImage(ENAKO_LOGO_BASE64, 'PNG', 15, 10, 28, 28);
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(22);
+      doc.text('Staff Meals Report', 45, 22);
+      doc.setFontSize(10);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 45, 28);
+      doc.text(`Period: Last ${period}`, 45, 34);
+
+      // Summary calculations
+      const totalMeals = filteredMeals.length;
+      const ateMeals = filteredMeals.filter(m => m.status === 'ATE');
+      const totalCost = ateMeals.reduce((sum, m) => sum + Number(m.price || 0), 0);
+      
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`Total Records: ${totalMeals}`, 15, 45);
+      doc.text(`Meals Eaten: ${ateMeals.length}`, 80, 45);
+      doc.text(`Total Cost: ${fmt(totalCost)}`, 140, 45);
+
+      const tableData = filteredMeals.map(m => [
+        new Date(m.date).toLocaleDateString(),
+        m.employee?.fullName || 'Unknown',
+        m.status,
+        m.mealName || '-',
+        m.status === 'ATE' ? fmt(m.price) : '-'
+      ]);
+
+      autoTable(doc, {
+        startY: 55,
+        head: [['Date', 'Employee', 'Status', 'Meal Name', 'Cost']],
+        body: tableData,
+        theme: 'grid',
+        styles: { fontSize: 8, cellPadding: 3 },
+        headStyles: { fillColor: [4, 53, 91], textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [248, 250, 252] }
+      });
+
+      doc.save(`Enako_Staff_Meals_${period.replace(' ', '_')}.pdf`);
+      setShowExportMenu(false);
+      toast.success(`Downloaded report for last ${period}`);
+    } catch (e: any) {
+      toast.error('Failed to generate PDF');
+    }
+  };
+
   const myItems = role === 'employee' ? items.filter(m => m.employeeId === user?.id) : items;
   const myAte = myItems.filter(m => m.status === 'ATE').length;
 
@@ -91,9 +166,34 @@ export default function StaffMeals() {
         <div className="flex gap-3">
           {role !== 'employee' && (
             <>
-              <button onClick={() => window.print()} className="bg-surface-container-high text-primary px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-outline-variant/30 transition-all print:hidden">
-                Download PDF
-              </button>
+              <div className="relative">
+                <button 
+                  onClick={() => setShowExportMenu(!showExportMenu)} 
+                  className="bg-surface-container-high text-primary px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-outline-variant/30 transition-all print:hidden"
+                >
+                  Download PDF
+                </button>
+                <AnimatePresence>
+                  {showExportMenu && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-outline-variant/30 overflow-hidden z-50 py-2"
+                    >
+                      {(['7 Days', '28 Days', '3 Months', '6 Months', '1 Year'] as const).map((period) => (
+                        <button 
+                          key={period}
+                          onClick={() => downloadMealReportPdf(period)}
+                          className="w-full text-left px-4 py-2 text-xs font-semibold hover:bg-surface-container-low transition-colors text-primary"
+                        >
+                          Last {period}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
               <button onClick={() => setShowModal(true)} className="bg-primary text-white px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 hover:shadow-lg transition-all print:hidden">
                 <ClipboardPen className="w-4 h-4" /> Log Entry
               </button>
