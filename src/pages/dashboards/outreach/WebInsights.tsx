@@ -18,6 +18,18 @@ export default function WebInsights() {
   const [selectedSite, setSelectedSite] = useState('outreach');
 
   const fetchInsights = async () => {
+    if (selectedSite === 'main') {
+      setData({
+        consent: { total: 0, accepted: 0, declined: 0, rate: 0 },
+        traffic: { totalEvents: 0, pageviews: 0, avgDurationSeconds: 0, bounceRatePercent: 0 },
+        heatmaps: [],
+        campaigns: [],
+        topPages: [],
+        recentEvents: []
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await outreachAPI.getWebInsights(selectedSite);
