@@ -536,11 +536,11 @@ ${dailyForm.recommendation}`;
           },
           (data) => {
             const ate = data.filter(d => d.status === 'ATE');
-            const cost = ate.reduce((sum, d) => sum + Number(d.price || 0), 0);
+            const cost = ate.reduce((sum, d) => sum + Number(d.totalAmount || 0), 0);
             return `The staff welfare program recorded ${data.length} meal entries this month. ${ate.length} meals were successfully consumed, representing an operational cost of ${fmt(cost)}.`;
           },
           (doc, cy, data) => {
-            const tableData = data.slice(0, 20).map((m: any) => [new Date(m.date).toLocaleDateString(), m.employee?.fullName || 'Unknown', m.mealName || '-', m.status, m.status === 'ATE' ? fmt(m.price) : '-']);
+            const tableData = data.slice(0, 20).map((m: any) => [new Date(m.date).toLocaleDateString(), m.employee?.fullName || 'Unknown', m.mealName || '-', m.status, m.status === 'ATE' ? fmt(m.totalAmount) : '-']);
             autoTable(doc, { startY: cy, head: [['Date', 'Employee', 'Meal', 'Status', 'Cost']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
           }
         );

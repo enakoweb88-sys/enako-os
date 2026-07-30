@@ -117,7 +117,7 @@ export default function StaffMeals() {
       // Summary calculations
       const totalMeals = filteredMeals.length;
       const ateMeals = filteredMeals.filter(m => m.status === 'ATE');
-      const totalCost = ateMeals.reduce((sum, m) => sum + Number(m.price || 0), 0);
+      const totalCost = ateMeals.reduce((sum, m) => sum + Number(m.totalAmount || 0), 0);
       
       doc.setFontSize(11);
       doc.setTextColor(15, 23, 42);
@@ -130,7 +130,7 @@ export default function StaffMeals() {
         m.employee?.fullName || 'Unknown',
         m.status,
         m.mealName || '-',
-        m.status === 'ATE' ? fmt(m.price) : '-'
+        m.status === 'ATE' ? fmt(m.totalAmount) : '-'
       ]);
 
       autoTable(doc, {
