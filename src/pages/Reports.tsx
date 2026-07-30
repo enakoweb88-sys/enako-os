@@ -400,6 +400,13 @@ ${dailyForm.recommendation}`;
         return 25;
       };
 
+      const commonTableStyles = {
+        theme: 'grid' as const,
+        styles: { fontSize: 8, cellPadding: 3, lineColor: [200, 200, 200] as [number, number, number], lineWidth: 0.1 },
+        headStyles: { fillColor: brandGreen, textColor: 255, fontStyle: 'bold' as const },
+        alternateRowStyles: { fillColor: [248, 250, 252] as [number, number, number] }
+      };
+
       const renderAttachmentSection = async (key: string, title: string, fetcher: () => Promise<any[]>, generateInsight: (data: any[]) => string, renderData: (doc: any, cy: number, data: any[]) => void) => {
         if (!atts[key]) return;
         try {
@@ -456,7 +463,7 @@ ${dailyForm.recommendation}`;
           cy += 8;
           
           const tableData = data.slice(0, 30).map((e: any) => [new Date(e.createdAt).toLocaleDateString(), e.category || 'Other', e.description || '-', fmt(e.amount), e.status]);
-          autoTable(doc, { startY: cy, head: [['Date', 'Category', 'Description', 'Amount', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          autoTable(doc, { startY: cy, head: [['Date', 'Category', 'Description', 'Amount', 'Status']], body: tableData, ...commonTableStyles });
         }
       );
 
@@ -481,7 +488,7 @@ ${dailyForm.recommendation}`;
           cy += 8;
           
           const tableData = data.slice(0, 30).map((t: any) => [new Date(t.createdAt).toLocaleDateString(), t.type, t.entity, fmt(t.amount), t.status]);
-          autoTable(doc, { startY: cy, head: [['Date', 'Type', 'Entity', 'Amount', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          autoTable(doc, { startY: cy, head: [['Date', 'Type', 'Entity', 'Amount', 'Status']], body: tableData, ...commonTableStyles });
         }
       );
 
@@ -510,7 +517,7 @@ ${dailyForm.recommendation}`;
           cy += 8;
 
           const tableData = data.slice(0, 30).map((s: any) => [s.name, s.cycle, fmt(s.costInXaf || s.cost), new Date(s.startDate).toLocaleDateString(), new Date(s.nextBilling).toLocaleDateString(), s.status]);
-          autoTable(doc, { startY: cy, head: [['Service', 'Cycle', 'Cost', 'Start Date', 'Next Bill', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          autoTable(doc, { startY: cy, head: [['Service', 'Cycle', 'Cost', 'Start Date', 'Next Bill', 'Status']], body: tableData, ...commonTableStyles });
         }
       );
 
@@ -557,7 +564,7 @@ ${dailyForm.recommendation}`;
           doc.text('Employee Cost Breakdown', 15, cy);
           cy += 4;
           
-          autoTable(doc, { startY: cy, head: [['Employee Name', 'Meals Eaten', 'Total Cost', 'Company Pays', 'Employee Pays']], body: empData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          autoTable(doc, { startY: cy, head: [['Employee Name', 'Meals Eaten', 'Total Cost', 'Company Pays', 'Employee Pays']], body: empData, ...commonTableStyles });
           
           cy = (doc as any).lastAutoTable.finalY + 10;
           if (cy > pageHeight - 40) { doc.addPage(); cy = 20; }
@@ -568,7 +575,7 @@ ${dailyForm.recommendation}`;
           cy += 4;
           
           const tableData = data.slice(0, 30).map((m: any) => [new Date(m.date).toLocaleDateString(), m.employee?.fullName || 'Unknown', m.mealName || '-', m.status, m.status === 'ATE' ? fmt(m.totalAmount) : '-', m.status === 'ATE' ? fmt(m.companyAmount) : '-', m.status === 'ATE' ? fmt(m.employeeAmount) : '-']);
-          autoTable(doc, { startY: cy, head: [['Date', 'Employee', 'Meal', 'Status', 'Total', 'Company', 'Employee']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          autoTable(doc, { startY: cy, head: [['Date', 'Employee', 'Meal', 'Status', 'Total', 'Company', 'Employee']], body: tableData, ...commonTableStyles });
         }
       );
 
@@ -593,7 +600,7 @@ ${dailyForm.recommendation}`;
           cy += 8;
           
           const tableData = data.slice(0, 30).map((k: any) => [new Date(k.createdAt).toLocaleDateString(), k.user?.fullName || k.userId, k.documentType || 'ID', k.status]);
-          autoTable(doc, { startY: cy, head: [['Date', 'User', 'Document Type', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          autoTable(doc, { startY: cy, head: [['Date', 'User', 'Document Type', 'Status']], body: tableData, ...commonTableStyles });
         }
       );
 
@@ -618,7 +625,7 @@ ${dailyForm.recommendation}`;
           cy += 8;
           
           const tableData = data.slice(0, 30).map((l: any) => [l.employee?.fullName || 'Unknown', l.leaveType || 'Annual', new Date(l.startDate).toLocaleDateString(), new Date(l.endDate).toLocaleDateString(), l.status]);
-          autoTable(doc, { startY: cy, head: [['Employee', 'Type', 'Start Date', 'End Date', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          autoTable(doc, { startY: cy, head: [['Employee', 'Type', 'Start Date', 'End Date', 'Status']], body: tableData, ...commonTableStyles });
         }
       );
 
@@ -640,7 +647,7 @@ ${dailyForm.recommendation}`;
           cy += 8;
           
           const tableData = data.slice(0, 30).map((e: any) => [new Date(e.timestamp || e.createdAt).toLocaleDateString(), e.eventType || 'Pageview', e.path || '/', e.metadata?.referrer || 'Direct']);
-          autoTable(doc, { startY: cy, head: [['Date', 'Event Type', 'Page/Path', 'Referrer']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+          autoTable(doc, { startY: cy, head: [['Date', 'Event Type', 'Page/Path', 'Referrer']], body: tableData, ...commonTableStyles });
         }
       );
     }
