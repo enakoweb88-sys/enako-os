@@ -462,7 +462,7 @@ ${dailyForm.recommendation}`;
           doc.text(`Total Amount: ${fmt(total)}`, 70, cy);
           cy += 8;
           
-          const tableData = data.slice(0, 30).map((e: any) => [new Date(e.createdAt).toLocaleDateString(), e.category || 'Other', e.description || '-', fmt(e.amount), e.status]);
+          const tableData = data.map((e: any) => [new Date(e.createdAt).toLocaleDateString(), e.category || 'Other', e.description || '-', fmt(e.amount), e.status]);
           autoTable(doc, { startY: cy, head: [['Date', 'Category', 'Description', 'Amount', 'Status']], body: tableData, ...commonTableStyles });
         }
       );
@@ -487,7 +487,7 @@ ${dailyForm.recommendation}`;
           doc.text(`Total Volume: ${fmt(total)}`, 70, cy);
           cy += 8;
           
-          const tableData = data.slice(0, 30).map((t: any) => [new Date(t.createdAt).toLocaleDateString(), t.type, t.entity, fmt(t.amount), t.status]);
+          const tableData = data.map((t: any) => [new Date(t.createdAt).toLocaleDateString(), t.type, t.entity, fmt(t.amount), t.status]);
           autoTable(doc, { startY: cy, head: [['Date', 'Type', 'Entity', 'Amount', 'Status']], body: tableData, ...commonTableStyles });
         }
       );
@@ -516,7 +516,7 @@ ${dailyForm.recommendation}`;
           doc.text(`MRR: ${fmt(mrr)}`, 110, cy);
           cy += 8;
 
-          const tableData = data.slice(0, 30).map((s: any) => [s.name, s.cycle, fmt(s.costInXaf || s.cost), new Date(s.startDate).toLocaleDateString(), new Date(s.nextBilling).toLocaleDateString(), s.status]);
+          const tableData = data.map((s: any) => [s.name, s.cycle, fmt(s.costInXaf || s.cost), new Date(s.startDate).toLocaleDateString(), new Date(s.nextBilling).toLocaleDateString(), s.status]);
           autoTable(doc, { startY: cy, head: [['Service', 'Cycle', 'Cost', 'Start Date', 'Next Bill', 'Status']], body: tableData, ...commonTableStyles });
         }
       );
@@ -574,7 +574,7 @@ ${dailyForm.recommendation}`;
           doc.text('Detailed Meal Records', 15, cy);
           cy += 4;
           
-          const tableData = data.slice(0, 30).map((m: any) => [new Date(m.date).toLocaleDateString(), m.employee?.fullName || 'Unknown', m.mealName || '-', m.status, m.status === 'ATE' ? fmt(m.totalAmount) : '-', m.status === 'ATE' ? fmt(m.companyAmount) : '-', m.status === 'ATE' ? fmt(m.employeeAmount) : '-']);
+          const tableData = data.map((m: any) => [new Date(m.date).toLocaleDateString(), m.employee?.fullName || 'Unknown', m.mealName || '-', m.status, m.status === 'ATE' ? fmt(m.totalAmount) : '-', m.status === 'ATE' ? fmt(m.companyAmount) : '-', m.status === 'ATE' ? fmt(m.employeeAmount) : '-']);
           autoTable(doc, { startY: cy, head: [['Date', 'Employee', 'Meal', 'Status', 'Total', 'Company', 'Employee']], body: tableData, ...commonTableStyles });
         }
       );
@@ -599,7 +599,7 @@ ${dailyForm.recommendation}`;
           doc.text(`Approved: ${approved}`, 80, cy);
           cy += 8;
           
-          const tableData = data.slice(0, 30).map((k: any) => [new Date(k.createdAt).toLocaleDateString(), k.user?.fullName || k.userId, k.documentType || 'ID', k.status]);
+          const tableData = data.map((k: any) => [new Date(k.createdAt).toLocaleDateString(), k.user?.fullName || k.userId, k.documentType || 'ID', k.status]);
           autoTable(doc, { startY: cy, head: [['Date', 'User', 'Document Type', 'Status']], body: tableData, ...commonTableStyles });
         }
       );
@@ -624,7 +624,7 @@ ${dailyForm.recommendation}`;
           doc.text(`Approved: ${approved}`, 80, cy);
           cy += 8;
           
-          const tableData = data.slice(0, 30).map((l: any) => [l.employee?.fullName || 'Unknown', l.leaveType || 'Annual', new Date(l.startDate).toLocaleDateString(), new Date(l.endDate).toLocaleDateString(), l.status]);
+          const tableData = data.map((l: any) => [l.employee?.fullName || 'Unknown', l.leaveType || 'Annual', new Date(l.startDate).toLocaleDateString(), new Date(l.endDate).toLocaleDateString(), l.status]);
           autoTable(doc, { startY: cy, head: [['Employee', 'Type', 'Start Date', 'End Date', 'Status']], body: tableData, ...commonTableStyles });
         }
       );
@@ -646,7 +646,7 @@ ${dailyForm.recommendation}`;
           doc.text(`Total Events: ${data.length}`, 15, cy);
           cy += 8;
           
-          const tableData = data.slice(0, 30).map((e: any) => [new Date(e.timestamp || e.createdAt).toLocaleDateString(), e.eventType || 'Pageview', e.path || '/', e.metadata?.referrer || 'Direct']);
+          const tableData = data.map((e: any) => [new Date(e.timestamp || e.createdAt).toLocaleDateString(), e.eventType || 'Pageview', e.path || '/', e.metadata?.referrer || 'Direct']);
           autoTable(doc, { startY: cy, head: [['Date', 'Event Type', 'Page/Path', 'Referrer']], body: tableData, ...commonTableStyles });
         }
       );
