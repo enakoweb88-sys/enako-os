@@ -318,77 +318,72 @@ ${dailyForm.recommendation}`;
     const content = report.content || 'No content provided for this session.';
     const sections = content.split('\n');
     
-    doc.setFontSize(10);
-    for (const line of sections) {
-      if (currentY > pageHeight - 40) {
-        // Add new page
-        doc.addPage();
-        currentY = 20;
-        
-        // Re-add watermark on new page
-        doc.saveGraphicsState();
-        // @ts-ignore
-        doc.setGState(new doc.GState({ opacity: 0.04 }));
-        doc.setFontSize(52);
-        doc.setFont(undefined, 'bold');
-        doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
-        for (let y = 40; y < pageHeight; y += 80) {
-          doc.text('ENAKO FINTECH', pageWidth / 2, y, { angle: 35, align: 'center' });
-        }
-        doc.restoreGraphicsState();
-        doc.setFontSize(10);
-      }
+    const detailLines: string[] = [];
+    const recommendationLines: string[] = [];
+    let inRecommendation = false;
 
-      // Detect section headers like "Title:", "Category:", "Details:", "Recommendation:"
-      if (line.match(/^(Title|Category|Impact Level|Details|Recommendation):/i)) {
-        const colonIndex = line.indexOf(':');
-        const label = line.substring(0, colonIndex + 1);
-        const value = line.substring(colonIndex + 1).trim();
-        
-        doc.setFont(undefined, 'bold');
-        doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
-        doc.text(label, 20, currentY);
-        
-        if (value) {
+    for (const line of sections) {
+      if (line.match(/^Recommendation:/i)) {
+        inRecommendation = true;
+      } else if (inRecommendation && line.match(/^(Title|Category|Impact Level|Details):/i)) {
+        inRecommendation = false;
+      }
+      
+      if (inRecommendation) {
+        recommendationLines.push(line);
+      } else {
+        detailLines.push(line);
+      }
+    }
+
+    const printLines = (lines: string[]) => {
+      doc.setFontSize(10);
+      for (const line of lines) {
+        if (currentY > pageHeight - 40) {
+          doc.addPage();
+          currentY = 20;
+          doc.saveGraphicsState();
+          // @ts-ignore
+          doc.setGState(new doc.GState({ opacity: 0.04 }));
+          doc.setFontSize(52);
+          doc.setFont(undefined, 'bold');
+          doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+          for (let y = 40; y < pageHeight; y += 80) {
+            doc.text('ENAKO FINTECH', pageWidth / 2, y, { angle: 35, align: 'center' });
+          }
+          doc.restoreGraphicsState();
+          doc.setFontSize(10);
+        }
+
+        if (line.match(/^(Title|Category|Impact Level|Details|Recommendation):/i)) {
+          const colonIndex = line.indexOf(':');
+          const label = line.substring(0, colonIndex + 1);
+          const value = line.substring(colonIndex + 1).trim();
+          
+          doc.setFont(undefined, 'bold');
+          doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+          doc.text(label, 20, currentY);
+          
+          if (value) {
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+            doc.text(value, 20 + doc.getTextWidth(label) + 3, currentY);
+          }
+          currentY += 7;
+        } else if (line.trim() === '') {
+          currentY += 4;
+        } else {
           doc.setFont(undefined, 'normal');
           doc.setTextColor(darkText[0], darkText[1], darkText[2]);
-          doc.text(value, 20 + doc.getTextWidth(label) + 3, currentY);
+          const wrapped = doc.splitTextToSize(line, pageWidth - 40);
+          doc.text(wrapped, 20, currentY);
+          currentY += wrapped.length * 5.5;
         }
-        currentY += 7;
-      } else if (line.trim() === '') {
-        currentY += 4;
-      } else {
-        doc.setFont(undefined, 'normal');
-        doc.setTextColor(darkText[0], darkText[1], darkText[2]);
-        const wrapped = doc.splitTextToSize(line, pageWidth - 40);
-        doc.text(wrapped, 20, currentY);
-        currentY += wrapped.length * 5.5;
       }
-    }
+    };
 
-    // ─── FOOTER ───
-    // Bottom green bar
-    doc.setFillColor(brandGreen[0], brandGreen[1], brandGreen[2]);
-    doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
-    doc.setFont(undefined, 'normal');
-    doc.text('Enako Fintech | Empowering Communities Through Innovation', 15, pageHeight - 12);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 15, pageHeight - 6);
-
-    // Page number
-    const totalPages = doc.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i);
-      doc.setFillColor(brandGreen[0], brandGreen[1], brandGreen[2]);
-      doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(8);
-      doc.text('Enako Fintech | Empowering Communities Through Innovation', 15, pageHeight - 12);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 15, pageHeight - 6);
-      doc.text(`Page ${i} of ${totalPages}`, pageWidth - 40, pageHeight - 9);
-    }
+    // Print main details
+    printLines(detailLines);
 
     // ─── DATA ATTACHMENTS (NEW PAGES) ───
     if (report.attachments) {
@@ -443,10 +438,9 @@ ${dailyForm.recommendation}`;
         });
       };
 
-      try {
-        const renderAttachmentSection = async (key: string, title: string, fetcher: () => Promise<any[]>, generateInsight: (data: any[]) => string, renderData: (doc: any, cy: number, data: any[]) => void) => {
-          if (!atts[key]) return;
-          
+      const renderAttachmentSection = async (key: string, title: string, fetcher: () => Promise<any[]>, generateInsight: (data: any[]) => string, renderData: (doc: any, cy: number, data: any[]) => void) => {
+        if (!atts[key]) return;
+        try {
           let cy = drawAttachmentHeader(title);
           const rawData = await fetcher();
           const data = (rawData as any)?.items || rawData || [];
@@ -477,129 +471,160 @@ ${dailyForm.recommendation}`;
           
           // Render specific data (tables/charts)
           renderData(doc, cy, data);
-        };
+        } catch (err) {
+          console.error(`Failed to attach data for ${key}`, err);
+        }
+      };
 
-        await renderAttachmentSection('expenses', 'COMPANY EXPENSES', 
-          async () => {
-            try { return await api.expenses(); } catch { return await apiRequest('/expenses'); }
-          },
-          (data) => {
-            const total = data.reduce((sum, d) => sum + Number(d.amount || 0), 0);
-            return `This month, the company recorded ${data.length} expense transactions amounting to ${fmt(total)}. This indicates a structured expenditure flow across operational categories.`;
-          },
-          (doc, cy, data) => {
-            const byCat: Record<string, number> = {};
-            data.slice(0, 20).forEach((e: any) => { byCat[e.category || 'Other'] = (byCat[e.category || 'Other'] || 0) + Number(e.amount || 0); });
-            const chartData = Object.keys(byCat).map(k => ({ label: k, value: byCat[k] }));
-            drawMiniBarChart('Expenses by Category', chartData, 20, cy + 5, 160, 50);
-            cy += 70;
-            
-            const tableData = data.slice(0, 15).map((e: any) => [new Date(e.createdAt).toLocaleDateString(), e.category || 'Other', e.description || '-', `${e.amount} ${e.currency || 'XAF'}`, e.status]);
-            autoTable(doc, { startY: cy, head: [['Date', 'Category', 'Description', 'Amount', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
-          }
-        );
+      await renderAttachmentSection('expenses', 'COMPANY EXPENSES', 
+        async () => {
+          try { return await api.expenses(); } catch { return await apiRequest('/expenses'); }
+        },
+        (data) => {
+          const total = data.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+          return `This month, the company recorded ${data.length} expense transactions amounting to ${fmt(total)}. This indicates a structured expenditure flow across operational categories.`;
+        },
+        (doc, cy, data) => {
+          const byCat: Record<string, number> = {};
+          data.slice(0, 20).forEach((e: any) => { byCat[e.category || 'Other'] = (byCat[e.category || 'Other'] || 0) + Number(e.amount || 0); });
+          const chartData = Object.keys(byCat).map(k => ({ label: k, value: byCat[k] }));
+          drawMiniBarChart('Expenses by Category', chartData, 20, cy + 5, 160, 50);
+          cy += 70;
+          
+          const tableData = data.slice(0, 15).map((e: any) => [new Date(e.createdAt).toLocaleDateString(), e.category || 'Other', e.description || '-', `${e.amount} ${e.currency || 'XAF'}`, e.status]);
+          autoTable(doc, { startY: cy, head: [['Date', 'Category', 'Description', 'Amount', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+        }
+      );
 
-        await renderAttachmentSection('transactions', 'FX TRANSACTIONS', 
-          async () => {
-            try { return await (api as any).transactions?.() || await apiRequest('/finance/transactions'); } catch { return []; }
-          },
-          (data) => {
-            const total = data.reduce((sum, d) => sum + Number(d.amount || 0), 0);
-            return `A total of ${data.length} FX transactions were processed over the period, with a cumulative volume of ${fmt(total)}. The distribution of these transactions reflects active client engagement across platforms.`;
-          },
-          (doc, cy, data) => {
-            const byType: Record<string, number> = {};
-            data.slice(0, 20).forEach((t: any) => { byType[t.type || 'Other'] = (byType[t.type || 'Other'] || 0) + Number(t.amount || 0); });
-            const chartData = Object.keys(byType).map(k => ({ label: k, value: byType[k] }));
-            drawMiniBarChart('Transactions by Type', chartData, 20, cy + 5, 160, 50);
-            cy += 70;
-            
-            const tableData = data.slice(0, 15).map((t: any) => [new Date(t.createdAt).toLocaleDateString(), t.type, t.entity, `${t.amount} ${t.currency || 'XAF'}`, t.status]);
-            autoTable(doc, { startY: cy, head: [['Date', 'Type', 'Entity', 'Amount', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
-          }
-        );
+      await renderAttachmentSection('transactions', 'FX TRANSACTIONS', 
+        async () => {
+          try { return await (api as any).transactions?.() || await apiRequest('/finance/transactions'); } catch { return []; }
+        },
+        (data) => {
+          const total = data.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+          return `A total of ${data.length} FX transactions were processed over the period, with a cumulative volume of ${fmt(total)}. The distribution of these transactions reflects active client engagement across platforms.`;
+        },
+        (doc, cy, data) => {
+          const byType: Record<string, number> = {};
+          data.slice(0, 20).forEach((t: any) => { byType[t.type || 'Other'] = (byType[t.type || 'Other'] || 0) + Number(t.amount || 0); });
+          const chartData = Object.keys(byType).map(k => ({ label: k, value: byType[k] }));
+          drawMiniBarChart('Transactions by Type', chartData, 20, cy + 5, 160, 50);
+          cy += 70;
+          
+          const tableData = data.slice(0, 15).map((t: any) => [new Date(t.createdAt).toLocaleDateString(), t.type, t.entity, `${t.amount} ${t.currency || 'XAF'}`, t.status]);
+          autoTable(doc, { startY: cy, head: [['Date', 'Type', 'Entity', 'Amount', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+        }
+      );
 
-        await renderAttachmentSection('subscriptions', 'ENTERPRISE SUBSCRIPTIONS', 
-          async () => {
-            try { return await (api as any).subscriptions?.() || await apiRequest('/subscriptions'); } catch { return []; }
-          },
-          (data) => {
-            const active = data.filter(d => d.status === 'Active');
-            const mrr = active.reduce((sum, d) => sum + (d.cycle === 'Monthly' ? Number(d.costInXaf || d.cost || 0) : Number(d.costInXaf || d.cost || 0)/12), 0);
-            return `Currently tracking ${data.length} subscriptions (${active.length} active). The estimated Monthly Run Rate (MRR) stands at ${fmt(mrr)}, ensuring continuous service delivery across our infrastructure stack.`;
-          },
-          (doc, cy, data) => {
-            const tableData = data.slice(0, 20).map((s: any) => [s.name, s.cycle, `${s.costInXaf || s.cost} ${s.currency || 'USD'}`, new Date(s.startDate).toLocaleDateString(), new Date(s.nextBilling).toLocaleDateString(), s.status]);
-            autoTable(doc, { startY: cy, head: [['Service', 'Cycle', 'Cost', 'Start Date', 'Expiry/Next Bill', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
-          }
-        );
+      await renderAttachmentSection('subscriptions', 'ENTERPRISE SUBSCRIPTIONS', 
+        async () => {
+          try { return await (api as any).subscriptions?.() || await apiRequest('/subscriptions'); } catch { return []; }
+        },
+        (data) => {
+          const active = data.filter(d => d.status === 'Active');
+          const mrr = active.reduce((sum, d) => sum + (d.cycle === 'Monthly' ? Number(d.costInXaf || d.cost || 0) : Number(d.costInXaf || d.cost || 0)/12), 0);
+          return `Currently tracking ${data.length} subscriptions (${active.length} active). The estimated Monthly Run Rate (MRR) stands at ${fmt(mrr)}, ensuring continuous service delivery across our infrastructure stack.`;
+        },
+        (doc, cy, data) => {
+          const tableData = data.slice(0, 20).map((s: any) => [s.name, s.cycle, `${s.costInXaf || s.cost} ${s.currency || 'USD'}`, new Date(s.startDate).toLocaleDateString(), new Date(s.nextBilling).toLocaleDateString(), s.status]);
+          autoTable(doc, { startY: cy, head: [['Service', 'Cycle', 'Cost', 'Start Date', 'Expiry/Next Bill', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+        }
+      );
 
-        await renderAttachmentSection('foodAndMeal', 'STAFF MEALS SUMMARY', 
-          async () => {
-            try { return await (api as any).meals?.() || await apiRequest('/meals/records'); } catch { return []; }
-          },
-          (data) => {
-            const ate = data.filter(d => d.status === 'ATE');
-            const cost = ate.reduce((sum, d) => sum + Number(d.totalAmount || 0), 0);
-            return `The staff welfare program recorded ${data.length} meal entries this month. ${ate.length} meals were successfully consumed, representing an operational cost of ${fmt(cost)}.`;
-          },
-          (doc, cy, data) => {
-            const tableData = data.slice(0, 20).map((m: any) => [new Date(m.date).toLocaleDateString(), m.employee?.fullName || 'Unknown', m.mealName || '-', m.status, m.status === 'ATE' ? fmt(m.totalAmount) : '-']);
-            autoTable(doc, { startY: cy, head: [['Date', 'Employee', 'Meal', 'Status', 'Cost']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
-          }
-        );
+      await renderAttachmentSection('foodAndMeal', 'STAFF MEALS SUMMARY', 
+        async () => {
+          try { return await (api as any).meals?.() || await apiRequest('/meals/records'); } catch { return []; }
+        },
+        (data) => {
+          const ate = data.filter(d => d.status === 'ATE');
+          const cost = ate.reduce((sum, d) => sum + Number(d.totalAmount || 0), 0);
+          return `The staff welfare program recorded ${data.length} meal entries this month. ${ate.length} meals were successfully consumed, representing an operational cost of ${fmt(cost)}.`;
+        },
+        (doc, cy, data) => {
+          const tableData = data.slice(0, 20).map((m: any) => [new Date(m.date).toLocaleDateString(), m.employee?.fullName || 'Unknown', m.mealName || '-', m.status, m.status === 'ATE' ? fmt(m.totalAmount) : '-']);
+          autoTable(doc, { startY: cy, head: [['Date', 'Employee', 'Meal', 'Status', 'Cost']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+        }
+      );
 
-        await renderAttachmentSection('kyc', 'KYC & COMPLIANCE', 
-          async () => {
-            try { return await apiRequest('/users/kyc/requests'); } catch { return []; }
-          },
-          (data) => {
-            const approved = data.filter(d => d.status === 'APPROVED');
-            return `Compliance operations reviewed ${data.length} KYC requests recently. Of these, ${approved.length} were successfully verified and approved, maintaining our strict security guidelines and onboarding efficiency.`;
-          },
-          (doc, cy, data) => {
-            const tableData = data.slice(0, 20).map((k: any) => [new Date(k.createdAt).toLocaleDateString(), k.user?.fullName || k.userId, k.documentType || 'ID', k.status]);
-            autoTable(doc, { startY: cy, head: [['Date', 'User', 'Document Type', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
-          }
-        );
+      await renderAttachmentSection('kyc', 'KYC & COMPLIANCE', 
+        async () => {
+          try { return await apiRequest('/users/kyc/requests'); } catch { return []; }
+        },
+        (data) => {
+          const approved = data.filter(d => d.status === 'APPROVED');
+          return `Compliance operations reviewed ${data.length} KYC requests recently. Of these, ${approved.length} were successfully verified and approved, maintaining our strict security guidelines and onboarding efficiency.`;
+        },
+        (doc, cy, data) => {
+          const tableData = data.slice(0, 20).map((k: any) => [new Date(k.createdAt).toLocaleDateString(), k.user?.fullName || k.userId, k.documentType || 'ID', k.status]);
+          autoTable(doc, { startY: cy, head: [['Date', 'User', 'Document Type', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+        }
+      );
 
-        await renderAttachmentSection('leaves', 'EMPLOYEE LEAVES', 
-          async () => {
-            try { return await apiRequest('/hr/leaves'); } catch { return []; }
-          },
-          (data) => {
-            const active = data.filter(d => d.status === 'APPROVED');
-            return `HR processed ${data.length} leave requests during this period. There are currently ${active.length} approved leaves, ensuring proper shift balancing and workforce continuity.`;
-          },
-          (doc, cy, data) => {
-            const tableData = data.slice(0, 20).map((l: any) => [l.employee?.fullName || 'Unknown', l.leaveType || 'Annual', new Date(l.startDate).toLocaleDateString(), new Date(l.endDate).toLocaleDateString(), l.status]);
-            autoTable(doc, { startY: cy, head: [['Employee', 'Type', 'Start Date', 'End Date', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
-          }
-        );
+      await renderAttachmentSection('leaves', 'EMPLOYEE LEAVES', 
+        async () => {
+          try { return await apiRequest('/hr/leaves'); } catch { return []; }
+        },
+        (data) => {
+          const active = data.filter(d => d.status === 'APPROVED');
+          return `HR processed ${data.length} leave requests during this period. There are currently ${active.length} approved leaves, ensuring proper shift balancing and workforce continuity.`;
+        },
+        (doc, cy, data) => {
+          const tableData = data.slice(0, 20).map((l: any) => [l.employee?.fullName || 'Unknown', l.leaveType || 'Annual', new Date(l.startDate).toLocaleDateString(), new Date(l.endDate).toLocaleDateString(), l.status]);
+          autoTable(doc, { startY: cy, head: [['Employee', 'Type', 'Start Date', 'End Date', 'Status']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+        }
+      );
 
-        await renderAttachmentSection('websites', 'WEBSITE PERFORMANCE', 
-          async () => {
-            try { return await apiRequest('/analytics/events'); } catch { return []; }
-          },
-          (data) => {
-            return `Digital outreach generated ${data.length} recorded events/sessions. The traffic metrics indicate a robust engagement rate and successful retention across both the main corporate portal and our outreach campaigns.`;
-          },
-          (doc, cy, data) => {
-            const tableData = data.slice(0, 20).map((e: any) => [new Date(e.timestamp || e.createdAt).toLocaleDateString(), e.eventType || 'Pageview', e.path || '/', e.metadata?.referrer || 'Direct']);
-            autoTable(doc, { startY: cy, head: [['Date', 'Event Type', 'Page/Path', 'Referrer']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
-          }
-        );
-
-      } catch (err) {
-        console.error('Failed to attach data', err);
-      }
+      await renderAttachmentSection('websites', 'WEBSITE PERFORMANCE', 
+        async () => {
+          try { return await apiRequest('/analytics/events'); } catch { return []; }
+        },
+        (data) => {
+          return `Digital outreach generated ${data.length} recorded events/sessions. The traffic metrics indicate a robust engagement rate and successful retention across both the main corporate portal and our outreach campaigns.`;
+        },
+        (doc, cy, data) => {
+          const tableData = data.slice(0, 20).map((e: any) => [new Date(e.timestamp || e.createdAt).toLocaleDateString(), e.eventType || 'Pageview', e.path || '/', e.metadata?.referrer || 'Direct']);
+          autoTable(doc, { startY: cy, head: [['Date', 'Event Type', 'Page/Path', 'Referrer']], body: tableData, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: brandGreen } });
+        }
+      );
     }
 
-    // ─── CONFIDENTIALITY NOTICE ───
-    doc.setPage(1);
-    doc.setFontSize(7);
-    doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
-    doc.text('CONFIDENTIAL - This report is the property of Enako Fintech. Unauthorized distribution is prohibited.', pageWidth / 2, pageHeight - 24, { align: 'center' });
+    // Print recommendations at the end
+    if (recommendationLines.length > 0) {
+      doc.addPage();
+      currentY = 20;
+      doc.saveGraphicsState();
+      // @ts-ignore
+      doc.setGState(new doc.GState({ opacity: 0.04 }));
+      doc.setFontSize(52);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+      for (let y = 40; y < pageHeight; y += 80) {
+        doc.text('ENAKO FINTECH', pageWidth / 2, y, { angle: 35, align: 'center' });
+      }
+      doc.restoreGraphicsState();
+      
+      printLines(recommendationLines);
+    }
+
+    // ─── FOOTER & PAGE NUMBERS ───
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFillColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+      doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.setFont(undefined, 'normal');
+      doc.text('Enako Fintech | Empowering Communities Through Innovation', 15, pageHeight - 12);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 15, pageHeight - 6);
+      doc.text(`Page ${i} of ${totalPages}`, pageWidth - 40, pageHeight - 9);
+      
+      if (i === 1) {
+        doc.setFontSize(7);
+        doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
+        doc.text('CONFIDENTIAL - This report is the property of Enako Fintech. Unauthorized distribution is prohibited.', pageWidth / 2, pageHeight - 24, { align: 'center' });
+      }
+    }
 
     // Save
     const fileName = isGeneral ? 'ENano_General_Report' : 'ENano_Daily_Report';
