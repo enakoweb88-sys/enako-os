@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Search, Mail, Phone, Briefcase, X, Plus, RefreshCw, ArrowLeft, Edit2, Check, ShieldAlert, Activity } from 'lucide-react';
+import {
+  Users, User, Search, Mail, Phone, Briefcase, X, Plus, RefreshCw,
+  ArrowLeft, Edit2, Check, ShieldAlert, Activity, Target, Award, ShieldCheck
+} from 'lucide-react';
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
