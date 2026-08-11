@@ -19,9 +19,10 @@ export default function Employees() {
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     fullName: '', email: '', phone: '', title: '',
-    role: 'EMPLOYEE', department: 'Operations', password: '',
+    role: 'EMPLOYEE', department: 'Engineering', password: '',
     dateOfBirth: '', address: '', personalEmail: '', employmentType: 'Full-Time',
-    salary: '', emergencyContact: '', hireDate: '', ledDepartments: [] as string[],
+    salary: '', emergencyContact: '', hireDate: '',
+    position: '', responsibilities: '', goals: '', permissions: 'Standard Operations Access',
   });
 
   const [viewEmployee, setViewEmployee] = useState<any>(null);
@@ -40,7 +41,6 @@ export default function Employees() {
       setEmployees(res.items);
       setTotal(res.total);
       
-      // Update viewEmployee if it was open
       if (viewEmployee) {
         const updated = res.items.find((e: any) => e.id === viewEmployee.id);
         if (updated) setViewEmployee(updated);
@@ -58,9 +58,31 @@ export default function Employees() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.createEmployee(form);
+      const payload = {
+        fullName: form.fullName,
+        email: form.email,
+        phone: form.phone,
+        title: form.position || form.title,
+        role: form.role,
+        department: form.department,
+        password: form.password,
+        dateOfBirth: form.dateOfBirth,
+        address: form.address,
+        personalEmail: form.personalEmail,
+        employmentType: form.employmentType,
+        salary: form.salary,
+        emergencyContact: form.emergencyContact,
+        hireDate: form.hireDate,
+      };
+      await api.createEmployee(payload);
       setShowModal(false);
-      setForm({ fullName: '', email: '', phone: '', title: '', role: 'EMPLOYEE', department: 'Operations', password: '', dateOfBirth: '', address: '', personalEmail: '', employmentType: 'Full-Time', salary: '', emergencyContact: '', hireDate: '', ledDepartments: [] });
+      setForm({
+        fullName: '', email: '', phone: '', title: '',
+        role: 'EMPLOYEE', department: 'Engineering', password: '',
+        dateOfBirth: '', address: '', personalEmail: '', employmentType: 'Full-Time',
+        salary: '', emergencyContact: '', hireDate: '',
+        position: '', responsibilities: '', goals: '', permissions: 'Standard Operations Access',
+      });
       load();
     } catch (e: any) {
       alert(e.message);
@@ -586,109 +608,179 @@ export default function Employees() {
         {showModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-xl bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-outline-variant/30 flex flex-col max-h-[90vh]">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-2xl bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-outline-variant/30 flex flex-col max-h-[90vh]">
               <div className="p-8 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
                 <div>
-                  <h3 className="text-xl font-bold text-primary">Deploy New Operative</h3>
-                  <p className="text-xs text-secondary uppercase tracking-widest font-bold mt-1">Create employee account</p>
+                  <h3 className="text-2xl font-bold text-primary font-display">Create Employee Account</h3>
+                  <p className="text-xs text-secondary uppercase tracking-widest font-bold mt-1">Configure Personal Info, Department, Position, & Access</p>
                 </div>
                 <button onClick={() => setShowModal(false)} className="p-2 hover:bg-surface-container rounded-full transition-colors">
                   <X className="w-6 h-6 text-secondary" />
                 </button>
               </div>
-              <form onSubmit={handleCreate} className="p-8 space-y-4 overflow-y-auto">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Full Name *</label>
-                    <input required value={form.fullName} onChange={e => setForm({ ...form, fullName: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="e.g. John Doe" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Email *</label>
-                    <input required type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="name@company.com" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Phone</label>
-                    <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="+237 6XX XXX XXX" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Title</label>
-                    <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="e.g. Lead Engineer" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Role *</label>
-                    <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
-                      <option value="EMPLOYEE">Employee</option>
-                      <option value="MANAGER">Manager</option>
-                      <option value="CEO">CEO</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Department</label>
-                    <select value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
-                      {['Operations', 'Engineering', 'Finance', 'Compliance', 'Management', 'HR', 'Digital Marketer'].map(d => <option key={d}>{d}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Leads Departments</label>
-                    <div className="bg-surface border border-outline-variant/30 rounded-xl p-3 max-h-32 overflow-y-auto space-y-2">
-                      {['Operations', 'Engineering', 'Finance', 'Compliance', 'Management', 'HR', 'Digital Marketer'].map(d => (
-                        <label key={d} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-surface-container-low p-1 rounded">
-                          <input 
-                            type="checkbox" 
-                            checked={form.ledDepartments.includes(d)}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              setForm({
-                                ...form,
-                                ledDepartments: checked ? [...form.ledDepartments, d] : form.ledDepartments.filter(dep => dep !== d)
-                              });
-                            }}
-                            className="rounded border-outline-variant/30 text-primary focus:ring-primary"
-                          />
-                          {d} Head
-                        </label>
-                      ))}
+
+              <form onSubmit={handleCreate} className="p-8 space-y-8 overflow-y-auto">
+                
+                {/* 1. Personal Information */}
+                <section className="space-y-4">
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-outline-variant/20">
+                    <User className="w-4 h-4 text-primary" /> 1. Personal Information
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Full Name *</label>
+                      <input required value={form.fullName} onChange={e => setForm({ ...form, fullName: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="e.g. John Doe" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Corporate Email *</label>
+                      <input required type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="corporate@enako.com" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Temporary Password *</label>
+                      <input required type="password" minLength={8} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Min 8 characters" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Phone Number</label>
+                      <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="+237 6XX XXX XXX" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Personal Email</label>
+                      <input type="email" value={form.personalEmail} onChange={e => setForm({ ...form, personalEmail: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="personal@gmail.com" />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Home Address</label>
+                      <input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Full residential address" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Date of Birth</label>
+                      <input type="date" value={form.dateOfBirth} onChange={e => setForm({ ...form, dateOfBirth: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Emergency Contact</label>
+                      <input value={form.emergencyContact} onChange={e => setForm({ ...form, emergencyContact: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Name & Phone Number" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Hire Date</label>
+                      <input type="date" value={form.hireDate} onChange={e => setForm({ ...form, hireDate: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Employment Type</label>
+                      <select value={form.employmentType} onChange={e => setForm({ ...form, employmentType: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20">
+                        <option>Full-Time</option>
+                        <option>Part-Time</option>
+                        <option>Contract</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Salary / Monthly Compensation (XAF)</label>
+                      <input type="number" value={form.salary} onChange={e => setForm({ ...form, salary: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="e.g. 500000" />
                     </div>
                   </div>
+                </section>
+
+                {/* 2. Role */}
+                <section className="space-y-4">
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-outline-variant/20">
+                    <ShieldAlert className="w-4 h-4 text-primary" /> 2. Role Level
+                  </h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { key: 'CEO', label: 'CEO', desc: 'Full Executive Privileges' },
+                      { label: 'Manager', key: 'MANAGER', desc: 'Department & Team Management' },
+                      { label: 'Employee', key: 'EMPLOYEE', desc: 'Standard Operative Workspace' },
+                    ].map(r => (
+                      <label key={r.key} className={cn(
+                        "p-4 border rounded-2xl cursor-pointer flex flex-col justify-between transition-all",
+                        form.role === r.key ? "border-primary bg-primary/5 text-primary shadow-xs" : "border-outline-variant/30 hover:bg-surface-container-low"
+                      )}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-sm">{r.label}</span>
+                          <input type="radio" name="employee_role" value={r.key} checked={form.role === r.key} onChange={e => setForm({ ...form, role: e.target.value })} className="text-primary focus:ring-primary" />
+                        </div>
+                        <p className="text-[10px] text-secondary font-medium">{r.desc}</p>
+                      </label>
+                    ))}
+                  </div>
+                </section>
+
+                {/* 3. Department */}
+                <section className="space-y-4">
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-outline-variant/20">
+                    <Briefcase className="w-4 h-4 text-primary" /> 3. Department Assignment
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      'Engineering',
+                      'Finance',
+                      'Digital Marketing',
+                      'Operations',
+                      'Compliance',
+                      'Management',
+                      'HR'
+                    ].map(d => (
+                      <label key={d} className={cn(
+                        "p-3.5 border rounded-2xl cursor-pointer flex items-center justify-between transition-all",
+                        form.department === d ? "border-primary bg-primary/5 text-primary font-bold shadow-xs" : "border-outline-variant/30 hover:bg-surface-container-low"
+                      )}>
+                        <span className="text-xs font-bold">{d}</span>
+                        <input type="radio" name="employee_dept" value={d} checked={form.department === d} onChange={e => setForm({ ...form, department: e.target.value })} className="text-primary focus:ring-primary" />
+                      </label>
+                    ))}
+                  </div>
+                </section>
+
+                {/* 4. Position */}
+                <section className="space-y-4">
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-outline-variant/20">
+                    <Activity className="w-4 h-4 text-primary" /> 4. Job Position
+                  </h4>
                   <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Employment Type</label>
-                    <select value={form.employmentType} onChange={e => setForm({ ...form, employmentType: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
-                      {['Full-Time', 'Part-Time', 'Contract'].map(d => <option key={d}>{d}</option>)}
+                    <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Position / Job Title *</label>
+                    <input required value={form.position} onChange={e => setForm({ ...form, position: e.target.value, title: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="e.g. Backend Engineer, Finance Analyst, Digital Marketer" />
+                  </div>
+                </section>
+
+                {/* 5. Responsibilities */}
+                <section className="space-y-4">
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-outline-variant/20">
+                    <Check className="w-4 h-4 text-primary" /> 5. Core Responsibilities
+                  </h4>
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Key Operational Responsibilities & Duties</label>
+                    <textarea rows={3} value={form.responsibilities} onChange={e => setForm({ ...form, responsibilities: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="List core daily responsibilities, key functions, and deliverables..." />
+                  </div>
+                </section>
+
+                {/* 6. Goals */}
+                <section className="space-y-4">
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-outline-variant/20">
+                    <Users className="w-4 h-4 text-primary" /> 6. Initial Employee Goals
+                  </h4>
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Assigned Goals & Objectives</label>
+                    <textarea rows={3} value={form.goals} onChange={e => setForm({ ...form, goals: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Define quarterly targets, KPIs, and deliverables for this employee..." />
+                  </div>
+                </section>
+
+                {/* 7. Permissions */}
+                <section className="space-y-4">
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-outline-variant/20">
+                    <ShieldAlert className="w-4 h-4 text-primary" /> 7. Permissions & Access Control
+                  </h4>
+                  <div>
+                    <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">System Access Level</label>
+                    <select value={form.permissions} onChange={e => setForm({ ...form, permissions: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20">
+                      <option value="Standard Operations Access">Standard Operations Access (Department Dashboard & Tasks)</option>
+                      <option value="Executive Management Access">Executive Management Access (Financial & Operational Reports)</option>
+                      <option value="Full System Administrative Privileges">Full System Administrative Privileges (CEO Controls & User Edit)</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Salary / Compensation (XAF)</label>
-                    <input type="number" value={form.salary} onChange={e => setForm({ ...form, salary: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="e.g. 500000" />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Home Address</label>
-                    <input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="Full residential address" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Personal Email</label>
-                    <input type="email" value={form.personalEmail} onChange={e => setForm({ ...form, personalEmail: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="personal@example.com" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Emergency Contact</label>
-                    <input value={form.emergencyContact} onChange={e => setForm({ ...form, emergencyContact: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="Name & Phone" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Date of Birth</label>
-                    <input type="date" value={form.dateOfBirth} onChange={e => setForm({ ...form, dateOfBirth: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Hire Date</label>
-                    <input type="date" value={form.hireDate} onChange={e => setForm({ ...form, hireDate: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Temporary Password *</label>
-                    <input required type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="Min 8 characters" minLength={8} />
-                  </div>
-                </div>
-                <div className="flex gap-4 pt-2">
-                  <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-4 border border-outline-variant/30 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container transition-all">Cancel</button>
-                  <button type="submit" disabled={submitting} className="flex-1 py-4 bg-primary text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:shadow-lg transition-all disabled:opacity-60">
-                    {submitting ? 'Creating…' : 'Deploy Operative'}
+                </section>
+
+                <div className="flex gap-4 pt-4 border-t border-outline-variant/20">
+                  <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3.5 border border-outline-variant/30 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-surface-container transition-all">Cancel</button>
+                  <button type="submit" disabled={submitting} className="flex-1 py-3.5 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:shadow-lg transition-all disabled:opacity-60">
+                    {submitting ? 'Creating Employee…' : 'Create Employee'}
                   </button>
                 </div>
               </form>
