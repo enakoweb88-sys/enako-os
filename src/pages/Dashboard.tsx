@@ -14,18 +14,36 @@ import OutreachOverview from './dashboards/outreach/OutreachOverview';
 export default function Dashboard() {
   const { user } = useAuth();
   const role = user?.role?.toLowerCase() ?? 'employee';
+  const dept = (user?.department?.name || user?.department || '').toString().toLowerCase();
   const isHead = (user?.ledDepartments?.length ?? 0) > 0;
 
+  const activeDepartment = () => {
+    if (role === 'ceo') return 'ceo';
+    if (role === 'manager') return 'manager';
+    if (role === 'outreach_manager') return 'outreach';
+
+    if (role === 'finance' || dept.includes('finance') || dept.includes('account')) return 'finance';
+    if (role === 'digital' || dept.includes('digital') || dept.includes('marketing') || dept.includes('media') || dept.includes('communication')) return 'digital';
+    if (role === 'bd' || dept.includes('business') || dept.includes('sales') || dept.includes('bd')) return 'bd';
+    if (role === 'support' || dept.includes('support') || dept.includes('customer') || dept.includes('help')) return 'support';
+    if (role === 'admin' || dept.includes('admin') || dept.includes('hr') || dept.includes('human')) return 'admin';
+    if (dept.includes('outreach') || dept.includes('community')) return 'outreach';
+
+    return 'employee';
+  };
+
+  const currentDept = activeDepartment();
+
   const getDashboardTitle = () => {
-    switch(role) {
+    switch(currentDept) {
       case 'ceo': return 'Enterprise Command Center';
       case 'manager': return 'Operations Dashboard';
-      case 'finance': return 'Financial Overview';
-      case 'bd': return 'Business Development';
-      case 'digital': return 'Digital Command Center';
-      case 'admin': return 'HR & Admin Hub';
-      case 'support': return 'Customer Support Center';
-      case 'outreach_manager': return 'Outreach & Community Impact';
+      case 'finance': return 'Financial Overview & Accounting Workspace';
+      case 'bd': return 'Business Development & Sales Hub';
+      case 'digital': return 'Digital Marketing & Social Media Command Center';
+      case 'admin': return 'HR & Administrative Hub';
+      case 'support': return 'Customer Support & Help Desk Center';
+      case 'outreach': return 'Outreach & Community Impact Hub';
       default: return 'My Workspace';
     }
   };
@@ -43,18 +61,16 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {role === 'ceo' && <CEODashboard />}
-      {role === 'manager' && <ManagerDashboard />}
-      {role === 'finance' && <FinanceDashboard />}
-      {role === 'bd' && <BDOfficerDashboard />}
-      {role === 'digital' && <DigitalDashboard />}
-      {role === 'admin' && <AdminDashboard />}
-      {role === 'support' && <SupportDashboard />}
-      {role === 'outreach_manager' && <OutreachOverview />}
-      {role === 'employee' && isHead && <HeadDashboard />}
-      {role === 'employee' && !isHead && <EmployeeDashboard />}
-      {/* Fallback if role is unmapped but exists */}
-      {!['ceo', 'manager', 'finance', 'bd', 'digital', 'admin', 'support', 'outreach_manager', 'employee'].includes(role) && <EmployeeDashboard />}
+      {currentDept === 'ceo' && <CEODashboard />}
+      {currentDept === 'manager' && <ManagerDashboard />}
+      {currentDept === 'finance' && <FinanceDashboard />}
+      {currentDept === 'bd' && <BDOfficerDashboard />}
+      {currentDept === 'digital' && <DigitalDashboard />}
+      {currentDept === 'admin' && <AdminDashboard />}
+      {currentDept === 'support' && <SupportDashboard />}
+      {currentDept === 'outreach' && <OutreachOverview />}
+      {currentDept === 'employee' && isHead && <HeadDashboard />}
+      {currentDept === 'employee' && !isHead && <EmployeeDashboard />}
     </div>
   );
 }

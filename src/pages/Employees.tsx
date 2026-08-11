@@ -99,8 +99,9 @@ export default function Employees() {
     if (!editForm) return;
     setSubmitting(true);
     try {
-      const payload = {
+      const payload: any = {
         fullName: editForm.fullName,
+        email: role === 'ceo' ? editForm.email : undefined,
         phone: editForm.phone,
         title: editForm.title,
         role: editForm.role,
@@ -197,8 +198,18 @@ export default function Employees() {
               </div>
 
               <div className="p-4 bg-white rounded-xl border border-outline-variant/20 text-left">
-                <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-1">Corporate Email</p>
-                <p className="text-sm font-medium truncate">{data.email}</p>
+                <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-1">Corporate Email {role === 'ceo' && editMode && '(CEO Editable)'}</p>
+                {editMode && role === 'ceo' ? (
+                  <input 
+                    type="email" 
+                    value={data.email || ''} 
+                    onChange={e => setEditForm({ ...data, email: e.target.value })} 
+                    className="w-full bg-surface border border-outline-variant/30 rounded-lg p-2 text-sm font-bold text-primary outline-none focus:ring-2 focus:ring-primary/20" 
+                    placeholder="newcorporate@enako.com" 
+                  />
+                ) : (
+                  <p className="text-sm font-medium truncate">{data.email}</p>
+                )}
               </div>
 
               {canEdit && (
