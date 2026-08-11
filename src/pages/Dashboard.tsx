@@ -20,7 +20,7 @@ export default function Dashboard() {
 
   const activeDepartment = () => {
     if (role === 'ceo') return 'ceo';
-    if (role === 'manager') return 'manager';
+    if (role === 'manager' || dept.includes('management') || dept.includes('executive') || dept.includes('strategy') || dept.includes('director')) return 'manager';
     if (role === 'outreach_manager') return 'outreach';
 
     if (role === 'engineering' || dept.includes('engineering') || dept.includes('software') || dept.includes('tech') || dept.includes('developer') || dept.includes('dev')) return 'engineering';
@@ -39,7 +39,7 @@ export default function Dashboard() {
   const getDashboardTitle = () => {
     switch(currentDept) {
       case 'ceo': return 'Enterprise Command Center';
-      case 'manager': return 'Operations Dashboard';
+      case 'manager': return 'Management Strategy & Operations Hub';
       case 'engineering': return 'Engineering & Software Architecture Center';
       case 'finance': return 'Financial Overview & Accounting Workspace';
       case 'bd': return 'Business Development & Sales Hub';

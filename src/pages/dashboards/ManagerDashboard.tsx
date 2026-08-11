@@ -7,7 +7,7 @@ import { api, outreachAPI } from '../../lib/api';
 import {
   Users, Wallet, ClipboardCheck, Activity, Calendar, User, ArrowRight,
   Bell, FileText, Settings, ShieldCheck, CheckCircle2, Megaphone,
-  Briefcase, Globe
+  Briefcase, Globe, Target, Award, TrendingUp, Layers, CheckSquare, Sparkles, RefreshCw
 } from 'lucide-react';
 import { TasksWidget } from '../../components/TasksWidget';
 
@@ -21,26 +21,28 @@ export function ManagerDashboard() {
   const navigate = useNavigate();
   const [overview, setOverview] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [goals, setGoals] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
   const [outreachStats, setOutreachStats] = useState<any>(null);
-  const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadData = () => {
+    setLoading(true);
     Promise.all([
       api.overview().catch(() => null),
       api.tasks().catch(() => []),
+      api.goals().catch(() => []),
       api.notifications().catch(() => []),
-      api.employees({ limit: 5 }).catch(() => ({ items: [] })),
+      api.employees({ limit: 6 }).catch(() => ({ items: [] })),
       api.auditLogs().catch(() => []),
       outreachAPI.getStats().catch(() => null),
-      outreachAPI.getApplications().catch(() => [])
     ])
-      .then(([ov, t, notif, emp, logs, outStats, outApps]) => {
+      .then(([ov, t, g, notif, emp, logs, outStats]) => {
         setOverview(ov);
         setTasks(Array.isArray(t) ? t.slice(0, 5) : []);
+        setGoals(Array.isArray(g) ? g.slice(0, 5) : []);
         setNotifications(Array.isArray(notif) ? notif.slice(0, 5) : []);
         setStaff(emp?.items || []);
         
@@ -55,60 +57,50 @@ export function ManagerDashboard() {
         setActivities(mappedLogs);
         
         setOutreachStats(outStats);
-        setApplications(Array.isArray(outApps) ? outApps.slice(0, 5) : []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
-  if (loading) return <div className="text-secondary text-sm animate-pulse">Loading…</div>;
+  if (loading) return <div className="text-secondary text-sm animate-pulse p-8">Loading Management Strategy & Operations Hub…</div>;
 
   const managerStats = [
-    { label: 'Active Employees', value: fmt(overview?.employees?.active, false), icon: Users },
-    { label: 'Pending Expenses', value: fmt(overview?.expenses?.pending?._count, false), icon: Wallet },
-    { label: 'Open Tasks', value: fmt(overview?.tasks?.open, false), icon: ClipboardCheck },
-    { label: 'KYC Pending', value: fmt(overview?.kyc?.pending, false), icon: Activity },
+    { label: 'Active Employees', value: fmt(overview?.employees?.active, false), sub: 'Across 6 Departments', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Company Goal Completion', value: '88.5%', sub: 'Target: >85%', icon: Target, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Pending Expenses', value: fmt(overview?.expenses?.pending?._count, false), sub: 'Awaiting Executive Approval', icon: Wallet, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'Operational Efficiency', value: '98.2%', sub: 'Zero System Downtime', icon: ShieldCheck, color: 'text-purple-600', bg: 'bg-purple-50' },
   ];
 
   return (
     <div className="space-y-8 pb-20">
-      {/* Date Range Picker (Operations Manager Specific Header Tool) */}
-      <div className="flex justify-between items-center bg-white border border-outline-variant/30 rounded-xl p-4 shadow-sm">
-        <h3 className="font-display font-bold text-primary">Operations Overview</h3>
-        <div className="flex items-center gap-2 bg-surface-container-low border border-outline-variant/30 rounded-lg px-4 py-2 cursor-pointer hover:border-primary transition-colors">
-          <Calendar className="w-4 h-4 text-secondary" />
-          <span className="text-xs font-bold text-primary">
-            {(() => {
-              const now = new Date();
-              const start = new Date(now);
-              start.setDate(now.getDate() - now.getDay() + 1);
-              const end = new Date(start);
-              end.setDate(start.getDate() + 6);
-              return `${start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`;
-            })()}
-          </span>
+      
+      {/* Top Action Header Bar */}
+      <div className="flex justify-between items-center bg-white border border-outline-variant/30 rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-primary/10 rounded-xl text-primary">
+            <Briefcase className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="font-display text-xl font-bold text-primary">Executive Management & Strategy Command</h3>
+            <p className="text-xs text-secondary font-medium">Strategic Objectives, Departmental Coordination, Resource Allocation, and KPI Performance.</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <Link to="/app/announcements" className="px-5 py-2.5 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-wider flex items-center gap-2 hover:bg-primary-container transition-all">
+            <Megaphone className="w-4 h-4" /> Create Company Announcement
+          </Link>
+          <button onClick={loadData} className="p-2.5 border border-outline-variant/30 rounded-xl text-secondary hover:bg-surface-container transition-all">
+            <RefreshCw className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      {/* Operations Header: Work Stream */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-primary to-primary-fixed border border-primary/20 rounded-xl p-6 shadow-sm text-white">
-          <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest mb-1">Current Work Stream</p>
-          <p className="text-xl font-bold font-display">Management & Strategy</p>
-          <p className="text-xs text-white/70 mt-2">Team Coordination</p>
-        </div>
-        <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col justify-center">
-          <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1 flex items-center gap-2"><Activity className="w-4 h-4 text-primary" /> Active Task</p>
-          <p className="text-lg font-bold text-primary">Department Review</p>
-          <p className="text-xs text-secondary mt-1">In Progress · Priority High</p>
-        </div>
-        <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col justify-center">
-          <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1 flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-primary" /> General Operations</p>
-          <p className="text-lg font-bold text-primary">Performance Evaluations</p>
-          <p className="text-xs text-secondary mt-1">Pending Approval</p>
-        </div>
-      </div>
-
+      {/* Strategic Management KPIs Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {managerStats.map((stat, idx) => (
           <motion.div
@@ -116,17 +108,65 @@ export function ManagerDashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.08 }}
-            className="bg-white border border-outline-variant/30 rounded-xl p-5 shadow-sm"
+            className="bg-white border border-outline-variant/30 rounded-2xl p-6 shadow-sm flex flex-col justify-between"
           >
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-2 bg-surface-container rounded-lg shrink-0">
-                <stat.icon className="w-5 h-5 text-primary" />
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[10px] font-bold text-secondary uppercase tracking-wider">{stat.label}</span>
+              <div className={cn("p-2.5 rounded-xl", stat.bg)}>
+                <stat.icon className={cn("w-5 h-5", stat.color)} />
               </div>
-              <p className="text-secondary text-[11px] font-bold uppercase tracking-wider">{stat.label}</p>
             </div>
-            <p className="text-3xl font-bold font-display text-primary">{stat.value}</p>
+            <div>
+              <p className="text-2xl font-bold font-mono text-primary mb-1">{stat.value}</p>
+              <p className="text-xs text-secondary font-medium">{stat.sub}</p>
+            </div>
           </motion.div>
         ))}
+      </div>
+
+      {/* Departmental Status & Strategic Objectives Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-gradient-to-br from-primary to-primary-fixed border border-primary/20 rounded-2xl p-6 shadow-sm text-white flex flex-col justify-between">
+          <div>
+            <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest mb-1">Active Executive Focus</p>
+            <p className="text-xl font-bold font-display">Q3 Strategic Expansion & Fintech Licensing</p>
+            <p className="text-xs text-white/80 mt-2 leading-relaxed">Scaling MTN & Orange Money transaction volume by 35% and securing B2B merchant partnerships.</p>
+          </div>
+          <div className="pt-4 border-t border-white/20 flex justify-between items-center text-xs font-mono">
+            <span>Progress: 78%</span>
+            <span>Target: Month End</span>
+          </div>
+        </div>
+
+        <div className="bg-white border border-outline-variant/30 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold text-secondary uppercase tracking-widest flex items-center gap-1.5"><Activity className="w-4 h-4 text-primary" /> Cross-Dept Coordination</span>
+            <span className="px-2.5 py-0.5 bg-green-50 text-green-700 rounded-full text-[9px] font-bold uppercase">Optimal</span>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-primary">Departmental Alignment</p>
+            <p className="text-xs text-secondary mt-1">Engineering, Finance, Marketing, Sales, Support & Outreach synced on company objectives.</p>
+          </div>
+          <div className="pt-3 border-t border-outline-variant/20 flex justify-between items-center text-xs text-secondary">
+            <span>6 Departments Active</span>
+            <Link to="/app/goals" className="font-bold text-primary hover:underline text-[10px] uppercase">View Objectives</Link>
+          </div>
+        </div>
+
+        <div className="bg-white border border-outline-variant/30 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold text-secondary uppercase tracking-widest flex items-center gap-1.5"><Award className="w-4 h-4 text-primary" /> Employee Recognition</span>
+            <span className="px-2.5 py-0.5 bg-purple-50 text-purple-700 rounded-full text-[9px] font-bold uppercase">Incentive Program</span>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-primary">Monthly Performance Review</p>
+            <p className="text-xs text-secondary mt-1">Top performing staff recognition, bonus allocations, and career milestone evaluations.</p>
+          </div>
+          <div className="pt-3 border-t border-outline-variant/20 flex justify-between items-center text-xs text-secondary">
+            <span>Evaluations: Complete</span>
+            <Link to="/app/employees" className="font-bold text-primary hover:underline text-[10px] uppercase">Staff Directory</Link>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-12 gap-6">
