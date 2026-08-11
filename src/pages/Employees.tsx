@@ -8,6 +8,64 @@ import { cn } from '../lib/utils';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
+const DEPARTMENT_POSITIONS: Record<string, string[]> = {
+  'Engineering': [
+    'Backend Engineer',
+    'Frontend Engineer',
+    'Full Stack Developer',
+    'DevOps / Infrastructure Engineer',
+    'Mobile Developer (iOS/Android)',
+    'QA / Software Test Engineer',
+    'Cybersecurity Specialist',
+    'Software Architect'
+  ],
+  'Finance': [
+    'Financial Analyst',
+    'Treasury & FX Officer',
+    'Accountant / Bookkeeper',
+    'B2B Settlement Specialist',
+    'Payroll Administrator',
+    'Tax & Audit Specialist',
+    'Risk & Loss Prevention Officer'
+  ],
+  'Digital Marketing': [
+    'Social Media Manager',
+    'Content Creator & Copywriter',
+    'Growth & Paid Ads Marketer',
+    'SEO & Web Analytics Specialist',
+    'Video Producer & Graphic Designer',
+    'Brand Strategy Officer'
+  ],
+  'Operations': [
+    'Operations Officer',
+    'Mobile Money Float Coordinator',
+    'Customer Operations Specialist',
+    'Logistics & Branch Coordinator',
+    'Process & Workflow Associate'
+  ],
+  'Compliance': [
+    'Compliance & Regulatory Officer',
+    'KYC / AML Analyst',
+    'Financial Crime Prevention Specialist',
+    'Data Protection & Privacy Officer',
+    'Internal Audit Inspector'
+  ],
+  'Management': [
+    'Strategic Planning Associate',
+    'Executive Operations Assistant',
+    'Departmental Coordinator',
+    'KPI Performance Analyst',
+    'Project Management Specialist'
+  ],
+  'HR': [
+    'HR Generalist',
+    'Talent Acquisition / Recruiter',
+    'Onboarding & Culture Specialist',
+    'Employee Relations Associate',
+    'Training & Development Officer'
+  ]
+};
+
 export default function Employees() {
   const { user } = useAuth();
   const role = user?.role?.toLowerCase() ?? 'employee';
@@ -21,11 +79,11 @@ export default function Employees() {
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
-    fullName: '', email: '', phone: '', title: '',
+    fullName: '', email: '', phone: '', title: 'Backend Engineer',
     role: 'EMPLOYEE', department: 'Engineering', password: '',
     dateOfBirth: '', address: '', personalEmail: '', employmentType: 'Full-Time',
     salary: '', emergencyContact: '', hireDate: '',
-    position: '', responsibilities: '', goals: '', permissions: 'Standard Operations Access',
+    position: 'Backend Engineer', responsibilities: '', goals: '', permissions: 'Standard Operations Access',
   });
 
   const [viewEmployee, setViewEmployee] = useState<any>(null);
@@ -686,23 +744,12 @@ export default function Employees() {
                   <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-outline-variant/20">
                     <ShieldAlert className="w-4 h-4 text-primary" /> 2. Role Level
                   </h4>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { key: 'CEO', label: 'CEO', desc: 'Full Executive Privileges' },
-                      { label: 'Manager', key: 'MANAGER', desc: 'Department & Team Management' },
-                      { label: 'Employee', key: 'EMPLOYEE', desc: 'Standard Operative Workspace' },
-                    ].map(r => (
-                      <label key={r.key} className={cn(
-                        "p-4 border rounded-2xl cursor-pointer flex flex-col justify-between transition-all",
-                        form.role === r.key ? "border-primary bg-primary/5 text-primary shadow-xs" : "border-outline-variant/30 hover:bg-surface-container-low"
-                      )}>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-bold text-sm">{r.label}</span>
-                          <input type="radio" name="employee_role" value={r.key} checked={form.role === r.key} onChange={e => setForm({ ...form, role: e.target.value })} className="text-primary focus:ring-primary" />
-                        </div>
-                        <p className="text-[10px] text-secondary font-medium">{r.desc}</p>
-                      </label>
-                    ))}
+                  <div className="p-4 border border-primary/30 bg-primary/5 rounded-2xl flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-sm text-primary uppercase tracking-wider">Employee</span>
+                      <p className="text-[10px] text-secondary font-medium mt-0.5">Standard Operative Workspace & Departmental Access</p>
+                    </div>
+                    <span className="px-3 py-1 bg-primary text-white rounded-full text-[10px] font-bold uppercase tracking-widest">Employee Role</span>
                   </div>
                 </section>
 
@@ -726,7 +773,19 @@ export default function Employees() {
                         form.department === d ? "border-primary bg-primary/5 text-primary font-bold shadow-xs" : "border-outline-variant/30 hover:bg-surface-container-low"
                       )}>
                         <span className="text-xs font-bold">{d}</span>
-                        <input type="radio" name="employee_dept" value={d} checked={form.department === d} onChange={e => setForm({ ...form, department: e.target.value })} className="text-primary focus:ring-primary" />
+                        <input
+                          type="radio"
+                          name="employee_dept"
+                          value={d}
+                          checked={form.department === d}
+                          onChange={e => {
+                            const deptName = e.target.value;
+                            const positions = DEPARTMENT_POSITIONS[deptName] || [];
+                            const firstPos = positions[0] || '';
+                            setForm({ ...form, department: deptName, position: firstPos, title: firstPos });
+                          }}
+                          className="text-primary focus:ring-primary"
+                        />
                       </label>
                     ))}
                   </div>
@@ -735,11 +794,20 @@ export default function Employees() {
                 {/* 4. Position */}
                 <section className="space-y-4">
                   <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-outline-variant/20">
-                    <Activity className="w-4 h-4 text-primary" /> 4. Job Position
+                    <Activity className="w-4 h-4 text-primary" /> 4. Job Position ({form.department} Department)
                   </h4>
                   <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Position / Job Title *</label>
-                    <input required value={form.position} onChange={e => setForm({ ...form, position: e.target.value, title: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="e.g. Backend Engineer, Finance Analyst, Digital Marketer" />
+                    <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Select Position / Job Title *</label>
+                    <select
+                      required
+                      value={form.position}
+                      onChange={e => setForm({ ...form, position: e.target.value, title: e.target.value })}
+                      className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm font-bold text-primary outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      {(DEPARTMENT_POSITIONS[form.department] || []).map(pos => (
+                        <option key={pos} value={pos}>{pos}</option>
+                      ))}
+                    </select>
                   </div>
                 </section>
 
