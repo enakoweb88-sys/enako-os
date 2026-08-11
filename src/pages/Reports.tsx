@@ -88,6 +88,17 @@ export default function Reports() {
 
   const handleSaveReport = async (e: React.FormEvent, status: 'DRAFT' | 'SUBMITTED') => {
     e.preventDefault();
+
+    if (!dailyForm.title || dailyForm.title.trim() === '') {
+      toast.error('Please enter a Report Title before submitting.');
+      return;
+    }
+
+    if (!dailyForm.details || dailyForm.details.trim() === '') {
+      toast.error('Please fill in the Report Details before submitting.');
+      return;
+    }
+
     setIsGenerating(true);
     try {
       const formattedContent = `Title: ${dailyForm.title}
