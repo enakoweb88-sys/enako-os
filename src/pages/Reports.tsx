@@ -45,7 +45,7 @@ export default function Reports() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dailyForm, setDailyForm] = useState({
     title: '',
-    type: 'DAILY',
+    type: 'WEEKLY',
     category: 'General',
     impact: 'Low',
     details: '',
@@ -101,7 +101,7 @@ ${dailyForm.recommendation}`;
 
       const payload = {
         content: formattedContent,
-        type: isManager ? dailyForm.type : 'DAILY',
+        type: isManager ? dailyForm.type : 'WEEKLY',
         status,
         attachments: {
           ...dailyForm.attachments,
@@ -120,7 +120,7 @@ ${dailyForm.recommendation}`;
         setEditingId(null);
         setDailyForm({
           title: '',
-          type: 'DAILY',
+          type: 'WEEKLY',
           category: 'General',
           impact: 'Low',
           details: '',
@@ -236,7 +236,7 @@ ${dailyForm.recommendation}`;
     doc.text('Empowering Communities Through Innovation', 50, 27);
 
     // Report Type Badge
-    const badgeText = isGeneral ? 'GENERAL REPORT' : 'DAILY REPORT';
+    const badgeText = isGeneral ? 'GENERAL REPORT' : 'WEEKLY REPORT';
     doc.setFontSize(9);
     doc.setFont(undefined, 'bold');
     const badgeWidth = doc.getTextWidth(badgeText) + 12;
@@ -691,7 +691,7 @@ ${dailyForm.recommendation}`;
     }
 
     // Save
-    const fileName = isGeneral ? 'ENano_General_Report' : 'ENano_Daily_Report';
+    const fileName = isGeneral ? 'ENano_General_Report' : 'ENano_Weekly_Report';
     doc.save(`${fileName}_${new Date(report.date).toISOString().split('T')[0]}.pdf`);
   };
 
@@ -704,10 +704,11 @@ ${dailyForm.recommendation}`;
 
     if (isManager) {
       if (managerTab === 'today') {
-        const today = new Date().toLocaleDateString();
+        const now = new Date();
+        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         filtered = filtered.filter(r => 
-          new Date(r.date).toLocaleDateString() === today && 
-          r.type === 'DAILY'
+          new Date(r.date) >= oneWeekAgo && 
+          (r.type === 'WEEKLY' || r.type === 'DAILY')
         );
       }
     }
@@ -752,7 +753,7 @@ ${dailyForm.recommendation}`;
                 onClick={() => setManagerTab('today')} 
                 className={cn("px-6 py-2 rounded-lg text-sm font-bold transition-all", managerTab === 'today' ? "bg-white text-primary shadow-sm" : "text-secondary hover:text-primary")}
               >
-                Today's Team Reports
+                This Week's Team Reports
               </button>
               <button 
                 onClick={() => setManagerTab('all')} 
@@ -767,7 +768,7 @@ ${dailyForm.recommendation}`;
             <div className="p-8 border-b border-outline-variant/20 flex items-center justify-between">
               <h3 className="text-sm font-bold text-primary flex items-center gap-2">
                 {isManager && managerTab === 'today' ? <Users className="w-5 h-5 text-primary-container" /> : <Archive className="w-5 h-5 text-primary-container" />} 
-                {isCeo ? 'General Reports' : (isManager && managerTab === 'today' ? 'Available Reports for the Day' : 'Stored Reports')}
+                {isCeo ? 'General Reports' : (isManager && managerTab === 'today' ? 'Available Reports for the Week' : 'Stored Reports')}
               </h3>
               <div className="relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-outline w-4 h-4" />
@@ -858,7 +859,7 @@ ${dailyForm.recommendation}`;
                     onChange={e => setDailyForm({...dailyForm, type: e.target.value})}
                     className="w-full bg-primary/5 border border-primary/20 text-primary rounded-xl px-5 py-3.5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary-container transition-all"
                   >
-                    <option value="DAILY">Daily Shift Report (Internal)</option>
+                    <option value="WEEKLY">Weekly Report (Internal)</option>
                     <option value="GENERAL">General Report (Submit to CEO)</option>
                   </select>
                 </div>
@@ -883,7 +884,7 @@ ${dailyForm.recommendation}`;
                   value={dailyForm.title}
                   onChange={e => setDailyForm({...dailyForm, title: e.target.value})}
                   className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-5 py-3.5 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-container transition-all" 
-                  placeholder="E.g., End of Shift Report" 
+                  placeholder="E.g., Weekly Summary Report" 
                 />
               </div>
               
@@ -925,7 +926,7 @@ ${dailyForm.recommendation}`;
                 value={dailyForm.details} 
                 onChange={e => setDailyForm({...dailyForm, details: e.target.value})} 
                 className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-5 py-3.5 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-container transition-all resize-none" 
-                placeholder="What did you work on today?" 
+                placeholder="What did your team work on this week?" 
               />
             </div>
 
@@ -936,7 +937,7 @@ ${dailyForm.recommendation}`;
                 value={dailyForm.recommendation} 
                 onChange={e => setDailyForm({...dailyForm, recommendation: e.target.value})} 
                 className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-5 py-3.5 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-container transition-all resize-none" 
-                placeholder="Any recommendations for future shifts or ongoing issues?" 
+                placeholder="Any recommendations for next week or ongoing issues?" 
               />
             </div>
 
