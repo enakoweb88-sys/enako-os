@@ -9,6 +9,7 @@ import { DigitalDashboard } from './dashboards/DigitalDashboard';
 import { AdminDashboard } from './dashboards/AdminDashboard';
 import { SupportDashboard } from './dashboards/SupportDashboard';
 import { HeadDashboard } from './dashboards/HeadDashboard';
+import { EngineeringDashboard } from './dashboards/EngineeringDashboard';
 import OutreachOverview from './dashboards/outreach/OutreachOverview';
 
 export default function Dashboard() {
@@ -22,6 +23,7 @@ export default function Dashboard() {
     if (role === 'manager') return 'manager';
     if (role === 'outreach_manager') return 'outreach';
 
+    if (role === 'engineering' || dept.includes('engineering') || dept.includes('software') || dept.includes('tech') || dept.includes('developer') || dept.includes('dev')) return 'engineering';
     if (role === 'finance' || dept.includes('finance') || dept.includes('account')) return 'finance';
     if (role === 'digital' || dept.includes('digital') || dept.includes('marketing') || dept.includes('media') || dept.includes('communication')) return 'digital';
     if (role === 'bd' || dept.includes('business') || dept.includes('sales') || dept.includes('bd')) return 'bd';
@@ -38,6 +40,7 @@ export default function Dashboard() {
     switch(currentDept) {
       case 'ceo': return 'Enterprise Command Center';
       case 'manager': return 'Operations Dashboard';
+      case 'engineering': return 'Engineering & Software Architecture Center';
       case 'finance': return 'Financial Overview & Accounting Workspace';
       case 'bd': return 'Business Development & Sales Hub';
       case 'digital': return 'Digital Marketing & Social Media Command Center';
@@ -63,6 +66,7 @@ export default function Dashboard() {
 
       {currentDept === 'ceo' && <CEODashboard />}
       {currentDept === 'manager' && <ManagerDashboard />}
+      {currentDept === 'engineering' && <EngineeringDashboard />}
       {currentDept === 'finance' && <FinanceDashboard />}
       {currentDept === 'bd' && <BDOfficerDashboard />}
       {currentDept === 'digital' && <DigitalDashboard />}

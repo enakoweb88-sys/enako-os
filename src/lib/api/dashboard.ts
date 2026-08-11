@@ -6,4 +6,5 @@ export const dashboardApi = {
   transactionChart: () => apiRequest<any>('/dashboard/charts/transactions'),
   employeeBreakdown: () => apiRequest<any>('/dashboard/charts/employees'),
   globalSearch: (query: string) => apiRequest<any>(`/dashboard/search?q=${encodeURIComponent(query)}`),
+  engineeringOverview: () => apiRequest<any>('/dashboard/engineering'),
 };
