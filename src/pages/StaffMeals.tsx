@@ -17,6 +17,7 @@ function fmt(val: string | number | null | undefined) {
 export default function StaffMeals() {
   const { user } = useAuth();
   const role = user?.role?.toLowerCase() ?? 'employee';
+  const isManager = role === 'manager' || role === 'outreach_manager';
 
   const [items, setItems] = useState<any[]>([]);
   const [totals, setTotals] = useState<any>(null);
@@ -25,7 +26,7 @@ export default function StaffMeals() {
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
-  const [form, setForm] = useState({ employeeId: '', date: new Date().toISOString().split('T')[0], status: 'ATE' as 'ATE' | 'DID_NOT_EAT', mealName: '', mealTime: '', price: '' });
+  const [form, setForm] = useState({ employeeId: user?.id || '', date: new Date().toISOString().split('T')[0], status: 'ATE' as 'ATE' | 'DID_NOT_EAT', mealName: '', mealTime: '', price: '1000' });
   const [disputeId, setDisputeId] = useState<string | null>(null);
   const [disputeReason, setDisputeReason] = useState('');
 
@@ -44,17 +45,18 @@ export default function StaffMeals() {
 
   const handleRecord = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.employeeId) return;
+    const targetEmployeeId = isManager ? form.employeeId : (user?.id || form.employeeId);
+    if (!targetEmployeeId) return;
     setSubmitting(true);
     try {
       const payload: any = {
-        employeeId: form.employeeId,
+        employeeId: targetEmployeeId,
         date: form.date,
         status: form.status,
+        price: 1000,
       };
       if (form.mealName) payload.mealName = form.mealName;
       if (form.mealTime) payload.mealTime = new Date(`${form.date}T${form.mealTime}:00`).toISOString();
-      if (form.price) payload.price = Number(form.price);
 
       await api.recordMeal(payload);
       setShowModal(false);
@@ -65,7 +67,7 @@ export default function StaffMeals() {
 
   const handleSelfLog = () => {
     if (!user) return;
-    setForm({ ...form, employeeId: user.id });
+    setForm({ ...form, employeeId: user.id, price: '1000' });
     setShowModal(true);
   };
 
@@ -430,10 +432,19 @@ export default function StaffMeals() {
               <form onSubmit={handleRecord} className="p-6 space-y-4">
                 <div>
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Employee *</label>
-                  <select required value={form.employeeId} onChange={e => setForm({ ...form, employeeId: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
-                    <option value="">Select employee…</option>
-                    {employees.map(e => <option key={e.id} value={e.id}>{e.fullName}</option>)}
-                  </select>
+                  {isManager ? (
+                    <select required value={form.employeeId} onChange={e => setForm({ ...form, employeeId: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
+                      <option value="">Select employee…</option>
+                      {employees.map(e => <option key={e.id} value={e.id}>{e.fullName}</option>)}
+                    </select>
+                  ) : (
+                    <input 
+                      type="text" 
+                      disabled 
+                      value={user?.fullName || 'Logged-in Employee'} 
+                      className="w-full bg-surface-container/50 border border-outline-variant/30 rounded-xl p-3 text-sm font-bold text-primary cursor-not-allowed" 
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Date *</label>
@@ -451,7 +462,7 @@ export default function StaffMeals() {
                   <>
                     <div>
                       <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Meal Name</label>
-                      <input type="text" value={form.mealName} onChange={e => setForm({ ...form, mealName: e.target.value })} placeholder="e.g. Lunch" className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none" />
+                      <input type="text" value={form.mealName} onChange={e => setForm({ ...form, mealName: e.target.value })} placeholder="e.g. Daily Delivery Lunch" className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
@@ -459,10 +470,11 @@ export default function StaffMeals() {
                         <input type="time" value={form.mealTime} onChange={e => setForm({ ...form, mealTime: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Price (XAF)</label>
-                        <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="e.g. 2000" className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none" />
+                        <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Price (XAF) *</label>
+                        <input type="text" disabled value="1,000 FCFA" className="w-full bg-surface-container/50 border border-outline-variant/30 rounded-xl p-3 text-sm font-bold text-primary cursor-not-allowed" />
                       </div>
                     </div>
+                    <p className="text-[10px] text-secondary font-medium mt-1">Fixed daily delivery rate (1,000 FCFA — 500 FCFA Company Paid / 500 FCFA Employee Paid)</p>
                   </>
                 )}
                 
