@@ -28,6 +28,7 @@ function fmt(val: string | number | null | undefined) {
 export default function Reports() {
   const { user } = useAuth();
   const role = (user?.role ?? 'EMPLOYEE').toLowerCase();
+  const isExecutiveManager = role === 'manager';
   const isManager = role === 'manager' || role === 'outreach_manager';
   const isCeo = role === 'ceo';
   
@@ -101,7 +102,7 @@ ${dailyForm.recommendation}`;
 
       const payload = {
         content: formattedContent,
-        type: isManager ? dailyForm.type : 'WEEKLY',
+        type: isExecutiveManager ? dailyForm.type : 'WEEKLY',
         status,
         attachments: {
           ...dailyForm.attachments,
@@ -851,7 +852,7 @@ ${dailyForm.recommendation}`;
           <form onSubmit={(e) => e.preventDefault()} className="bg-white rounded-[2rem] border border-outline-variant/30 shadow-sm p-8 max-w-4xl space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
-              {isManager && (
+              {isExecutiveManager && (
                 <div className="md:col-span-2">
                   <label className="block text-xs font-bold text-secondary mb-2 uppercase tracking-wider">Report Type *</label>
                   <select 
@@ -941,65 +942,67 @@ ${dailyForm.recommendation}`;
               />
             </div>
 
-
-
-            <div className="pt-4 border-t border-outline-variant/20">
-              <label className="block text-xs font-bold text-secondary mb-4 uppercase tracking-wider">Attach Data Modules (Auto-generates charts & tables)</label>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.keys(dailyForm.attachments).map(key => (
-                    <label key={key} className={cn("flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all", dailyForm.attachments[key as keyof typeof dailyForm.attachments] ? "bg-primary/5 border-primary" : "bg-white border-outline-variant/30 hover:border-primary/50")}>
-                      <div className={cn("w-5 h-5 rounded flex items-center justify-center transition-all", dailyForm.attachments[key as keyof typeof dailyForm.attachments] ? "bg-primary text-white" : "border border-outline-variant/50")}>
-                        {dailyForm.attachments[key as keyof typeof dailyForm.attachments] && <Check className="w-3.5 h-3.5" />}
-                      </div>
-                      <span className="text-sm font-bold text-primary capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                      <input 
-                        type="checkbox" 
-                        className="hidden" 
-                        checked={dailyForm.attachments[key as keyof typeof dailyForm.attachments]}
-                        onChange={(e) => setDailyForm({...dailyForm, attachments: {...dailyForm.attachments, [key]: e.target.checked}})}
-                      />
-                    </label>
-                  ))}
-                </div>
-                
-                {/* Custom Descriptions for selected attachments */}
+            {isExecutiveManager && (
+              <div className="pt-4 border-t border-outline-variant/20">
+                <label className="block text-xs font-bold text-secondary mb-4 uppercase tracking-wider">Attach Data Modules (Auto-generates charts & tables)</label>
                 <div className="space-y-4">
-                  <AnimatePresence>
-                    {Object.keys(dailyForm.attachments).filter(k => dailyForm.attachments[k as keyof typeof dailyForm.attachments]).map(key => (
-                      <motion.div 
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        key={`desc-${key}`} 
-                        className="bg-surface-container-low rounded-xl p-4 border border-outline-variant/30"
-                      >
-                        <label className="block text-xs font-bold text-secondary mb-2 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1').trim()} Summary / Description (Optional)</label>
-                        <p className="text-[10px] text-secondary mb-3">If left blank, the system will automatically generate a detailed, smart insight based on the actual data.</p>
-                        <textarea
-                          rows={2}
-                          value={(dailyForm.attachmentDescriptions as any)?.[key] || ''}
-                          onChange={(e) => setDailyForm({...dailyForm, attachmentDescriptions: {...dailyForm.attachmentDescriptions, [key]: e.target.value}})}
-                          className="w-full bg-white border border-outline-variant/30 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-container transition-all resize-none"
-                          placeholder={`Enter custom description for ${key}...`}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {Object.keys(dailyForm.attachments).map(key => (
+                      <label key={key} className={cn("flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all", dailyForm.attachments[key as keyof typeof dailyForm.attachments] ? "bg-primary/5 border-primary" : "bg-white border-outline-variant/30 hover:border-primary/50")}>
+                        <div className={cn("w-5 h-5 rounded flex items-center justify-center transition-all", dailyForm.attachments[key as keyof typeof dailyForm.attachments] ? "bg-primary text-white" : "border border-outline-variant/50")}>
+                          {dailyForm.attachments[key as keyof typeof dailyForm.attachments] && <Check className="w-3.5 h-3.5" />}
+                        </div>
+                        <span className="text-sm font-bold text-primary capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                        <input 
+                          type="checkbox" 
+                          className="hidden" 
+                          checked={dailyForm.attachments[key as keyof typeof dailyForm.attachments]}
+                          onChange={(e) => setDailyForm({...dailyForm, attachments: {...dailyForm.attachments, [key]: e.target.checked}})}
                         />
-                      </motion.div>
+                      </label>
                     ))}
-                  </AnimatePresence>
+                  </div>
+                  
+                  {/* Custom Descriptions for selected attachments */}
+                  <div className="space-y-4">
+                    <AnimatePresence>
+                      {Object.keys(dailyForm.attachments).filter(k => dailyForm.attachments[k as keyof typeof dailyForm.attachments]).map(key => (
+                        <motion.div 
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          key={`desc-${key}`} 
+                          className="bg-surface-container-low rounded-xl p-4 border border-outline-variant/30"
+                        >
+                          <label className="block text-xs font-bold text-secondary mb-2 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1').trim()} Summary / Description (Optional)</label>
+                          <p className="text-[10px] text-secondary mb-3">If left blank, the system will automatically generate a detailed, smart insight based on the actual data.</p>
+                          <textarea
+                            rows={2}
+                            value={(dailyForm.attachmentDescriptions as any)?.[key] || ''}
+                            onChange={(e) => setDailyForm({...dailyForm, attachmentDescriptions: {...dailyForm.attachmentDescriptions, [key]: e.target.value}})}
+                            className="w-full bg-white border border-outline-variant/30 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-container transition-all resize-none"
+                            placeholder={`Enter custom description for ${key}...`}
+                          />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            <div className="flex justify-between items-center pt-4 border-t border-outline-variant/20">
-              <button 
-                disabled={isGenerating} 
-                onClick={(e) => handleSaveReport(e, 'DRAFT')}
-                type="button" 
-                className="px-6 py-3 bg-white border border-outline-variant/30 text-secondary rounded-xl text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-surface-container-low transition-all disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" />
-                {isGenerating ? 'Saving...' : 'Save Draft'}
-              </button>
+            <div className={cn("flex items-center pt-4 border-t border-outline-variant/20", isExecutiveManager ? "justify-between" : "justify-end")}>
+              {isExecutiveManager && (
+                <button 
+                  disabled={isGenerating} 
+                  onClick={(e) => handleSaveReport(e, 'DRAFT')}
+                  type="button" 
+                  className="px-6 py-3 bg-white border border-outline-variant/30 text-secondary rounded-xl text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-surface-container-low transition-all disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  {isGenerating ? 'Saving...' : 'Save Draft'}
+                </button>
+              )}
               
               <button 
                 disabled={isGenerating} 
