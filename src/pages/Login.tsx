@@ -238,19 +238,6 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Dev credentials hint */}
-          <details className="mt-8 p-4 rounded-xl border border-outline-variant/30 bg-surface-container-low text-[11px]">
-            <summary className="font-bold uppercase tracking-wider text-secondary cursor-pointer select-none">
-              🔑 Test Credentials (Dev)
-            </summary>
-            <div className="mt-3 space-y-2 font-mono text-secondary">
-              <p><span className="text-primary font-bold">CEO:</span> ceo@enako.com / Enako@2025!</p>
-              <p><span className="text-primary font-bold">MGR:</span> manager@enako.com / Manager@2025!</p>
-              <p><span className="text-primary font-bold">EMP:</span> employee@enako.com / Employee@2025!</p>
-              <p><span className="text-primary font-bold">OUTREACH:</span> outreach@enako.com / Outreach@2025!</p>
-            </div>
-          </details>
-
           {/* Footer links */}
           <div className="mt-8 pt-8 border-t border-outline-variant">
             <div className="flex justify-center gap-6">
