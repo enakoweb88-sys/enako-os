@@ -64,6 +64,13 @@ const DEPARTMENT_POSITIONS: Record<string, string[]> = {
     'Onboarding & Culture Specialist',
     'Employee Relations Associate',
     'Training & Development Officer'
+  ],
+  'Outreach / NGO': [
+    'Outreach Manager',
+    'Field Operations Coordinator',
+    'Fundraising & Grants Specialist',
+    'Community Liaison Officer',
+    'Scholarship Administrator'
   ]
 };
 
@@ -349,8 +356,8 @@ export default function Employees() {
                 <div>
                   <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-1">Department</p>
                   {editMode ? (
-                    <select value={data.department} onChange={e => setEditForm({...data, department: e.target.value})} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none">
-                      {['Operations', 'Engineering', 'Finance', 'Compliance', 'Management', 'HR', 'Digital Marketer'].map(d => <option key={d}>{d}</option>)}
+                    <select value={data.department} onChange={e => setEditForm({...data, department: e.target.value})} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none font-bold">
+                      {['Engineering', 'Finance', 'Digital Marketing', 'Operations', 'Compliance', 'Management', 'HR', 'Outreach / NGO'].map(d => <option key={d}>{d}</option>)}
                     </select>
                   ) : (
                     <p className="text-sm font-medium">{data.department || '—'}</p>
@@ -359,9 +366,10 @@ export default function Employees() {
                 <div>
                   <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-1">Role Level</p>
                   {editMode ? (
-                    <select value={data.role} onChange={e => setEditForm({...data, role: e.target.value})} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none">
+                    <select value={data.role} onChange={e => setEditForm({...data, role: e.target.value})} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none font-bold">
                       <option value="EMPLOYEE">Employee</option>
                       <option value="MANAGER">Manager</option>
+                      <option value="OUTREACH_MANAGER">Outreach Manager</option>
                       <option value="CEO">CEO</option>
                     </select>
                   ) : (
@@ -763,14 +771,49 @@ export default function Employees() {
                 {/* 2. Role */}
                 <section className="space-y-4">
                   <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-outline-variant/20">
-                    <ShieldAlert className="w-4 h-4 text-primary" /> 2. Role Level
+                    <ShieldAlert className="w-4 h-4 text-primary" /> 2. Role Level Assignment *
                   </h4>
-                  <div className="p-4 border border-primary/30 bg-primary/5 rounded-2xl flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-sm text-primary uppercase tracking-wider">Employee</span>
-                      <p className="text-[10px] text-secondary font-medium mt-0.5">Standard Operative Workspace & Departmental Access</p>
-                    </div>
-                    <span className="px-3 py-1 bg-primary text-white rounded-full text-[10px] font-bold uppercase tracking-widest">Employee Role</span>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {[
+                      { id: 'EMPLOYEE', label: 'Employee', desc: 'Standard Operative & Departmental Access', icon: '👤' },
+                      { id: 'MANAGER', label: 'Manager', desc: 'Departmental Leadership & Team Oversight', icon: '👔' },
+                      { id: 'OUTREACH_MANAGER', label: 'Outreach Manager', desc: 'ENAKO Outreach Foundation & NGO Lead', icon: '🌍' },
+                    ].map(r => (
+                      <label key={r.id} className={cn(
+                        "p-4 border rounded-2xl cursor-pointer flex flex-col justify-between transition-all",
+                        form.role === r.id ? "border-primary bg-primary/5 text-primary shadow-xs font-bold" : "border-outline-variant/30 hover:bg-surface-container-low"
+                      )}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xl">{r.icon}</span>
+                          <input
+                            type="radio"
+                            name="employee_role_level"
+                            value={r.id}
+                            checked={form.role === r.id}
+                            onChange={e => {
+                              const selectedRole = e.target.value;
+                              if (selectedRole === 'OUTREACH_MANAGER') {
+                                const outPos = DEPARTMENT_POSITIONS['Outreach / NGO'][0];
+                                setForm({
+                                  ...form,
+                                  role: selectedRole,
+                                  department: 'Outreach / NGO',
+                                  position: outPos,
+                                  title: outPos
+                                });
+                              } else {
+                                setForm({ ...form, role: selectedRole });
+                              }
+                            }}
+                            className="text-primary focus:ring-primary"
+                          />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-primary uppercase tracking-wider">{r.label}</p>
+                          <p className="text-[10px] text-secondary mt-1 font-normal line-clamp-2">{r.desc}</p>
+                        </div>
+                      </label>
+                    ))}
                   </div>
                 </section>
 
@@ -787,7 +830,8 @@ export default function Employees() {
                       'Operations',
                       'Compliance',
                       'Management',
-                      'HR'
+                      'HR',
+                      'Outreach / NGO'
                     ].map(d => (
                       <label key={d} className={cn(
                         "p-3.5 border rounded-2xl cursor-pointer flex items-center justify-between transition-all",
