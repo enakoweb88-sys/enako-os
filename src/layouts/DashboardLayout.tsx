@@ -17,11 +17,11 @@ import { Loader2 } from 'lucide-react';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/app/dashboard', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
-  { icon: Share2, label: 'Social Accounts', path: '/app/marketing/accounts', roles: ['ceo', 'manager', 'digital', 'employee'] },
-  { icon: PenTool, label: 'Create Post & AI Studio', path: '/app/marketing/create-post', roles: ['ceo', 'manager', 'digital', 'employee'] },
-  { icon: Megaphone, label: 'Ad Campaigns', path: '/app/marketing/campaigns', roles: ['ceo', 'manager', 'digital', 'employee'] },
-  { icon: ClipboardList, label: 'Content Posts & Schedule', path: '/app/content', roles: ['ceo', 'manager', 'digital', 'employee'] },
-  { icon: Users, label: 'Marketing Leads', path: '/app/leads', roles: ['ceo', 'manager', 'digital', 'bd', 'employee'] },
+  { icon: Share2, label: 'Social Accounts', path: '/app/marketing/accounts', roles: ['digital'] },
+  { icon: PenTool, label: 'Create Post & AI Studio', path: '/app/marketing/create-post', roles: ['digital'] },
+  { icon: Megaphone, label: 'Ad Campaigns', path: '/app/marketing/campaigns', roles: ['digital'] },
+  { icon: ClipboardList, label: 'Content Posts & Schedule', path: '/app/content', roles: ['digital'] },
+  { icon: Users, label: 'Marketing Leads', path: '/app/leads', roles: ['digital'] },
   { icon: ClipboardList, label: 'Tasks', path: '/app/tasks', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
   { icon: Users, label: 'Employees', path: '/app/employees', roles: ['ceo', 'manager', 'admin'] },
   { icon: Calendar, label: 'Leaves', path: '/app/leaves', roles: ['ceo', 'manager', 'admin', 'employee'] },
