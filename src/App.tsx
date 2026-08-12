@@ -27,6 +27,11 @@ import Help from './pages/Help';
 import Investments from './pages/Investments';
 import DashboardLayout from './layouts/DashboardLayout';
 
+// Digital Marketing Pages
+import SocialAccounts from './pages/marketing/SocialAccounts';
+import MarketingCampaigns from './pages/marketing/MarketingCampaigns';
+import CreatePostStudio from './pages/marketing/CreatePostStudio';
+
 // Outreach Manager Pages
 import OutreachEvents from './pages/dashboards/outreach/OutreachEvents';
 import OutreachProjects from './pages/dashboards/outreach/OutreachProjects';
@@ -96,6 +101,9 @@ export default function App() {
             <Route path="support" element={<Navigate to="/app/tickets" replace />} />
             <Route path="content" element={<Content />} />
             <Route path="marketing" element={<Content />} />
+            <Route path="marketing/accounts" element={<SocialAccounts />} />
+            <Route path="marketing/campaigns" element={<MarketingCampaigns />} />
+            <Route path="marketing/create-post" element={<CreatePostStudio />} />
             <Route path="leaves" element={<Leaves />} />
             <Route path="investments" element={<Investments />} />
             <Route path="docs" element={<ApiDocs />} />

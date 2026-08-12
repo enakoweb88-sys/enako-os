@@ -90,10 +90,10 @@ export function DigitalDashboard() {
       {/* Marketing KPIs Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Campaign ROI', value: website.roi || '342%', sub: 'Target: >300%', icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
-          { label: 'Cost Per Acquisition (CPA)', value: website.cpa || '1,420 FCFA', sub: 'Per converted lead', icon: Target, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Monthly Website Traffic', value: fmt(website.sessions), sub: `${website.pageViews} Pageviews`, icon: Globe, color: 'text-purple-600', bg: 'bg-purple-50' },
-          { label: 'Content In Pipeline', value: calendar.summary?.scheduled || 12, sub: `${tasks.forReview || 2} Pending Approval`, icon: CalendarDays, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'Campaign ROI', value: website?.roi || '—', sub: 'Target: >300%', icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
+          { label: 'Cost Per Acquisition (CPA)', value: website?.cpa || '—', sub: 'Per converted lead', icon: Target, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Monthly Website Traffic', value: fmt(website?.sessions || 0), sub: `${fmt(website?.pageViews || 0)} Pageviews`, icon: Globe, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { label: 'Content In Pipeline', value: (calendar?.summary?.scheduled ?? 0), sub: `${tasks?.forReview ?? 0} Pending Approval`, icon: CalendarDays, color: 'text-amber-600', bg: 'bg-amber-50' },
         ].map((stat, idx) => (
           <motion.div
             key={stat.label}
@@ -119,10 +119,10 @@ export function DigitalDashboard() {
       {/* Financial Product Promotion Focus Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          { title: 'Remittance & MoMo', tag: 'Active Ad Campaign', status: 'High Engagement', desc: 'Promoting MTN & Orange Money instant transfers across Cameroon & Diaspora.' },
-          { title: 'B2B Payment Gateway', tag: 'LinkedIn / Meta', status: 'Merchant Lead Gen', desc: 'Targeting corporate merchants for ENAKO automated invoice settlements.' },
-          { title: 'High-Yield Savings', tag: 'Educational Reels', status: 'TikTok Viral', desc: 'Financial literacy content on automated monthly savings and interest growth.' },
-          { title: 'Land Banking & Land', tag: 'Investment Promo', status: 'High Converting', desc: 'Promoting verified real estate investment opportunities with guaranteed returns.' },
+          { title: 'Remittance & MoMo', tag: 'Mobile Money Promo', status: 'MTN & Orange Sync', desc: 'Promoting instant transfers across Cameroon & Diaspora.' },
+          { title: 'B2B Payment Gateway', tag: 'LinkedIn / Meta', status: 'Merchant Acquisition', desc: 'Targeting corporate merchants for ENAKO automated invoice settlements.' },
+          { title: 'High-Yield Savings', tag: 'Educational Reels', status: 'Financial Literacy', desc: 'Content on automated monthly savings and interest growth.' },
+          { title: 'Land Banking & Land', tag: 'Real Estate Promo', status: 'Investments Focus', desc: 'Promoting verified real estate investment opportunities with guaranteed returns.' },
         ].map((promo, idx) => (
           <div key={idx} className="p-5 bg-white border border-outline-variant/30 rounded-2xl shadow-sm space-y-2">
             <div className="flex justify-between items-center">
@@ -148,16 +148,16 @@ export function DigitalDashboard() {
           </div>
 
           <div className="flex gap-3 min-w-[640px]">
-            {calendar.dailyCounts.map((day: any) => (
+            {(calendar?.dailyCounts || []).map((day: any) => (
               <div key={day.day} className={`flex-1 border rounded-2xl p-4 transition-all ${day.day === 'Wed' ? 'border-primary bg-primary-fixed/30 shadow-xs' : 'border-outline-variant/30 bg-surface-container-low/40'}`}>
                 <p className="text-xs font-bold text-center uppercase tracking-widest text-primary mb-3">{day.day}</p>
                 <div className="space-y-2">
                   <div className="bg-white p-2.5 rounded-xl border border-outline-variant/20 shadow-xs text-center">
-                    <p className="text-sm font-bold text-primary">{day.posts}</p>
+                    <p className="text-sm font-bold text-primary">{day.posts || 0}</p>
                     <p className="text-[9px] text-secondary uppercase tracking-wider font-bold">Posts</p>
                   </div>
                   <div className="bg-white p-2.5 rounded-xl border border-outline-variant/20 shadow-xs text-center">
-                    <p className="text-sm font-bold text-primary">{day.reels}</p>
+                    <p className="text-sm font-bold text-primary">{day.reels || 0}</p>
                     <p className="text-[9px] text-secondary uppercase tracking-wider font-bold">Reels</p>
                   </div>
                 </div>
@@ -174,11 +174,11 @@ export function DigitalDashboard() {
           
           <div className="space-y-3">
             {[
-              { label: 'To Do', count: tasks.todo || 4, color: 'border-slate-200 text-slate-700' },
-              { label: 'In Progress', count: tasks.inProgress || 6, color: 'border-blue-200 text-blue-700 bg-blue-50' },
-              { label: 'For Review', count: tasks.forReview || 3, color: 'border-purple-200 text-purple-700 bg-purple-50' },
-              { label: 'Approved', count: tasks.approved || 8, color: 'border-green-200 text-green-700 bg-green-50' },
-              { label: 'Published', count: tasks.published || 24, color: 'border-primary/20 text-primary bg-primary-fixed' },
+              { label: 'To Do', count: tasks?.todo ?? 0, color: 'border-slate-200 text-slate-700' },
+              { label: 'In Progress', count: tasks?.inProgress ?? 0, color: 'border-blue-200 text-blue-700 bg-blue-50' },
+              { label: 'For Review', count: tasks?.forReview ?? 0, color: 'border-purple-200 text-purple-700 bg-purple-50' },
+              { label: 'Approved', count: tasks?.approved ?? 0, color: 'border-green-200 text-green-700 bg-green-50' },
+              { label: 'Published', count: tasks?.published ?? 0, color: 'border-primary/20 text-primary bg-primary-fixed' },
             ].map((stage) => (
               <div key={stage.label} className={cn("flex justify-between items-center p-3.5 rounded-2xl border transition-all", stage.color)}>
                 <span className="text-xs font-bold uppercase tracking-wider">{stage.label}</span>

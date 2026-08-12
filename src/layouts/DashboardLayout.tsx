@@ -7,7 +7,8 @@ import {
   Bell, BarChart3, Settings, LogOut, Search, HelpCircle,
   MessageSquare, UtensilsCrossed, User, Briefcase, Megaphone,
   Headphones, ClipboardList, TrendingUp, Menu, ChevronLeft, ChevronRight,
-  PenTool, Calendar, FileText, Mail, X, Building2, BookOpen, Heart
+  PenTool, Calendar, FileText, Mail, X, Building2, BookOpen, Heart,
+  Share2, Wand2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
@@ -16,14 +17,18 @@ import { Loader2 } from 'lucide-react';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/app/dashboard', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
+  { icon: Share2, label: 'Social Accounts', path: '/app/marketing/accounts', roles: ['ceo', 'manager', 'digital', 'employee'] },
+  { icon: PenTool, label: 'Create Post & AI Studio', path: '/app/marketing/create-post', roles: ['ceo', 'manager', 'digital', 'employee'] },
+  { icon: Megaphone, label: 'Ad Campaigns', path: '/app/marketing/campaigns', roles: ['ceo', 'manager', 'digital', 'employee'] },
+  { icon: ClipboardList, label: 'Content Posts & Schedule', path: '/app/content', roles: ['ceo', 'manager', 'digital', 'employee'] },
+  { icon: Users, label: 'Marketing Leads', path: '/app/leads', roles: ['ceo', 'manager', 'digital', 'bd', 'employee'] },
   { icon: ClipboardList, label: 'Tasks', path: '/app/tasks', roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
   { icon: Users, label: 'Employees', path: '/app/employees', roles: ['ceo', 'manager', 'admin'] },
   { icon: Calendar, label: 'Leaves', path: '/app/leaves', roles: ['ceo', 'manager', 'admin', 'employee'] },
   { icon: CreditCard, label: 'Transactions', path: '/app/transactions', roles: ['ceo', 'manager', 'finance'] },
   { icon: Wallet, label: 'Expenses', path: '/app/expenses', roles: ['ceo', 'manager', 'finance', 'employee'] },
   { icon: ShieldCheck, label: 'KYC Compliance', path: '/app/kyc', roles: ['ceo', 'manager', 'bd', 'support'] },
-  { icon: Target, label: 'Goals & KPIs', path: '/app/goals', roles: ['ceo', 'manager', 'bd', 'digital'] },
-  // Marketing is added dynamically
+  { icon: Target, label: 'Goals & KPIs', path: '/app/goals', roles: ['ceo', 'manager', 'bd', 'digital', 'employee'] },
   { icon: MessageSquare, label: 'Communications', path: '/app/chat', roles: ['ceo', 'manager', 'support', 'bd', 'digital', 'employee', 'outreach_manager'] },
   { icon: Headphones, label: 'Support Tickets', path: '/app/tickets', roles: ['ceo', 'support', 'manager', 'outreach_manager'] },
   { icon: UtensilsCrossed, label: 'Staff Meals', path: '/app/meals', roles: ['ceo', 'manager', 'admin', 'employee'] },
@@ -101,7 +106,22 @@ export default function DashboardLayout() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const role = (user?.role ?? 'EMPLOYEE').toLowerCase();
+  const userRole = (user?.role ?? 'EMPLOYEE').toLowerCase();
+  const userDept = (user?.department?.name || user?.department || '').toString().toLowerCase();
+
+  const getEffectiveRole = () => {
+    if (userRole === 'ceo') return 'ceo';
+    if (userRole === 'manager') return 'manager';
+    if (userRole === 'outreach_manager' || userDept.includes('outreach')) return 'outreach_manager';
+    if (userRole === 'digital' || userDept.includes('digital') || userDept.includes('marketing')) return 'digital';
+    if (userRole === 'finance' || userDept.includes('finance') || userDept.includes('account')) return 'finance';
+    if (userRole === 'bd' || userDept.includes('business') || userDept.includes('sales') || userDept.includes('bd')) return 'bd';
+    if (userRole === 'support' || userDept.includes('support') || userDept.includes('customer')) return 'support';
+    if (userRole === 'admin' || userDept.includes('admin') || userDept.includes('hr')) return 'admin';
+    return userRole;
+  };
+
+  const role = getEffectiveRole();
   const fullName = user?.fullName ?? 'Executive';
   const email = user?.email ?? '';
 
@@ -142,15 +162,7 @@ export default function DashboardLayout() {
     setShowNotif(false);
   };
 
-  const isDigitalMarketer = user?.department?.name === 'Digital Marketer' && role === 'employee';
   const filteredNavItems = navItems.filter((item) => item.roles.includes(role));
-
-  if (isDigitalMarketer) {
-    const chatIndex = filteredNavItems.findIndex(i => i.path === '/app/chat');
-    if (chatIndex !== -1) {
-      filteredNavItems.splice(chatIndex, 0, { icon: Megaphone, label: 'Marketing', path: '/app/marketing', roles: [] });
-    }
-  }
   // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
