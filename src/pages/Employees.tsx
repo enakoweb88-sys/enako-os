@@ -7,6 +7,7 @@ import {
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { toast } from 'sonner';
 
 const DEPARTMENT_POSITIONS: Record<string, string[]> = {
   'Engineering': [
@@ -180,11 +181,18 @@ export default function Employees() {
 
   const handleEditSubmit = async () => {
     if (!editForm) return;
+
+    // Validate the new corporate email format if provided
+    if (editForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) {
+      toast.error('Please enter a valid corporate email address.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload: any = {
         fullName: editForm.fullName,
-        email: role === 'ceo' ? editForm.email : undefined,
+        email: editForm.email,          // Always send — backend validates & checks uniqueness
         phone: editForm.phone,
         title: editForm.title,
         role: editForm.role,
@@ -200,7 +208,6 @@ export default function Employees() {
       };
       if (viewEmployee.id === user?.id && role !== 'ceo' && role !== 'manager') {
         await api.updateMe(payload);
-        // Also update local storage if it's the current user
         const storedStr = sessionStorage.getItem('enako_user');
         if (storedStr) {
           sessionStorage.setItem('enako_user', JSON.stringify({ ...JSON.parse(storedStr), ...payload }));
@@ -208,10 +215,11 @@ export default function Employees() {
       } else {
         await api.updateEmployee(viewEmployee.id, payload);
       }
+      toast.success(`Profile updated successfully! Corporate email set to ${editForm.email}`);
       setEditMode(false);
-      load(); // Will refresh list and current viewEmployee
+      load();
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message || 'Failed to save changes. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -280,18 +288,31 @@ export default function Employees() {
                 </div>
               </div>
 
-              <div className="p-4 bg-white rounded-xl border border-outline-variant/20 text-left">
-                <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-1">Corporate Email {role === 'ceo' && editMode && '(CEO Editable)'}</p>
+              <div className={cn(
+                "p-4 rounded-xl border text-left",
+                editMode && role === 'ceo' ? "bg-amber-50 border-amber-300" : "bg-white border-outline-variant/20"
+              )}>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] text-secondary uppercase tracking-widest font-bold flex items-center gap-1">
+                    <Mail className="w-3 h-3" /> Corporate Email
+                  </p>
+                  {editMode && role === 'ceo' && (
+                    <span className="px-2 py-0.5 bg-amber-200 text-amber-800 rounded text-[9px] font-black uppercase tracking-wider">CEO Editable</span>
+                  )}
+                </div>
                 {editMode && role === 'ceo' ? (
-                  <input 
-                    type="email" 
-                    value={data.email || ''} 
-                    onChange={e => setEditForm({ ...data, email: e.target.value })} 
-                    className="w-full bg-surface border border-outline-variant/30 rounded-lg p-2 text-sm font-bold text-primary outline-none focus:ring-2 focus:ring-primary/20" 
-                    placeholder="newcorporate@enako.com" 
-                  />
+                  <div className="space-y-2">
+                    <input 
+                      type="email"
+                      value={editForm?.email || ''}
+                      onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                      className="w-full bg-white border-2 border-amber-400 rounded-lg p-2.5 text-sm font-bold text-primary outline-none focus:ring-2 focus:ring-amber-400/40"
+                      placeholder="firstname.lastname@enako.com"
+                    />
+                    <p className="text-[10px] text-amber-700 font-medium">This will update the employee's login email address.</p>
+                  </div>
                 ) : (
-                  <p className="text-sm font-medium truncate">{data.email}</p>
+                  <p className="text-sm font-medium truncate text-primary">{data.email}</p>
                 )}
               </div>
 
