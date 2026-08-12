@@ -109,7 +109,7 @@ export default function Employees() {
       const res = await api.employees({ search, page, limit: 20 });
       setEmployees(res.items);
       setTotal(res.total);
-      
+
       if (viewEmployee) {
         const updated = res.items.find((e: any) => e.id === viewEmployee.id);
         if (updated) setViewEmployee(updated);
@@ -142,6 +142,8 @@ export default function Employees() {
         salary: form.salary,
         emergencyContact: form.emergencyContact,
         hireDate: form.hireDate,
+        responsibilities: form.responsibilities,
+        goals: form.goals,
       };
       await api.createEmployee(payload);
       setShowModal(false);
@@ -212,6 +214,8 @@ export default function Employees() {
         ledDepartments: editForm.ledDepartments,
         hireDate: editForm.hireDate ? new Date(editForm.hireDate).toISOString() : undefined,
         dateOfBirth: editForm.dateOfBirth ? new Date(editForm.dateOfBirth).toISOString() : undefined,
+        responsibilities: editForm.responsibilities,
+        goals: editForm.goals,
       };
       if (viewEmployee.id === user?.id && role !== 'ceo' && role !== 'manager') {
         await api.updateMe(payload);
@@ -240,7 +244,7 @@ export default function Employees() {
     return (
       <div className="space-y-8 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => { setViewEmployee(null); setEditMode(false); }}
             className="p-3 bg-white border border-outline-variant/30 rounded-xl hover:bg-surface-container transition-all"
           >
@@ -262,15 +266,15 @@ export default function Employees() {
                 {data.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
               </div>
             )}
-            
+
             {editMode ? (
-              <input value={data.fullName} onChange={e => setEditForm({...data, fullName: e.target.value})} className="w-full text-center font-display text-2xl font-bold text-primary bg-surface border border-outline-variant/30 rounded-lg p-2 mb-2" />
+              <input value={data.fullName} onChange={e => setEditForm({ ...data, fullName: e.target.value })} className="w-full text-center font-display text-2xl font-bold text-primary bg-surface border border-outline-variant/30 rounded-lg p-2 mb-2" />
             ) : (
               <h2 className="font-display text-2xl font-bold text-primary mb-2">{data.fullName}</h2>
             )}
 
             {editMode ? (
-              <input value={data.title || ''} onChange={e => setEditForm({...data, title: e.target.value})} placeholder="Title" className="w-full text-center text-xs font-bold text-secondary uppercase tracking-widest bg-surface border border-outline-variant/30 rounded-lg p-2 mb-6" />
+              <input value={data.title || ''} onChange={e => setEditForm({ ...data, title: e.target.value })} placeholder="Title" className="w-full text-center text-xs font-bold text-secondary uppercase tracking-widest bg-surface border border-outline-variant/30 rounded-lg p-2 mb-6" />
             ) : (
               <p className="text-xs font-bold text-secondary uppercase tracking-widest mb-6">{data.title || 'Operative'}</p>
             )}
@@ -283,9 +287,9 @@ export default function Employees() {
                     'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border',
                     data.status === 'ACTIVE' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200',
                   )}>{data.status}</span>
-                  
+
                   {canEdit && !editMode && (
-                    <button 
+                    <button
                       onClick={() => handleSuspend(data.id, data.status)}
                       className="text-[10px] font-bold text-primary underline"
                     >
@@ -309,7 +313,7 @@ export default function Employees() {
                 </div>
                 {editMode && role === 'ceo' ? (
                   <div className="space-y-2">
-                    <input 
+                    <input
                       type="email"
                       value={editForm?.email || ''}
                       onChange={e => setEditForm({ ...editForm, email: e.target.value })}
@@ -346,7 +350,7 @@ export default function Employees() {
 
           {/* Main Content Area */}
           <div className="flex-1 p-8 grid grid-cols-1 xl:grid-cols-2 gap-8 content-start">
-            
+
             {/* Organization Identity */}
             <section className="bg-surface-container-low/30 rounded-2xl p-6 border border-outline-variant/20">
               <h4 className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
@@ -356,7 +360,7 @@ export default function Employees() {
                 <div>
                   <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-1">Department</p>
                   {editMode ? (
-                    <select value={data.department} onChange={e => setEditForm({...data, department: e.target.value})} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none font-bold">
+                    <select value={data.department} onChange={e => setEditForm({ ...data, department: e.target.value })} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none font-bold">
                       {['Engineering', 'Finance', 'Digital Marketing', 'Operations', 'Compliance', 'Management', 'HR', 'Outreach / NGO'].map(d => <option key={d}>{d}</option>)}
                     </select>
                   ) : (
@@ -366,7 +370,7 @@ export default function Employees() {
                 <div>
                   <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-1">Role Level</p>
                   {editMode ? (
-                    <select value={data.role} onChange={e => setEditForm({...data, role: e.target.value})} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none font-bold">
+                    <select value={data.role} onChange={e => setEditForm({ ...data, role: e.target.value })} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none font-bold">
                       <option value="EMPLOYEE">Employee</option>
                       <option value="MANAGER">Manager</option>
                       <option value="OUTREACH_MANAGER">Outreach Manager</option>
@@ -382,8 +386,8 @@ export default function Employees() {
                     <div className="bg-white border border-outline-variant/30 rounded-lg p-3 max-h-40 overflow-y-auto space-y-2">
                       {['Operations', 'Engineering', 'Finance', 'Compliance', 'Management', 'HR', 'Digital Marketer'].map(d => (
                         <label key={d} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-surface-container-low p-1 rounded">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             checked={(data.ledDepartments || []).includes(d)}
                             onChange={(e) => {
                               const checked = e.target.checked;
@@ -414,6 +418,52 @@ export default function Employees() {
               </div>
             </section>
 
+            {/* Core Responsibilities & Initial Goals */}
+            <section className="bg-surface-container-low/30 rounded-2xl p-6 border border-outline-variant/20 xl:col-span-2 space-y-4">
+              <h4 className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] flex items-center gap-2">
+                <Check className="w-4 h-4" /> Core Responsibilities & Initial Goals
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white border border-outline-variant/30 rounded-xl p-4 space-y-2">
+                  <p className="text-[10px] font-bold text-secondary uppercase tracking-widest flex items-center gap-1.5">
+                    <Check className="w-3.5 h-3.5 text-primary" /> Core Responsibilities
+                  </p>
+                  {editMode ? (
+                    <textarea
+                      rows={4}
+                      value={editForm?.responsibilities || ''}
+                      onChange={e => setEditForm({ ...editForm, responsibilities: e.target.value })}
+                      className="w-full bg-surface border border-outline-variant/30 rounded-lg p-2.5 text-xs font-medium text-primary outline-none focus:ring-2 focus:ring-primary/20"
+                      placeholder="Enter core duties..."
+                    />
+                  ) : (
+                    <p className="text-xs font-medium text-primary whitespace-pre-wrap leading-relaxed">
+                      {data.responsibilities || 'No specific responsibilities assigned yet.'}
+                    </p>
+                  )}
+                </div>
+
+                <div className="bg-white border border-outline-variant/30 rounded-xl p-4 space-y-2">
+                  <p className="text-[10px] font-bold text-secondary uppercase tracking-widest flex items-center gap-1.5">
+                    <Target className="w-3.5 h-3.5 text-green-600" /> Initial Goals & Targets
+                  </p>
+                  {editMode ? (
+                    <textarea
+                      rows={4}
+                      value={editForm?.goals || ''}
+                      onChange={e => setEditForm({ ...editForm, goals: e.target.value })}
+                      className="w-full bg-surface border border-outline-variant/30 rounded-lg p-2.5 text-xs font-medium text-primary outline-none focus:ring-2 focus:ring-primary/20"
+                      placeholder="Enter assigned goals..."
+                    />
+                  ) : (
+                    <p className="text-xs font-medium text-primary whitespace-pre-wrap leading-relaxed">
+                      {data.goals || 'No specific initial goals assigned yet.'}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
+
             {/* Overall Performance */}
             {(role === 'manager' || role === 'ceo') && (
               <section className="bg-surface-container-low/30 rounded-2xl p-6 border border-outline-variant/20 xl:col-span-2">
@@ -424,7 +474,7 @@ export default function Employees() {
                   <div className="bg-white border border-outline-variant/30 rounded-xl p-4">
                     <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Total Logged In Time</p>
                     <p className="text-xl font-bold text-primary">
-                      {data.performanceStats?.totalLoginTime 
+                      {data.performanceStats?.totalLoginTime
                         ? `${Math.floor(data.performanceStats.totalLoginTime / 3600)} hrs ${Math.floor((data.performanceStats.totalLoginTime % 3600) / 60)} mins`
                         : '0 hrs 0 mins'}
                     </p>
@@ -432,7 +482,7 @@ export default function Employees() {
                   <div className="bg-white border border-outline-variant/30 rounded-xl p-4">
                     <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">Average Session</p>
                     <p className="text-xl font-bold text-primary">
-                      {data.performanceStats?.averageLoginTime 
+                      {data.performanceStats?.averageLoginTime
                         ? `${Math.floor(data.performanceStats.averageLoginTime / 3600)} hrs ${Math.floor((data.performanceStats.averageLoginTime % 3600) / 60)} mins`
                         : '0 hrs 0 mins'}
                     </p>
@@ -450,7 +500,7 @@ export default function Employees() {
                 <div>
                   <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-1">Employment Type</p>
                   {editMode ? (
-                    <select value={data.employmentType} onChange={e => setEditForm({...data, employmentType: e.target.value})} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none">
+                    <select value={data.employmentType} onChange={e => setEditForm({ ...data, employmentType: e.target.value })} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none">
                       {['Full-Time', 'Part-Time', 'Contract'].map(d => <option key={d}>{d}</option>)}
                     </select>
                   ) : (
@@ -460,7 +510,7 @@ export default function Employees() {
                 <div>
                   <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-1">Salary (XAF)</p>
                   {editMode ? (
-                    <input type="number" value={data.salary || ''} onChange={e => setEditForm({...data, salary: e.target.value})} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none" />
+                    <input type="number" value={data.salary || ''} onChange={e => setEditForm({ ...data, salary: e.target.value })} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none" />
                   ) : (
                     <p className="text-sm font-mono font-bold text-primary">{data.salary ? Number(data.salary).toLocaleString() : '—'}</p>
                   )}
@@ -468,7 +518,7 @@ export default function Employees() {
                 <div>
                   <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-1">Hire Date</p>
                   {editMode ? (
-                    <input type="date" value={data.hireDate ? new Date(data.hireDate).toISOString().split('T')[0] : ''} onChange={e => setEditForm({...data, hireDate: e.target.value})} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none" />
+                    <input type="date" value={data.hireDate ? new Date(data.hireDate).toISOString().split('T')[0] : ''} onChange={e => setEditForm({ ...data, hireDate: e.target.value })} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none" />
                   ) : (
                     <p className="text-sm font-medium">{data.hireDate ? new Date(data.hireDate).toLocaleDateString() : '—'}</p>
                   )}
@@ -476,7 +526,7 @@ export default function Employees() {
                 <div>
                   <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-1">Date of Birth</p>
                   {editMode ? (
-                    <input type="date" value={data.dateOfBirth ? new Date(data.dateOfBirth).toISOString().split('T')[0] : ''} onChange={e => setEditForm({...data, dateOfBirth: e.target.value})} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none" />
+                    <input type="date" value={data.dateOfBirth ? new Date(data.dateOfBirth).toISOString().split('T')[0] : ''} onChange={e => setEditForm({ ...data, dateOfBirth: e.target.value })} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none" />
                   ) : (
                     <p className="text-sm font-medium">{data.dateOfBirth ? new Date(data.dateOfBirth).toLocaleDateString() : '—'}</p>
                   )}
@@ -494,7 +544,7 @@ export default function Employees() {
                   <div>
                     <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-1">Phone Number</p>
                     {editMode ? (
-                      <input value={data.phone || ''} onChange={e => setEditForm({...data, phone: e.target.value})} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none" />
+                      <input value={data.phone || ''} onChange={e => setEditForm({ ...data, phone: e.target.value })} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none" />
                     ) : (
                       <p className="text-sm font-medium">{data.phone || '—'}</p>
                     )}
@@ -502,7 +552,7 @@ export default function Employees() {
                   <div>
                     <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-1">Personal Email</p>
                     {editMode ? (
-                      <input type="email" value={data.personalEmail || ''} onChange={e => setEditForm({...data, personalEmail: e.target.value})} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none" />
+                      <input type="email" value={data.personalEmail || ''} onChange={e => setEditForm({ ...data, personalEmail: e.target.value })} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none" />
                     ) : (
                       <p className="text-sm font-medium">{data.personalEmail || '—'}</p>
                     )}
@@ -511,7 +561,7 @@ export default function Employees() {
                 <div>
                   <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-1">Home Address</p>
                   {editMode ? (
-                    <input value={data.address || ''} onChange={e => setEditForm({...data, address: e.target.value})} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none" />
+                    <input value={data.address || ''} onChange={e => setEditForm({ ...data, address: e.target.value })} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none" />
                   ) : (
                     <p className="text-sm font-medium">{data.address || '—'}</p>
                   )}
@@ -519,7 +569,7 @@ export default function Employees() {
                 <div>
                   <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-1">Emergency Contact</p>
                   {editMode ? (
-                    <input value={data.emergencyContact || ''} onChange={e => setEditForm({...data, emergencyContact: e.target.value})} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none" />
+                    <input value={data.emergencyContact || ''} onChange={e => setEditForm({ ...data, emergencyContact: e.target.value })} className="w-full bg-white border border-outline-variant/30 rounded-lg p-2 text-sm outline-none" />
                   ) : (
                     <p className="text-sm font-medium">{data.emergencyContact || '—'}</p>
                   )}
@@ -533,7 +583,7 @@ export default function Employees() {
                 <h4 className="text-[10px] font-bold text-red-700 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
                   <ShieldAlert className="w-4 h-4" /> Security & Access
                 </h4>
-                
+
                 <div className="space-y-4">
                   {!showResetPassword ? (
                     <div>
@@ -710,7 +760,7 @@ export default function Employees() {
               </div>
 
               <form onSubmit={handleCreate} className="p-8 space-y-8 overflow-y-auto">
-                
+
                 {/* 1. Personal Information */}
                 <section className="space-y-4">
                   <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-outline-variant/20">
