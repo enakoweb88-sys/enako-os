@@ -793,7 +793,7 @@ export default function Employees() {
                             onChange={e => {
                               const selectedRole = e.target.value;
                               if (selectedRole === 'OUTREACH_MANAGER') {
-                                const outPos = DEPARTMENT_POSITIONS['Outreach / NGO'][0];
+                                const outPos = (DEPARTMENT_POSITIONS['Outreach / NGO'] || [])[0] || 'Outreach Manager';
                                 setForm({
                                   ...form,
                                   role: selectedRole,
@@ -801,8 +801,24 @@ export default function Employees() {
                                   position: outPos,
                                   title: outPos
                                 });
+                              } else if (selectedRole === 'MANAGER') {
+                                setForm({
+                                  ...form,
+                                  role: selectedRole,
+                                  department: 'Management',
+                                  position: 'Department Manager',
+                                  title: 'Department Manager'
+                                });
                               } else {
-                                setForm({ ...form, role: selectedRole });
+                                const defaultDept = 'Engineering';
+                                const firstPos = (DEPARTMENT_POSITIONS[defaultDept] || [])[0] || 'Backend Engineer';
+                                setForm({
+                                  ...form,
+                                  role: selectedRole,
+                                  department: defaultDept,
+                                  position: firstPos,
+                                  title: firstPos
+                                });
                               }
                             }}
                             className="text-primary focus:ring-primary"
@@ -817,64 +833,85 @@ export default function Employees() {
                   </div>
                 </section>
 
-                {/* 3. Department */}
-                <section className="space-y-4">
-                  <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-outline-variant/20">
-                    <Briefcase className="w-4 h-4 text-primary" /> 3. Department Assignment
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      'Engineering',
-                      'Finance',
-                      'Digital Marketing',
-                      'Operations',
-                      'Compliance',
-                      'Management',
-                      'HR',
-                      'Outreach / NGO'
-                    ].map(d => (
-                      <label key={d} className={cn(
-                        "p-3.5 border rounded-2xl cursor-pointer flex items-center justify-between transition-all",
-                        form.department === d ? "border-primary bg-primary/5 text-primary font-bold shadow-xs" : "border-outline-variant/30 hover:bg-surface-container-low"
-                      )}>
-                        <span className="text-xs font-bold">{d}</span>
-                        <input
-                          type="radio"
-                          name="employee_dept"
-                          value={d}
-                          checked={form.department === d}
-                          onChange={e => {
-                            const deptName = e.target.value;
-                            const positions = DEPARTMENT_POSITIONS[deptName] || [];
-                            const firstPos = positions[0] || '';
-                            setForm({ ...form, department: deptName, position: firstPos, title: firstPos });
-                          }}
-                          className="text-primary focus:ring-primary"
-                        />
-                      </label>
-                    ))}
+                {/* Manager / Outreach Manager Dedicated Workspace Banner */}
+                {form.role !== 'EMPLOYEE' ? (
+                  <div className="p-5 bg-surface-container-low border border-primary/20 rounded-2xl flex items-center gap-4">
+                    <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl shrink-0">
+                      {form.role === 'OUTREACH_MANAGER' ? '🌍' : '👔'}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-primary uppercase tracking-wider">
+                        {form.role === 'OUTREACH_MANAGER' ? 'Outreach Manager Workspace' : 'Department Manager Workspace'}
+                      </p>
+                      <p className="text-[11px] text-secondary mt-0.5 font-medium leading-relaxed">
+                        {form.role === 'OUTREACH_MANAGER'
+                          ? 'This manager account is automatically configured with dedicated access to the ENAKO Outreach Foundation & NGO Dashboard.'
+                          : 'This manager account is automatically configured with full Departmental Manager Dashboard access and team supervision controls.'}
+                      </p>
+                    </div>
                   </div>
-                </section>
+                ) : (
+                  <>
+                    {/* 3. Department (For Employees Only) */}
+                    <section className="space-y-4">
+                      <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-outline-variant/20">
+                        <Briefcase className="w-4 h-4 text-primary" /> 3. Department Assignment
+                      </h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        {[
+                          'Engineering',
+                          'Finance',
+                          'Digital Marketing',
+                          'Operations',
+                          'Compliance',
+                          'Management',
+                          'HR',
+                          'Outreach / NGO'
+                        ].map(d => (
+                          <label key={d} className={cn(
+                            "p-3.5 border rounded-2xl cursor-pointer flex items-center justify-between transition-all",
+                            form.department === d ? "border-primary bg-primary/5 text-primary font-bold shadow-xs" : "border-outline-variant/30 hover:bg-surface-container-low"
+                          )}>
+                            <span className="text-xs font-bold">{d}</span>
+                            <input
+                              type="radio"
+                              name="employee_dept"
+                              value={d}
+                              checked={form.department === d}
+                              onChange={e => {
+                                const deptName = e.target.value;
+                                const positions = DEPARTMENT_POSITIONS[deptName] || [];
+                                const firstPos = positions[0] || '';
+                                setForm({ ...form, department: deptName, position: firstPos, title: firstPos });
+                              }}
+                              className="text-primary focus:ring-primary"
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    </section>
 
-                {/* 4. Position */}
-                <section className="space-y-4">
-                  <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-outline-variant/20">
-                    <Activity className="w-4 h-4 text-primary" /> 4. Job Position ({form.department} Department)
-                  </h4>
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Select Position / Job Title *</label>
-                    <select
-                      required
-                      value={form.position}
-                      onChange={e => setForm({ ...form, position: e.target.value, title: e.target.value })}
-                      className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm font-bold text-primary outline-none focus:ring-2 focus:ring-primary/20"
-                    >
-                      {(DEPARTMENT_POSITIONS[form.department] || []).map(pos => (
-                        <option key={pos} value={pos}>{pos}</option>
-                      ))}
-                    </select>
-                  </div>
-                </section>
+                    {/* 4. Position (For Employees Only) */}
+                    <section className="space-y-4">
+                      <h4 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-outline-variant/20">
+                        <Activity className="w-4 h-4 text-primary" /> 4. Job Position ({form.department} Department)
+                      </h4>
+                      <div>
+                        <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Select Position / Job Title *</label>
+                        <select
+                          required
+                          value={form.position}
+                          onChange={e => setForm({ ...form, position: e.target.value, title: e.target.value })}
+                          className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm font-bold text-primary outline-none focus:ring-2 focus:ring-primary/20"
+                        >
+                          {(DEPARTMENT_POSITIONS[form.department] || []).map(pos => (
+                            <option key={pos} value={pos}>{pos}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </section>
+                  </>
+                )}
 
                 {/* 5. Responsibilities */}
                 <section className="space-y-4">
