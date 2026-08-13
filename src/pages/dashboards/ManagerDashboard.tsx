@@ -26,6 +26,7 @@ export function ManagerDashboard() {
   const [staff, setStaff] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
   const [outreachStats, setOutreachStats] = useState<any>(null);
+  const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = () => {
@@ -38,8 +39,9 @@ export function ManagerDashboard() {
       api.employees({ limit: 6 }).catch(() => ({ items: [] })),
       api.auditLogs().catch(() => []),
       outreachAPI.getStats().catch(() => null),
+      outreachAPI.getApplications().catch(() => []),
     ])
-      .then(([ov, t, g, notif, emp, logs, outStats]) => {
+      .then(([ov, t, g, notif, emp, logs, outStats, apps]) => {
         setOverview(ov);
         setTasks(Array.isArray(t) ? t.slice(0, 5) : []);
         setGoals(Array.isArray(g) ? g.slice(0, 5) : []);
@@ -57,6 +59,7 @@ export function ManagerDashboard() {
         setActivities(mappedLogs);
         
         setOutreachStats(outStats);
+        setApplications(Array.isArray(apps) ? apps : []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
