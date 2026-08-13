@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Users, User, Search, Mail, Phone, Briefcase, X, Plus, RefreshCw,
-  ArrowLeft, Edit2, Check, ShieldAlert, Activity, Target, Award, ShieldCheck
+  ArrowLeft, Edit2, Check, ShieldAlert, Activity, Target, Award, ShieldCheck, Eye, EyeOff
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';
@@ -97,6 +97,8 @@ export default function Employees() {
   const [viewEmployee, setViewEmployee] = useState<any>(null);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [showFormPassword, setShowFormPassword] = useState(false);
+  const [showResetPasswordText, setShowResetPasswordText] = useState(false);
 
   // Edit Mode State
   const [editMode, setEditMode] = useState(false);
@@ -597,15 +599,24 @@ export default function Employees() {
                     </div>
                   ) : (
                     <form onSubmit={handleResetPassword} className="flex gap-2 max-w-sm">
-                      <input
-                        type="text"
-                        required
-                        minLength={8}
-                        value={newPassword}
-                        onChange={e => setNewPassword(e.target.value)}
-                        placeholder="New password (min 8 chars)"
-                        className="flex-1 bg-white border border-red-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-red-200 shadow-sm"
-                      />
+                      <div className="relative flex-1">
+                        <input
+                          type={showResetPasswordText ? "text" : "password"}
+                          required
+                          minLength={8}
+                          value={newPassword}
+                          onChange={e => setNewPassword(e.target.value)}
+                          placeholder="New password (min 8 chars)"
+                          className="w-full bg-white border border-red-200 rounded-lg p-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-red-200 shadow-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowResetPasswordText(!showResetPasswordText)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-red-700 hover:text-red-900 transition-colors p-1"
+                        >
+                          {showResetPasswordText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
                       <button type="submit" className="bg-red-600 text-white px-4 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:opacity-90 shadow-sm">
                         Confirm
                       </button>
@@ -777,7 +788,25 @@ export default function Employees() {
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Temporary Password *</label>
-                      <input required type="password" minLength={8} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Min 8 characters" />
+                      <div className="relative">
+                        <input
+                          required
+                          type={showFormPassword ? "text" : "password"}
+                          minLength={8}
+                          value={form.password}
+                          onChange={e => setForm({ ...form, password: e.target.value })}
+                          className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                          placeholder="Min 8 characters"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowFormPassword(!showFormPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-primary transition-colors p-1"
+                          title={showFormPassword ? "Hide password" : "See password"}
+                        >
+                          {showFormPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Phone Number</label>
