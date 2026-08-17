@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { UtensilsCrossed, Search, TriangleAlert, TrendingUp, ClipboardPen, RefreshCw, X } from 'lucide-react';
+import { UtensilsCrossed, Search, TriangleAlert, TrendingUp, ClipboardPen, RefreshCw, X, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';
@@ -43,10 +43,42 @@ export default function StaffMeals() {
 
   useEffect(() => { load(); }, [load]);
 
+  const isSameDay = (date1: string | Date, date2: string | Date) => {
+    if (!date1 || !date2) return false;
+    const d1 = new Date(date1).toISOString().split('T')[0];
+    const d2 = new Date(date2).toISOString().split('T')[0];
+    return d1 === d2;
+  };
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayMealLoggedForUser = user
+    ? items.some(m => m.employeeId === user.id && isSameDay(m.date, todayStr))
+    : false;
+
   const handleRecord = async (e: React.FormEvent) => {
     e.preventDefault();
     const targetEmployeeId = isManager ? form.employeeId : (user?.id || form.employeeId);
-    if (!targetEmployeeId) return;
+    if (!targetEmployeeId) {
+      toast.error('Please select an employee');
+      return;
+    }
+
+    const existingRecord = items.find(m => m.employeeId === targetEmployeeId && isSameDay(m.date, form.date));
+    if (existingRecord) {
+      const emp = employees.find(e => e.id === targetEmployeeId);
+      const empName = isManager ? (emp?.fullName || 'this employee') : 'You';
+      const formattedDate = new Date(form.date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      const msg = isManager
+        ? `Food entry for ${empName} has already been recorded for ${formattedDate}.`
+        : `Your food entry has already been recorded for ${formattedDate}.`;
+      toast.error(msg);
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload: any = {
@@ -59,15 +91,23 @@ export default function StaffMeals() {
       if (form.mealTime) payload.mealTime = new Date(`${form.date}T${form.mealTime}:00`).toISOString();
 
       await api.recordMeal(payload);
+      toast.success('Meal entry recorded successfully!');
       setShowModal(false);
       load();
-    } catch (e: any) { alert(e.message); }
-    finally { setSubmitting(false); }
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to log meal entry');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleSelfLog = () => {
     if (!user) return;
-    setForm({ ...form, employeeId: user.id, price: '1000' });
+    if (todayMealLoggedForUser) {
+      toast.error("Your food entry for today has already been recorded!");
+      return;
+    }
+    setForm({ ...form, employeeId: user.id, date: todayStr, price: '1000' });
     setShowModal(true);
   };
 
@@ -77,11 +117,15 @@ export default function StaffMeals() {
     setSubmitting(true);
     try {
       await api.disputeMeal(disputeId, disputeReason);
+      toast.success('Discrepancy report submitted');
       setDisputeId(null);
       setDisputeReason('');
       load();
-    } catch (e: any) { alert(e.message); }
-    finally { setSubmitting(false); }
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to submit dispute');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const downloadMealReportPdf = async (period: '7 Days' | '28 Days' | '3 Months' | '6 Months' | '1 Year') => {
@@ -315,18 +359,41 @@ export default function StaffMeals() {
           <div className="col-span-12 lg:col-span-4 bg-primary-fixed border border-outline-variant p-8 rounded-2xl shadow-sm print:hidden">
             <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-8 block">QUICK CHECK-IN</span>
             <div className="space-y-4 mb-8">
-              <p className="text-secondary text-sm">Click below to log today's meal entry.</p>
-              <div className="aspect-square bg-surface-container rounded-2xl flex items-center justify-center border-2 border-dashed border-outline-variant">
-                <UtensilsCrossed className="w-12 h-12 text-outline-variant" />
+              <p className="text-secondary text-sm">
+                {todayMealLoggedForUser ? "Your meal for today has already been entered." : "Click below to log today's meal entry."}
+              </p>
+              <div className="aspect-square bg-surface-container rounded-2xl flex flex-col items-center justify-center border-2 border-dashed border-outline-variant relative p-4 text-center">
+                {todayMealLoggedForUser ? (
+                  <>
+                    <CheckCircle2 className="w-12 h-12 text-emerald-600 mb-2" />
+                    <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full uppercase tracking-wider">
+                      Meal Already Logged
+                    </span>
+                  </>
+                ) : (
+                  <UtensilsCrossed className="w-12 h-12 text-outline-variant" />
+                )}
               </div>
             </div>
             <button
               onClick={handleSelfLog}
               disabled={submitting}
-              className="w-full py-4 bg-primary text-white rounded-xl font-bold text-[11px] uppercase tracking-[0.2em] hover:bg-primary-container transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+              className={cn(
+                "w-full py-4 rounded-xl font-bold text-[11px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 disabled:opacity-60 text-white",
+                todayMealLoggedForUser ? "bg-emerald-600 hover:bg-emerald-700" : "bg-primary hover:bg-primary-container"
+              )}
             >
-              <ClipboardPen className="w-4 h-4" />
-              {submitting ? 'Logging…' : 'LOG MEAL TODAY'}
+              {todayMealLoggedForUser ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  LOGGED FOR TODAY
+                </>
+              ) : (
+                <>
+                  <ClipboardPen className="w-4 h-4" />
+                  {submitting ? 'Logging…' : 'LOG MEAL TODAY'}
+                </>
+              )}
             </button>
           </div>
         )}
@@ -430,6 +497,23 @@ export default function StaffMeals() {
                 <button onClick={() => setShowModal(false)}><X className="w-5 h-5 text-secondary" /></button>
               </div>
               <form onSubmit={handleRecord} className="p-6 space-y-4">
+                {(() => {
+                  const selId = isManager ? form.employeeId : (user?.id || form.employeeId);
+                  const existingInModal = selId && form.date ? items.find(m => m.employeeId === selId && isSameDay(m.date, form.date)) : null;
+                  if (!existingInModal) return null;
+                  const empName = isManager ? (employees.find(e => e.id === selId)?.fullName || 'this employee') : 'You';
+                  return (
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3 text-amber-900 text-xs">
+                      <TriangleAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-amber-900 mb-0.5">Food Already Recorded</p>
+                        <p className="text-amber-800 leading-relaxed">
+                          A food entry for <strong>{empName}</strong> has already been recorded for {new Date(form.date).toLocaleDateString()}.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div>
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Employee *</label>
                   {isManager ? (

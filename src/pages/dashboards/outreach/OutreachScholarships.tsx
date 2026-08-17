@@ -109,6 +109,10 @@ export default function OutreachScholarships() {
         </button>
       </div>
 
+      <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-950 text-sm font-bold shadow-sm">
+        <span>Public Portal Announcement Active: "Scholarship applications will be open on the 1st of September."</span>
+      </div>
+
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-white rounded-2xl border border-outline-variant/30 overflow-hidden">
