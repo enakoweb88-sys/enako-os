@@ -117,6 +117,46 @@ export default function CashCollectionsPage() {
 
   const isManagerOrCeo = user?.role === 'CEO' || user?.role === 'MANAGER' || user?.role === 'OUTREACH_MANAGER';
 
+  const getLocalUserCollections = (): CashCollection[] => {
+    try {
+      const collectionsRaw = localStorage.getItem('enako_collections');
+      if (!collectionsRaw) return [];
+      const parsed = JSON.parse(collectionsRaw);
+      if (!Array.isArray(parsed) || parsed.length === 0) return [];
+
+      const userRaw = localStorage.getItem('enako_cash_user');
+      let collectorName = 'Field Collector';
+      if (userRaw) {
+        try {
+          const u = JSON.parse(userRaw);
+          if (u.name) collectorName = u.name;
+        } catch (e) {}
+      }
+
+      return parsed.map((item: any) => ({
+        id: item.id || `COL-${Math.floor(1000 + Math.random() * 9000)}`,
+        collectorId: 'COL-REAL',
+        clientName: item.clientName || 'Merchant Client',
+        location: item.location || item.depositDestination || 'Douala Field Sector',
+        amountCollected: Number(item.amount || 0),
+        outstandingBalance: Number(item.shortageAmount || 0),
+        currency: 'XAF',
+        collectionTime: item.timestamp || new Date().toISOString(),
+        status: (item.status === 'COMPLETE' || item.status === 'PENDING' || item.status === 'CANCELLED') ? item.status : 'COMPLETE',
+        description: item.notes || item.summaryNote || (item.depositDestination ? `Deposited to: ${item.depositDestination}` : 'Real Field Cash Collection'),
+        receiptUrl: item.receiptUrl || '',
+        collector: {
+          id: 'COL-REAL',
+          fullName: collectorName,
+          email: 'collector@enako.cm',
+          role: { name: 'Field Cash Collector' },
+        },
+      }));
+    } catch (err) {
+      return [];
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
     setErrorMessage(null);
@@ -124,11 +164,66 @@ export default function CashCollectionsPage() {
       const res = await api.cashCollections({ search, status: statusFilter === 'ALL' ? undefined : statusFilter, page, limit: 20 }).catch(() => null);
       const statsRes = await api.cashCollectionStats().catch(() => null);
 
-      if (res && res.items && res.items.length > 0) {
-        setCollections(res.items);
-        setTotal(res.total || res.items.length);
+      const localRealCollections = getLocalUserCollections();
+      const backendItems = res?.items || [];
+      const backendIds = new Set(backendItems.map((i: any) => i.id));
+      const combinedReal = [...backendItems, ...localRealCollections.filter(l => !backendIds.has(l.id))];
+
+      if (combinedReal.length > 0) {
+        const filteredReal = combinedReal.filter(c => {
+          if (statusFilter !== 'ALL' && c.status !== statusFilter) return false;
+          if (search) {
+            const q = search.toLowerCase();
+            return (
+              c.clientName.toLowerCase().includes(q) ||
+              c.location.toLowerCase().includes(q) ||
+              (c.collector?.fullName || '').toLowerCase().includes(q)
+            );
+          }
+          return true;
+        });
+
+        setCollections(filteredReal);
+        setTotal(filteredReal.length);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let todayCollected = 0;
+        let todayCount = 0;
+        let pendingAmount = 0;
+        let pendingCount = 0;
+        let totalCollected = 0;
+        let totalOutstanding = 0;
+
+        combinedReal.forEach(c => {
+          const amt = Number(c.amountCollected || 0);
+          totalCollected += amt;
+          totalOutstanding += Number(c.outstandingBalance || 0);
+
+          if (c.status === 'PENDING') {
+            pendingAmount += amt;
+            pendingCount++;
+          }
+
+          const colTime = new Date(c.collectionTime);
+          if (colTime >= today && (c.status === 'COMPLETE' || c.status === 'OPEN')) {
+            todayCollected += amt;
+            todayCount++;
+          }
+        });
+
+        setStats({
+          todayCollected,
+          todayCount,
+          pendingAmount,
+          pendingCount,
+          totalCollected,
+          totalOutstanding,
+          totalRecords: combinedReal.length,
+        });
       } else {
-        // Fallback gracefully to demo records so dashboard is never broken or showing red warnings
+        // Fallback gracefully to demo records only if zero real records exist anywhere
         const filteredMock = MOCK_COLLECTIONS.filter(c => {
           if (statusFilter !== 'ALL' && c.status !== statusFilter) return false;
           if (search) {
@@ -139,12 +234,17 @@ export default function CashCollectionsPage() {
         });
         setCollections(filteredMock);
         setTotal(filteredMock.length);
+        setStats(statsRes || DEFAULT_STATS);
       }
-
-      setStats(statsRes || DEFAULT_STATS);
     } catch (err: any) {
-      setCollections(MOCK_COLLECTIONS);
-      setTotal(MOCK_COLLECTIONS.length);
+      const localReal = getLocalUserCollections();
+      if (localReal.length > 0) {
+        setCollections(localReal);
+        setTotal(localReal.length);
+      } else {
+        setCollections(MOCK_COLLECTIONS);
+        setTotal(MOCK_COLLECTIONS.length);
+      }
       setStats(DEFAULT_STATS);
     } finally {
       setLoading(false);
