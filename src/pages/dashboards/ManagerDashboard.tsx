@@ -10,6 +10,7 @@ import {
   Briefcase, Globe, Target, Award, TrendingUp, Layers, CheckSquare, Sparkles, RefreshCw
 } from 'lucide-react';
 import { TasksWidget } from '../../components/TasksWidget';
+import { CashCollectionsWidget } from '../../components/CashCollectionsWidget';
 
 function fmt(val: string | number | null | undefined, currency = true) {
   const n = Number(val ?? 0);
@@ -267,6 +268,9 @@ export function ManagerDashboard() {
 
         </div>
       </div>
+
+      {/* Field Cash Collections Widget */}
+      <CashCollectionsWidget />
 
       {/* ── Outreach Monitoring & Application Review ── */}
       <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm">

@@ -5,6 +5,7 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import RoleSelect from './pages/RoleSelect';
 import Dashboard from './pages/Dashboard';
+import CashCollectionsPage from './pages/CashCollectionsPage';
 import Expenses from './pages/Expenses';
 import Chat from './pages/Chat';
 import StaffMeals from './pages/StaffMeals';
@@ -87,6 +88,7 @@ export default function App() {
               }
             />
             <Route path="expenses" element={<Expenses />} />
+            <Route path="cash-collections" element={<CashCollectionsPage />} />
             <Route path="goals" element={<Goals />} />
             <Route path="chat" element={<Chat />} />
             <Route path="meals" element={<StaffMeals />} />

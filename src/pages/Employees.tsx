@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Users, User, Search, Mail, Phone, Briefcase, X, Plus, RefreshCw,
-  ArrowLeft, Edit2, Check, ShieldAlert, Activity, Target, Award, ShieldCheck, Eye, EyeOff
+  ArrowLeft, Edit2, Check, ShieldAlert, Activity, Target, Award, ShieldCheck, Eye, EyeOff, LayoutDashboard
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';
@@ -75,6 +76,7 @@ const DEPARTMENT_POSITIONS: Record<string, string[]> = {
 };
 
 export default function Employees() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const role = user?.role?.toLowerCase() ?? 'employee';
 
@@ -256,6 +258,17 @@ export default function Employees() {
             <h1 className="font-display text-4xl font-bold text-primary tracking-tight">Operative Profile</h1>
             <p className="text-secondary text-base">Detailed records and administrative controls.</p>
           </div>
+
+          {/* CEO-Exclusive Open Employee Dashboard Action Button */}
+          {role === 'ceo' && (
+            <button
+              onClick={() => navigate(`/app/cash-collections?collectorId=${viewEmployee.id}`)}
+              className="ml-auto px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-[2px] text-xs font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all flex items-center gap-2"
+              title="Open filtered dashboard & field activity for this employee"
+            >
+              <LayoutDashboard className="w-4 h-4" /> Open Employee Dashboard
+            </button>
+          )}
         </div>
 
         <div className="bg-white border border-outline-variant/30 rounded-3xl shadow-sm overflow-hidden flex flex-col md:flex-row">

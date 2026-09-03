@@ -8,7 +8,7 @@ import {
   MessageSquare, UtensilsCrossed, User, Briefcase, Megaphone,
   Headphones, ClipboardList, TrendingUp, Menu, ChevronLeft, ChevronRight,
   PenTool, Calendar, FileText, Mail, X, Building2, BookOpen, Heart,
-  Share2, Wand2
+  Share2, Wand2, DollarSign
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
@@ -27,6 +27,7 @@ const navItems = [
   { icon: Calendar, label: 'Leaves', path: '/app/leaves', roles: ['ceo', 'manager', 'admin', 'employee'] },
   { icon: CreditCard, label: 'Transactions', path: '/app/transactions', roles: ['ceo', 'manager', 'finance'] },
   { icon: Wallet, label: 'Expenses', path: '/app/expenses', roles: ['ceo', 'manager', 'finance', 'employee'] },
+  { icon: DollarSign, label: 'Cash Collections', path: '/app/cash-collections', roles: ['ceo', 'manager', 'finance', 'admin', 'outreach_manager'] },
   { icon: ShieldCheck, label: 'KYC Compliance', path: '/app/kyc', roles: ['ceo', 'manager', 'bd', 'support'] },
   { icon: Target, label: 'Goals & KPIs', path: '/app/goals', roles: ['ceo', 'manager', 'bd', 'digital', 'employee'] },
   { icon: MessageSquare, label: 'Communications', path: '/app/chat', roles: ['ceo', 'manager', 'support', 'bd', 'digital', 'employee', 'outreach_manager'] },
@@ -178,26 +179,26 @@ export default function DashboardLayout() {
     <div className="min-h-screen bg-surface flex">
       <Toaster position="top-center" richColors />
       {/* ── Sidebar ── */}
-      <aside className={cn("fixed left-0 top-0 bottom-0 bg-surface-container-low border-r border-outline-variant/30 z-50 flex flex-col transition-all duration-300", sidebarOpen ? "w-64" : "w-20")}>
+      <aside className={cn("fixed left-0 top-0 bottom-0 bg-[#0A0F2C] text-white border-r border-[#1B2A4A] z-50 flex flex-col transition-all duration-300 shadow-xl", sidebarOpen ? "w-64" : "w-20")}>
         <div className="px-6 py-8 flex items-center justify-between">
           <NavLink to="/" className={cn("flex items-center gap-2.5 hover:opacity-80 transition-opacity", !sidebarOpen && "justify-center w-full")}>
-            <img src="/logo.png" alt="ENAKO OS" className="w-8 h-8 rounded-md object-contain shrink-0" />
-            {sidebarOpen && <span className="font-display text-xl tracking-tighter font-bold text-primary whitespace-nowrap">ENAKO OS</span>}
+            <img src="/logo.png" alt="ENAKO OS" className="w-8 h-8 rounded-md object-contain shrink-0 bg-white/10 p-0.5" />
+            {sidebarOpen && <span className="font-display text-xl tracking-tighter font-bold text-[#00e5ff] whitespace-nowrap">ENAKO OS</span>}
           </NavLink>
         </div>
 
-        <nav className="flex-1 px-4 space-y-1 overflow-y-auto pb-8 scrollbar-hide">
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto pb-8 scrollbar-hide">
           {filteredNavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 py-2 rounded-lg transition-all duration-200 group',
+                  'flex items-center gap-3 py-2.5 rounded-md transition-all duration-150 group',
                   sidebarOpen ? 'px-3' : 'justify-center',
                   isActive
-                    ? 'bg-primary-container text-on-primary-container shadow-sm'
-                    : 'text-secondary hover:bg-surface-container-high/50',
+                    ? 'bg-[#0891b2] text-white border-l-4 border-[#22d3ee] font-black shadow-inner'
+                    : 'text-[#c8c6c5] hover:bg-[#1B2A4A] hover:text-[#22d3ee]',
                 )
               }
               title={!sidebarOpen ? item.label : undefined}
@@ -205,35 +206,37 @@ export default function DashboardLayout() {
               <item.icon
                 className={cn(
                   'w-5 h-5 shrink-0',
-                  location.pathname === item.path ? 'text-on-primary-container' : 'text-secondary group-hover:text-primary transition-colors',
+                  location.pathname === item.path ? 'text-white' : 'text-[#a0aab8] group-hover:text-[#22d3ee] transition-colors',
                 )}
               />
               {sidebarOpen && <span className="text-[11px] font-bold uppercase tracking-wider truncate">{item.label}</span>}
             </NavLink>
           ))}
 
-          <div className="pt-4 border-t border-outline-variant/20 mt-4">
+          <div className="pt-4 border-t border-[#1B2A4A] mt-4">
             <NavLink
               to="/app/settings"
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 py-2 rounded-lg transition-all duration-200 group',
+                  'flex items-center gap-3 py-2.5 rounded-md transition-all duration-150 group',
                   sidebarOpen ? 'px-3' : 'justify-center',
-                  isActive ? 'bg-primary-container text-on-primary-container' : 'text-secondary hover:bg-surface-container-high/50',
+                  isActive 
+                    ? 'bg-[#0891b2] text-white border-l-4 border-[#22d3ee] font-black shadow-inner' 
+                    : 'text-[#c8c6c5] hover:bg-[#1B2A4A] hover:text-[#22d3ee]',
                 )
               }
               title={!sidebarOpen ? 'Settings' : undefined}
             >
-              <Settings className="w-5 h-5 shrink-0" />
+              <Settings className={cn("w-5 h-5 shrink-0", location.pathname === '/app/settings' ? 'text-white' : 'text-[#a0aab8] group-hover:text-[#22d3ee] transition-colors')} />
               {sidebarOpen && <span className="text-[11px] font-bold uppercase tracking-wider truncate">Settings</span>}
             </NavLink>
           </div>
         </nav>
 
         {/* User strip */}
-        <div className={cn("p-4 bg-surface-container mt-auto flex", sidebarOpen ? "items-center gap-3" : "flex-col gap-3 items-center justify-center")}>
+        <div className={cn("p-4 bg-[#060a1e] border-t border-[#1B2A4A] mt-auto flex", sidebarOpen ? "items-center gap-3" : "flex-col gap-3 items-center justify-center")}>
           <NavLink to="/app/profile" className={cn("flex items-center group flex-1 min-w-0", sidebarOpen ? "gap-3" : "justify-center")} title={!sidebarOpen ? fullName : undefined}>
-            <div className="w-10 h-10 shrink-0 rounded-full bg-primary-fixed overflow-hidden ring-2 ring-white flex items-center justify-center text-primary font-black text-sm uppercase group-hover:ring-primary/20 transition-all">
+            <div className="w-10 h-10 shrink-0 rounded-full bg-[#1B2A4A] overflow-hidden ring-2 ring-[#0891b2] flex items-center justify-center text-[#22d3ee] font-black text-sm uppercase group-hover:ring-[#00e5ff] transition-all">
               {user?.avatarUrl ? (
                 <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
@@ -242,10 +245,10 @@ export default function DashboardLayout() {
             </div>
             {sidebarOpen && (
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-bold text-primary truncate uppercase tracking-wider group-hover:text-primary-container transition-colors">
+                <p className="text-[11px] font-bold text-[#22d3ee] truncate uppercase tracking-wider group-hover:text-white transition-colors">
                   {fullName}
                 </p>
-                <p className="text-[10px] text-secondary uppercase font-bold tracking-tighter truncate">
+                <p className="text-[10px] text-[#a0aab8] uppercase font-bold tracking-tighter truncate">
                   {email || role}
                 </p>
               </div>
@@ -253,7 +256,7 @@ export default function DashboardLayout() {
           </NavLink>
           <button
             onClick={handleLogout}
-            className="text-secondary hover:text-primary transition-colors cursor-pointer shrink-0"
+            className="text-[#a0aab8] hover:text-[#22d3ee] transition-colors cursor-pointer shrink-0"
             title="Sign Out"
           >
             <LogOut className="w-5 h-5" />
@@ -296,7 +299,7 @@ export default function DashboardLayout() {
         {/* Top Header */}
         <header className="sticky top-0 z-40 bg-surface/70 backdrop-blur-xl border-b border-outline-variant/30 flex justify-between items-center px-8 py-4">
           <div className="flex items-center flex-1 max-w-xl gap-4" ref={searchRef}>
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 text-secondary hover:bg-surface-container rounded-lg transition-colors">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 text-primary hover:text-[#0891b2] hover:bg-cyan-500/10 rounded-lg transition-colors cursor-pointer" title="Toggle Sidebar">
               <Menu className="w-5 h-5" />
             </button>
             <div className="relative w-full">

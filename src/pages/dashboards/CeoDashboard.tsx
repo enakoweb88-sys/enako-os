@@ -10,6 +10,7 @@ import {
   Globe, Heart
 } from 'lucide-react';
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { CashCollectionsWidget } from '../../components/CashCollectionsWidget';
 
 function fmt(val: string | number | null | undefined, currency = true) {
   const n = Number(val ?? 0);
@@ -257,6 +258,9 @@ export function CEODashboard() {
           </div>
         </div>
       </div>
+
+      {/* Field Cash Collections Widget */}
+      <CashCollectionsWidget />
 
       <div className="grid grid-cols-12 gap-6">
         {/* Marketing Channel Performance */}

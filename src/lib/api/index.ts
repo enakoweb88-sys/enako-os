@@ -26,10 +26,12 @@ import { investmentsApi } from './investments';
 import { subscriptionsApi } from './subscriptions';
 import { reportsApi } from './reports';
 import { settingsApi } from './settings';
+import { cashCollectionsApi } from './cashCollections';
 
 export * from './core';
 export * from './roles';
 export * from './outreach';
+export * from './cashCollections';
 
 export const api = {
   ...subscriptionsApi,
@@ -39,6 +41,7 @@ export const api = {
   ...employeesApi,
   ...transactionsApi,
   ...expensesApi,
+  ...cashCollectionsApi,
   ...kycApi,
   ...mealsApi,
   ...tasksApi,
