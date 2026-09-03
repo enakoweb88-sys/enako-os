@@ -45,22 +45,26 @@ export default function CashCollectionsPage() {
   // Selected row for full detail modal
   const [selectedCollection, setSelectedCollection] = useState<CashCollection | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isManagerOrCeo = user?.role === 'CEO' || user?.role === 'MANAGER' || user?.role === 'OUTREACH_MANAGER';
 
   const loadData = async () => {
     setLoading(true);
+    setErrorMessage(null);
     try {
-      const [res, statsRes] = await Promise.all([
-        api.cashCollections({ search, status: statusFilter === 'ALL' ? undefined : statusFilter, page, limit: 20 }),
-        api.cashCollectionStats().catch(() => null),
-      ]);
-      setCollections(res.items || []);
-      setTotal(res.total || 0);
+      const res = await api.cashCollections({ search, status: statusFilter === 'ALL' ? undefined : statusFilter, page, limit: 20 }).catch((err) => {
+        setErrorMessage(err.message || 'Live backend API endpoint not ready or database migration pending');
+        return { items: [], total: 0 };
+      });
+      const statsRes = await api.cashCollectionStats().catch(() => null);
+
+      setCollections(res?.items || []);
+      setTotal(res?.total || 0);
       setStats(statsRes);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load cash collections', err);
-      toast.error('Failed to load cash collections');
+      setErrorMessage(err?.message || 'Failed to load cash collections');
     } finally {
       setLoading(false);
     }
@@ -146,6 +150,27 @@ export default function CashCollectionsPage() {
           </button>
         </div>
       </div>
+
+      {/* ── API Sync Notice Banner ── */}
+      {errorMessage && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+            <div>
+              <strong className="font-bold">Backend Sync Notice:</strong> {errorMessage}.
+              <p className="text-[11px] text-amber-700 mt-0.5">
+                If live backend is deploying, wait 1 minute for build completion or run backend locally on port 5000.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={loadData}
+            className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shrink-0 ml-4"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* ── Top Metric Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
