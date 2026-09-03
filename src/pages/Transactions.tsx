@@ -21,6 +21,19 @@ function fmt(val: string | number | null | undefined, currency: string | boolean
   return `${n.toLocaleString('en-US', { maximumFractionDigits: 0 })} ${currCode}`;
 }
 
+export function formatCommaNumber(value: string | number | undefined | null): string {
+  if (value === undefined || value === null || value === '') return '';
+  const str = String(value).replace(/,/g, '');
+  if (isNaN(Number(str)) && str !== '-') return String(value);
+  const parts = str.split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return parts.join('.');
+}
+
+export function cleanCommas(value: string): string {
+  return (value || '').replace(/,/g, '');
+}
+
 export default function Transactions() {
   const { user } = useAuth();
   const role = user?.role?.toLowerCase() ?? 'employee';
@@ -73,25 +86,83 @@ export default function Transactions() {
   const [showFloatModal, setShowFloatModal] = useState(false);
   const [showChargesModal, setShowChargesModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ entity: '', type: 'Receive', channel: 'Bank Transfer', amount: '', amountInXaf: '', exchangeRate: '', currency: 'XAF', description: '' });
+  const [form, setForm] = useState({ entity: '', type: 'Receive', channel: 'Bank Transfer', amount: '', amountInXaf: '', exchangeRate: '1', currency: 'XAF', description: '' });
   const [floatForm, setFloatForm] = useState({ channel: 'MTN', balance: '' });
   const [chargesForm, setChargesForm] = useState({ id: '', charges: '' });
   const [showExportMenu, setShowExportMenu] = useState(false);
 
-  useEffect(() => {
-    if (form.currency !== 'XAF' && form.amount && form.exchangeRate) {
-      if (form.currency === 'NGN') {
-        const rate = Number(form.exchangeRate);
-        if (rate > 0) {
-          setForm(f => ({ ...f, amountInXaf: ((Number(f.amount) / rate) * 1000).toString() }));
-        }
-      } else {
-        setForm(f => ({ ...f, amountInXaf: (Number(f.amount) * Number(f.exchangeRate)).toString() }));
-      }
-    } else if (form.currency === 'XAF') {
-      setForm(f => ({ ...f, amountInXaf: f.amount, exchangeRate: '1' }));
+  const DEFAULT_RATES: Record<string, string> = {
+    XAF: '1',
+    USD: '600',
+    EUR: '655.95',
+    USDT: '600',
+    CNY: '85',
+    NGN: '0.4',
+  };
+
+  const calculateXaf = (amountStr: string, rateStr: string, curr: string) => {
+    const amt = Number(cleanCommas(amountStr));
+    const rate = Number(cleanCommas(rateStr));
+    if (isNaN(amt) || amt <= 0 || isNaN(rate) || rate <= 0) return '';
+    if (curr === 'NGN') {
+      return String(Math.round((amt / rate) * 1000));
     }
-  }, [form.amount, form.exchangeRate, form.currency]);
+    if (curr === 'XAF') return String(amt);
+    return String(Math.round(amt * rate));
+  };
+
+  const handleCurrencyChange = (newCurr: string) => {
+    const defaultRate = DEFAULT_RATES[newCurr] || '1';
+    const calcXaf = calculateXaf(form.amount, defaultRate, newCurr);
+    setForm(f => ({
+      ...f,
+      currency: newCurr,
+      exchangeRate: defaultRate,
+      amountInXaf: calcXaf || (newCurr === 'XAF' ? f.amount : f.amountInXaf)
+    }));
+  };
+
+  const handleAmountChange = (rawInput: string) => {
+    const cleaned = cleanCommas(rawInput);
+    if (cleaned !== '' && isNaN(Number(cleaned)) && cleaned !== '.') return;
+    const calcXaf = calculateXaf(cleaned, form.exchangeRate || '1', form.currency);
+    setForm(f => ({
+      ...f,
+      amount: cleaned,
+      amountInXaf: calcXaf || (f.currency === 'XAF' ? cleaned : f.amountInXaf)
+    }));
+  };
+
+  const handleExchangeRateChange = (rawInput: string) => {
+    const cleaned = cleanCommas(rawInput);
+    if (cleaned !== '' && isNaN(Number(cleaned)) && cleaned !== '.') return;
+    const calcXaf = calculateXaf(form.amount, cleaned, form.currency);
+    setForm(f => ({
+      ...f,
+      exchangeRate: cleaned,
+      amountInXaf: calcXaf || f.amountInXaf
+    }));
+  };
+
+  const handleAmountInXafChange = (rawInput: string) => {
+    const cleaned = cleanCommas(rawInput);
+    if (cleaned !== '' && isNaN(Number(cleaned)) && cleaned !== '.') return;
+    const amt = Number(cleanCommas(form.amount));
+    const xaf = Number(cleaned);
+    let newRate = form.exchangeRate;
+    if (amt > 0 && xaf > 0) {
+      if (form.currency === 'NGN') {
+        newRate = String(Math.round((amt / xaf) * 1000 * 100) / 100);
+      } else {
+        newRate = String(Math.round((xaf / amt) * 100) / 100);
+      }
+    }
+    setForm(f => ({
+      ...f,
+      amountInXaf: cleaned,
+      exchangeRate: newRate
+    }));
+  };
 
   const [dashboard, setDashboard] = useState<any>(null);
 
@@ -127,14 +198,18 @@ export default function Transactions() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      const cleanedAmt = Number(cleanCommas(form.amount));
+      const cleanedXaf = form.amountInXaf ? Number(cleanCommas(form.amountInXaf)) : (form.currency === 'XAF' ? cleanedAmt : undefined);
+      const cleanedRate = form.exchangeRate ? Number(cleanCommas(form.exchangeRate)) : 1;
+
       await api.createTransaction({ 
         ...form, 
-        amount: Number(form.amount),
-        amountInXaf: form.amountInXaf ? Number(form.amountInXaf) : undefined,
-        exchangeRate: form.exchangeRate ? Number(form.exchangeRate) : undefined,
+        amount: cleanedAmt,
+        amountInXaf: cleanedXaf,
+        exchangeRate: cleanedRate,
       });
       setShowModal(false);
-      setForm({ entity: '', type: 'Receive', channel: 'Bank Transfer', amount: '', amountInXaf: '', exchangeRate: '', currency: 'XAF', description: '' });
+      setForm({ entity: '', type: 'Receive', channel: 'Bank Transfer', amount: '', amountInXaf: '', exchangeRate: '1', currency: 'XAF', description: '' });
       load();
     } catch (e: any) { alert(e.message); }
     finally { setSubmitting(false); }
@@ -156,7 +231,7 @@ export default function Transactions() {
     try {
       await apiRequest(`/transactions/${chargesForm.id}/status/SETTLED`, { 
         method: 'PATCH', 
-        body: JSON.stringify({ charges: Number(chargesForm.charges) }) 
+        body: JSON.stringify({ charges: Number(cleanCommas(chargesForm.charges)) }) 
       });
       setShowChargesModal(false);
       load();
@@ -168,7 +243,7 @@ export default function Transactions() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.setFloatBalance(floatForm.channel, Number(floatForm.balance));
+      await api.setFloatBalance(floatForm.channel, Number(cleanCommas(floatForm.balance)));
       setShowFloatModal(false);
       load();
     } catch (e: any) { alert(e.message); }
@@ -859,11 +934,22 @@ export default function Transactions() {
                 <div className="grid grid-cols-3 gap-4">
                   <div className="col-span-2">
                     <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Amount *</label>
-                    <input required type="number" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="0" min="0" step="any" />
+                    <input 
+                      required 
+                      type="text" 
+                      value={formatCommaNumber(form.amount)} 
+                      onChange={e => handleAmountChange(e.target.value)} 
+                      className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20 font-mono font-bold" 
+                      placeholder="e.g. 30,000 or 3,000,000" 
+                    />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Currency *</label>
-                    <select value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
+                    <select 
+                      value={form.currency} 
+                      onChange={e => handleCurrencyChange(e.target.value)} 
+                      className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20 font-bold"
+                    >
                       <option value="XAF">XAF (Franc)</option>
                       <option value="USD">USD (Dollar)</option>
                       <option value="EUR">EUR (Euro)</option>
@@ -876,11 +962,23 @@ export default function Transactions() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Exchange Rate</label>
-                    <input type="number" value={form.exchangeRate} onChange={e => setForm({ ...form, exchangeRate: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="Rate" min="0" step="any" />
+                    <input 
+                      type="text" 
+                      value={form.exchangeRate} 
+                      onChange={e => handleExchangeRateChange(e.target.value)} 
+                      className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20 font-mono" 
+                      placeholder="Rate (e.g. 655.95)" 
+                    />
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Amount in XAF</label>
-                    <input type="number" value={form.amountInXaf} onChange={e => setForm({ ...form, amountInXaf: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="Total XAF" min="0" step="any" />
+                    <input 
+                      type="text" 
+                      value={formatCommaNumber(form.amountInXaf)} 
+                      onChange={e => handleAmountInXafChange(e.target.value)} 
+                      className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20 font-mono font-bold text-emerald-700" 
+                      placeholder="Total XAF" 
+                    />
                   </div>
                 </div>
                 <div>
@@ -930,7 +1028,14 @@ export default function Transactions() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Current Balance (XAF) *</label>
-                  <input required type="number" value={floatForm.balance} onChange={e => setFloatForm({ ...floatForm, balance: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="0" min="0" />
+                  <input 
+                    required 
+                    type="text" 
+                    value={formatCommaNumber(floatForm.balance)} 
+                    onChange={e => setFloatForm({ ...floatForm, balance: cleanCommas(e.target.value) })} 
+                    className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20 font-mono font-bold" 
+                    placeholder="e.g. 1,500,000" 
+                  />
                 </div>
                 <button type="submit" disabled={submitting} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 flex items-center justify-center gap-2">
                   {submitting ? 'Updating...' : 'Set Balance'}
@@ -951,7 +1056,14 @@ export default function Transactions() {
               <form onSubmit={submitCharges} className="p-6 space-y-4">
                 <div>
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Transfer Charges (XAF) *</label>
-                  <input required type="number" value={chargesForm.charges} onChange={e => setChargesForm({ ...chargesForm, charges: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="e.g. 150" min="0" />
+                  <input 
+                    required 
+                    type="text" 
+                    value={formatCommaNumber(chargesForm.charges)} 
+                    onChange={e => setChargesForm({ ...chargesForm, charges: cleanCommas(e.target.value) })} 
+                    className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20 font-mono font-bold" 
+                    placeholder="e.g. 150" 
+                  />
                 </div>
                 <button type="submit" disabled={submitting} className="w-full py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 flex items-center justify-center gap-2">
                   {submitting ? 'Processing...' : 'Confirm & Mark Completed'}

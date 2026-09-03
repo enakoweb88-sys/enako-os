@@ -54,7 +54,7 @@ export default function Subscriptions() {
       setNewCostInXaf((Number(newCost) * Number(newExchangeRate)).toString());
     } else if (newCurrency === 'XAF') {
       setNewCostInXaf(newCost);
-      setNewExchangeRate('1');
+      if (!newExchangeRate) setNewExchangeRate('1');
     }
   }, [newCost, newExchangeRate, newCurrency]);
 
