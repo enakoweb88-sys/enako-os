@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { TasksWidget } from '../../components/TasksWidget';
 import { CashCollectionsWidget } from '../../components/CashCollectionsWidget';
+import { ExchangeRatesWidget } from '../../components/ExchangeRatesWidget';
 
 function fmt(val: string | number | null | undefined, currency = true) {
   const n = Number(val ?? 0);
@@ -268,6 +269,9 @@ export function ManagerDashboard() {
 
         </div>
       </div>
+
+      {/* Live Exchange Rates & Comparison Matrix */}
+      <ExchangeRatesWidget />
 
       {/* Field Cash Collections Widget */}
       <CashCollectionsWidget />

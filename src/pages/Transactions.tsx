@@ -13,6 +13,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { ENAKO_LOGO_BASE64 } from '../lib/logo-base64';
+import { ExchangeRatesWidget, getStoredExchangeRates } from '../components/ExchangeRatesWidget';
 
 function fmt(val: string | number | null | undefined, currency: string | boolean = 'XAF') {
   const n = Number(val ?? 0);
@@ -111,14 +112,43 @@ export default function Transactions() {
     return String(Math.round(amt * rate));
   };
 
-  const handleCurrencyChange = (newCurr: string) => {
-    const defaultRate = DEFAULT_RATES[newCurr] || '1';
+  const handleCurrencyChange = (newCurr: string, txType: string = form.type) => {
+    const storedRates = getStoredExchangeRates();
+    const currData = storedRates[newCurr];
+    let defaultRate = '1';
+
+    if (newCurr === 'XAF') {
+      defaultRate = '1';
+    } else if (currData) {
+      defaultRate = txType === 'Receive' ? currData.buyingRate : currData.sellingRate;
+    } else {
+      defaultRate = DEFAULT_RATES[newCurr] || '1';
+    }
+
     const calcXaf = calculateXaf(form.amount, defaultRate, newCurr);
     setForm(f => ({
       ...f,
       currency: newCurr,
       exchangeRate: defaultRate,
       amountInXaf: calcXaf || (newCurr === 'XAF' ? f.amount : f.amountInXaf)
+    }));
+  };
+
+  const handleTypeChange = (newType: string) => {
+    const storedRates = getStoredExchangeRates();
+    const currData = storedRates[form.currency];
+    let newRate = form.exchangeRate;
+
+    if (form.currency !== 'XAF' && currData) {
+      newRate = newType === 'Receive' ? currData.buyingRate : currData.sellingRate;
+    }
+
+    const calcXaf = calculateXaf(form.amount, newRate, form.currency);
+    setForm(f => ({
+      ...f,
+      type: newType,
+      exchangeRate: newRate,
+      amountInXaf: calcXaf || (f.currency === 'XAF' ? f.amount : f.amountInXaf)
     }));
   };
 
@@ -550,6 +580,8 @@ export default function Transactions() {
         </div>
       </div>
 
+      <ExchangeRatesWidget canEdit={role === 'ceo' || role === 'manager'} />
+
       <div className="grid grid-cols-12 gap-6">
         {/* Main Content Area (9 cols) */}
         <div className="col-span-12 lg:col-span-9 space-y-6">
@@ -921,12 +953,12 @@ export default function Transactions() {
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30">
-              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 max-h-[90vh] flex flex-col z-10">
+              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low shrink-0">
                 <h3 className="text-lg font-bold text-primary">Record New Transaction</h3>
-                <button onClick={() => setShowModal(false)}><X className="w-5 h-5 text-secondary" /></button>
+                <button onClick={() => setShowModal(false)} className="p-1 hover:bg-slate-200 rounded-full transition-colors"><X className="w-5 h-5 text-secondary" /></button>
               </div>
-              <form onSubmit={handleCreate} className="p-6 space-y-4">
+              <form onSubmit={handleCreate} className="p-6 space-y-4 overflow-y-auto">
                 <div>
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Entity / Reference *</label>
                   <input required value={form.entity} onChange={e => setForm({ ...form, entity: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" placeholder="e.g. Acme Corp" />
@@ -961,7 +993,7 @@ export default function Transactions() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Exchange Rate</label>
+                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Exchange Rate (Editable)</label>
                     <input 
                       type="text" 
                       value={form.exchangeRate} 
@@ -982,10 +1014,10 @@ export default function Transactions() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Type *</label>
-                  <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
-                    <option>Receive</option>
-                    <option>Send</option>
+                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Type / Operation *</label>
+                  <select value={form.type} onChange={e => handleTypeChange(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20 font-bold">
+                    <option value="Receive">Receive (Buy Currency)</option>
+                    <option value="Send">Send (Sell Currency)</option>
                   </select>
                 </div>
                 <div>
@@ -1001,7 +1033,7 @@ export default function Transactions() {
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Description</label>
                   <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20 resize-none" placeholder="Add any relevant details..." />
                 </div>
-                <button type="submit" disabled={submitting} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 flex items-center justify-center gap-2">
+                <button type="submit" disabled={submitting} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-md active:scale-[0.98]">
                   {submitting ? 'Processing...' : 'Submit Transaction'}
                 </button>
               </form>
@@ -1012,12 +1044,12 @@ export default function Transactions() {
         {showFloatModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowFloatModal(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30">
-              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 max-h-[90vh] flex flex-col z-10">
+              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low shrink-0">
                 <h3 className="text-lg font-bold text-primary">Update Float Balance</h3>
-                <button onClick={() => setShowFloatModal(false)}><X className="w-5 h-5 text-secondary" /></button>
+                <button onClick={() => setShowFloatModal(false)} className="p-1 hover:bg-slate-200 rounded-full transition-colors"><X className="w-5 h-5 text-secondary" /></button>
               </div>
-              <form onSubmit={handleUpdateFloat} className="p-6 space-y-4">
+              <form onSubmit={handleUpdateFloat} className="p-6 space-y-4 overflow-y-auto">
                 <div>
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Channel *</label>
                   <select value={floatForm.channel} onChange={e => setFloatForm({ ...floatForm, channel: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
@@ -1037,7 +1069,7 @@ export default function Transactions() {
                     placeholder="e.g. 1,500,000" 
                   />
                 </div>
-                <button type="submit" disabled={submitting} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 flex items-center justify-center gap-2">
+                <button type="submit" disabled={submitting} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-md active:scale-[0.98]">
                   {submitting ? 'Updating...' : 'Set Balance'}
                 </button>
               </form>
@@ -1048,12 +1080,12 @@ export default function Transactions() {
         {showChargesModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowChargesModal(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30">
-              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 max-h-[90vh] flex flex-col z-10">
+              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low shrink-0">
                 <h3 className="text-lg font-bold text-primary">Complete Send Transaction</h3>
-                <button onClick={() => setShowChargesModal(false)}><X className="w-5 h-5 text-secondary" /></button>
+                <button onClick={() => setShowChargesModal(false)} className="p-1 hover:bg-slate-200 rounded-full transition-colors"><X className="w-5 h-5 text-secondary" /></button>
               </div>
-              <form onSubmit={submitCharges} className="p-6 space-y-4">
+              <form onSubmit={submitCharges} className="p-6 space-y-4 overflow-y-auto">
                 <div>
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Transfer Charges (XAF) *</label>
                   <input 
