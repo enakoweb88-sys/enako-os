@@ -92,15 +92,6 @@ export default function Transactions() {
   const [chargesForm, setChargesForm] = useState({ id: '', charges: '' });
   const [showExportMenu, setShowExportMenu] = useState(false);
 
-  const DEFAULT_RATES: Record<string, string> = {
-    XAF: '1',
-    USD: '600',
-    EUR: '655.95',
-    USDT: '600',
-    CNY: '85',
-    NGN: '0.4',
-  };
-
   const calculateXaf = (amountStr: string, rateStr: string, curr: string) => {
     const amt = Number(cleanCommas(amountStr));
     const rate = Number(cleanCommas(rateStr));
@@ -115,14 +106,12 @@ export default function Transactions() {
   const handleCurrencyChange = (newCurr: string, txType: string = form.type) => {
     const storedRates = getStoredExchangeRates();
     const currData = storedRates[newCurr];
-    let defaultRate = '1';
+    let defaultRate = '';
 
     if (newCurr === 'XAF') {
       defaultRate = '1';
     } else if (currData) {
-      defaultRate = txType === 'Receive' ? currData.buyingRate : currData.sellingRate;
-    } else {
-      defaultRate = DEFAULT_RATES[newCurr] || '1';
+      defaultRate = txType === 'Receive' ? (currData.buyingRate || '') : (currData.sellingRate || '');
     }
 
     const calcXaf = calculateXaf(form.amount, defaultRate, newCurr);
@@ -140,7 +129,7 @@ export default function Transactions() {
     let newRate = form.exchangeRate;
 
     if (form.currency !== 'XAF' && currData) {
-      newRate = newType === 'Receive' ? currData.buyingRate : currData.sellingRate;
+      newRate = newType === 'Receive' ? (currData.buyingRate || '') : (currData.sellingRate || '');
     }
 
     const calcXaf = calculateXaf(form.amount, newRate, form.currency);
