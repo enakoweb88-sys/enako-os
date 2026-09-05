@@ -129,24 +129,27 @@ export default function OutreachScholarships() {
     const isScheduled = form.publishOption === 'SCHEDULED';
     const status = isScheduled ? 'SCHEDULED' : (form.publishOption === 'DRAFT' ? 'DRAFT' : 'OPEN');
 
-    const newScholarship = {
-      id: `sch-${Date.now()}`,
+    const payload = {
       title: form.title.trim(),
       description: form.description.trim(),
       type: 'SCHOLARSHIP',
       status,
-      level: form.level,
       openDate: form.openDate ? new Date(form.openDate).toISOString() : (status === 'OPEN' ? new Date().toISOString() : null),
       closeDate: form.closeDate ? new Date(form.closeDate).toISOString() : null,
-      customFields,
-      createdAt: new Date().toISOString(),
-      _count: { applications: 0 },
+      customFields: customFields.length > 0 ? customFields : null,
     };
 
     try {
-      await outreachAPI.createEvent(newScholarship).catch(() => null);
+      const created = await outreachAPI.createEvent(payload).catch(() => null);
 
-      const updatedList = [newScholarship, ...events];
+      const newItem = created && created.id ? created : {
+        ...payload,
+        id: `sch-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        _count: { applications: 0 },
+      };
+
+      const updatedList = [newItem, ...events];
       saveLocalEvents(updatedList);
 
       if (status === 'OPEN') {
@@ -368,7 +371,7 @@ export default function OutreachScholarships() {
 
                       <button
                         onClick={() => {
-                          setSchedulingEvent(ev);
+                          setScheduleModalItem(ev);
                           setScheduledDateTime(ev.openDate ? new Date(ev.openDate).toISOString().slice(0, 16) : '');
                         }}
                         className="py-1.5 px-2.5 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all"
@@ -685,7 +688,7 @@ export default function OutreachScholarships() {
 
       {/* Quick Schedule Date/Time Modal */}
       <AnimatePresence>
-        {schedulingEvent && (
+        {scheduleModalItem && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-3xl shadow-2xl p-6 max-w-md w-full space-y-4 border border-outline-variant/30">
               <div className="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -693,13 +696,13 @@ export default function OutreachScholarships() {
                   <Clock className="w-5 h-5 text-primary" />
                   Schedule Publication
                 </h3>
-                <button onClick={() => setSchedulingEvent(null)} className="text-slate-400 hover:text-slate-600">
+                <button onClick={() => setScheduleModalItem(null)} className="text-slate-400 hover:text-slate-600">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <p className="text-xs text-slate-500">
-                Set the exact date & time when <strong>{schedulingEvent.title}</strong> will automatically open on the public portal.
+                Set the exact date & time when <strong>{scheduleModalItem.title}</strong> will automatically open on the public portal.
               </p>
 
               <form onSubmit={handleSaveScheduledTime} className="space-y-4">
@@ -719,7 +722,7 @@ export default function OutreachScholarships() {
                 <div className="pt-2 flex justify-end gap-2">
                   <button
                     type="button"
-                    onClick={() => setSchedulingEvent(null)}
+                    onClick={() => setScheduleModalItem(null)}
                     className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold"
                   >
                     Cancel
