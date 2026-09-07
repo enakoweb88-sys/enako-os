@@ -11,6 +11,7 @@ import {
   Search,
   Filter,
   Download,
+  Plus,
   Eye,
   X,
   User,
@@ -32,72 +33,33 @@ function fmt(val: number | string | null | undefined, currency = true) {
   return n.toLocaleString();
 }
 
-const MOCK_COLLECTIONS: CashCollection[] = [
-  {
-    id: 'COL-9012',
-    collectorId: 'COL-001',
-    clientName: 'Alpha Boutiques Douala',
-    location: 'Akwa Commercial Hub',
-    amountCollected: 450000,
-    outstandingBalance: 120000,
-    currency: 'XAF',
-    collectionTime: new Date(Date.now() - 3600000 * 2).toISOString(),
-    status: 'COMPLETE',
-    description: 'Weekly merchant cash collection. Verified and deposited at Ecobank.',
-    receiptUrl: '',
-    collector: {
-      id: 'COL-001',
-      fullName: 'Christian Enako',
-      email: 'collector@enako.cm',
-      role: { name: 'Field Collector' },
-    },
-  },
-  {
-    id: 'COL-9013',
-    collectorId: 'COL-002',
-    clientName: 'Kamer Logistics Yaoundé',
-    location: 'Marché Central Sector B',
-    amountCollected: 850000,
-    outstandingBalance: 300000,
-    currency: 'XAF',
-    collectionTime: new Date(Date.now() - 3600000 * 5).toISOString(),
-    status: 'PENDING',
-    description: 'Partial cash collection. Awaiting bank clearance confirmation.',
-    collector: {
-      id: 'COL-002',
-      fullName: 'Francis Ngu',
-      email: 'francis@enako.cm',
-      role: { name: 'Lead Cash Auditor' },
-    },
-  },
-  {
-    id: 'COL-9014',
-    collectorId: 'COL-001',
-    clientName: 'Sarl Building Supplies',
-    location: 'Bonanjo Port Terminal Sector C',
-    amountCollected: 1250000,
-    outstandingBalance: 0,
-    currency: 'XAF',
-    collectionTime: new Date(Date.now() - 3600000 * 24).toISOString(),
-    status: 'COMPLETE',
-    description: 'Full balance settled in cash. Verified by vault manager.',
-    collector: {
-      id: 'COL-001',
-      fullName: 'Christian Enako',
-      email: 'collector@enako.cm',
-      role: { name: 'Field Collector' },
-    },
-  },
-];
+function parseNoteText(item: any): string {
+  if (!item) return '';
+  if (item.summaryNote) return item.summaryNote;
+  if (item.notes) return item.notes;
+  if (!item.description) return '';
+  if (typeof item.description === 'string') {
+    if (item.description.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(item.description);
+        return parsed.summaryNote || parsed.notes || '';
+      } catch (e) {}
+    }
+    return item.description;
+  }
+  return '';
+}
+
+const MOCK_COLLECTIONS: CashCollection[] = [];
 
 const DEFAULT_STATS: CashCollectionStats = {
-  todayCollected: 1300000,
-  todayCount: 2,
-  pendingAmount: 850000,
-  pendingCount: 1,
-  totalCollected: 2550000,
-  totalOutstanding: 420000,
-  totalRecords: 3,
+  todayCollected: 0,
+  todayCount: 0,
+  pendingAmount: 0,
+  pendingCount: 0,
+  totalCollected: 0,
+  totalOutstanding: 0,
+  totalRecords: 0,
 };
 
 export default function CashCollectionsPage() {
@@ -117,41 +79,80 @@ export default function CashCollectionsPage() {
 
   const isManagerOrCeo = user?.role === 'CEO' || user?.role === 'MANAGER' || user?.role === 'OUTREACH_MANAGER';
 
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    clientName: '',
+    location: '',
+    amountCollected: '',
+    outstandingBalance: '',
+    status: 'PENDING' as 'COMPLETE' | 'PENDING' | 'CANCELLED',
+    collectorName: 'Christian Enako',
+    description: '',
+  });
+
   const getLocalUserCollections = (): CashCollection[] => {
     try {
-      const collectionsRaw = localStorage.getItem('enako_collections');
-      if (!collectionsRaw) return [];
-      const parsed = JSON.parse(collectionsRaw);
-      if (!Array.isArray(parsed) || parsed.length === 0) return [];
+      const keys = ['enako_collections', 'enako_cash_collections', 'cash_collections', 'enako_drafts'];
+      let rawItems: any[] = [];
+      for (const k of keys) {
+        const val = localStorage.getItem(k);
+        if (val) {
+          try {
+            const p = JSON.parse(val);
+            if (Array.isArray(p)) rawItems.push(...p);
+          } catch (e) {}
+        }
+      }
 
-      const userRaw = localStorage.getItem('enako_cash_user');
+      if (rawItems.length === 0) return [];
+
+      const userRaw = localStorage.getItem('enako_cash_user') || localStorage.getItem('enako_user');
       let collectorName = 'Field Collector';
       if (userRaw) {
         try {
           const u = JSON.parse(userRaw);
-          if (u.name) collectorName = u.name;
+          if (u.name || u.fullName) collectorName = u.name || u.fullName;
         } catch (e) {}
       }
 
-      return parsed.map((item: any) => ({
-        id: item.id || `COL-${Math.floor(1000 + Math.random() * 9000)}`,
-        collectorId: 'COL-REAL',
-        clientName: item.clientName || 'Merchant Client',
-        location: item.location || item.depositDestination || 'Douala Field Sector',
-        amountCollected: Number(item.amount || 0),
-        outstandingBalance: Number(item.shortageAmount || 0),
-        currency: 'XAF',
-        collectionTime: item.timestamp || new Date().toISOString(),
-        status: (item.status === 'COMPLETE' || item.status === 'PENDING' || item.status === 'CANCELLED') ? item.status : 'COMPLETE',
-        description: item.notes || item.summaryNote || (item.depositDestination ? `Deposited to: ${item.depositDestination}` : 'Real Field Cash Collection'),
-        receiptUrl: item.receiptUrl || '',
-        collector: {
-          id: 'COL-REAL',
-          fullName: collectorName,
-          email: 'collector@enako.cm',
-          role: { name: 'Field Cash Collector' },
-        },
-      }));
+      const seen = new Set();
+      const result: CashCollection[] = [];
+
+      for (const item of rawItems) {
+        const id = item.id || `COL-${Math.floor(1000 + Math.random() * 9000)}`;
+        if (seen.has(id)) continue;
+        seen.add(id);
+
+        const amt = Number(item.amountCollected ?? item.amount ?? 0);
+        const shortage = Number(item.outstandingBalance ?? item.shortageAmount ?? 0);
+        const client = item.clientName || 'Merchant Client';
+        const loc = item.location || item.depositDestination || 'Douala Field Sector';
+
+        result.push({
+          id,
+          collectorId: item.collectorId || 'COL-REAL',
+          clientName: client,
+          location: loc,
+          amountCollected: amt,
+          outstandingBalance: shortage,
+          currency: 'XAF',
+          collectionTime: item.collectionTime || item.timestamp || new Date().toISOString(),
+          status: (item.status === 'COMPLETE' || item.status === 'PENDING' || item.status === 'CANCELLED') ? item.status : 'PENDING',
+          description: item.description || item.notes || item.summaryNote || 'Field Cash Collection Task',
+          receiptUrl: item.receiptUrl || '',
+          createdAt: item.createdAt || item.timestamp || new Date().toISOString(),
+          updatedAt: item.updatedAt || item.timestamp || new Date().toISOString(),
+          collector: item.collector || {
+            id: 'COL-REAL',
+            fullName: collectorName,
+            email: 'collector@enako.cm',
+            role: { name: 'Field Cash Collector' },
+          },
+        });
+      }
+
+      return result;
     } catch (err) {
       return [];
     }
@@ -253,7 +254,82 @@ export default function CashCollectionsPage() {
 
   useEffect(() => {
     loadData();
+    const handleStorage = () => loadData();
+    const interval = setInterval(loadData, 10000);
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      clearInterval(interval);
+    };
   }, [search, statusFilter, page]);
+
+  const handleCreateCollectionTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createForm.clientName.trim()) {
+      toast.error('Please enter a client name.');
+      return;
+    }
+
+    setCreateSubmitting(true);
+    const newId = `COL-${Math.floor(1000 + Math.random() * 9000)}`;
+    const amt = Number(createForm.amountCollected) || 0;
+    const shortage = Number(createForm.outstandingBalance) || 0;
+
+    const newCol: CashCollection = {
+      id: newId,
+      collectorId: 'COL-001',
+      clientName: createForm.clientName.trim(),
+      location: createForm.location.trim() || 'Douala Central Sector',
+      amountCollected: amt,
+      outstandingBalance: shortage,
+      currency: 'XAF',
+      collectionTime: new Date().toISOString(),
+      status: createForm.status,
+      description: createForm.description.trim() || 'Field collection task assigned via Admin Dashboard.',
+      receiptUrl: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      collector: {
+        id: 'COL-001',
+        fullName: createForm.collectorName.trim() || 'Field Collector',
+        email: 'collector@enako.cm',
+        role: { name: 'Field Cash Collector' },
+      },
+    };
+
+    try {
+      await api.createCashCollection({
+        clientName: newCol.clientName,
+        location: newCol.location,
+        amountCollected: newCol.amountCollected,
+        outstandingBalance: newCol.outstandingBalance,
+        status: newCol.status,
+        description: newCol.description,
+      }).catch(() => null);
+    } catch (err) {}
+
+    try {
+      const existingRaw = localStorage.getItem('enako_collections');
+      const existing = existingRaw ? JSON.parse(existingRaw) : [];
+      const updated = [newCol, ...existing];
+      localStorage.setItem('enako_collections', JSON.stringify(updated));
+      localStorage.setItem('enako_cash_collections', JSON.stringify(updated));
+    } catch (err) {}
+
+    toast.success(`Collection task #${newId} created & assigned successfully!`);
+    setCreateSubmitting(false);
+    setShowCreateModal(false);
+    setCreateForm({
+      clientName: '',
+      location: '',
+      amountCollected: '',
+      outstandingBalance: '',
+      status: 'PENDING',
+      collectorName: 'Christian Enako',
+      description: '',
+    });
+    loadData();
+  };
 
   const handleUpdateStatus = async (id: string, newStatus: 'COMPLETE' | 'PENDING' | 'CANCELLED') => {
     setUpdatingStatus(true);
@@ -316,6 +392,12 @@ export default function CashCollectionsPage() {
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-5 py-3 bg-primary text-white rounded-[2px] text-xs font-bold uppercase tracking-wider flex items-center gap-2 hover:bg-primary/90 transition-all shadow-md shrink-0"
+          >
+            <Plus className="w-4 h-4" /> Create Collection Task
+          </button>
           <button
             onClick={loadData}
             className="p-3 border border-outline-variant/30 rounded-[2px] text-secondary hover:bg-surface-container transition-all"
@@ -480,6 +562,11 @@ export default function CashCollectionsPage() {
                       <p className="text-[10px] text-secondary flex items-center gap-1 mt-0.5">
                         <MapPin className="w-3 h-3 text-secondary" /> {col.location}
                       </p>
+                      {parseNoteText(col) && (
+                        <p className="text-[10px] font-medium text-amber-900 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60 mt-1.5 inline-block max-w-xs truncate">
+                          Note: "{parseNoteText(col)}"
+                        </p>
+                      )}
                     </td>
 
                     <td className="px-6 py-4 font-mono text-xs font-bold text-emerald-600">
@@ -648,7 +735,7 @@ export default function CashCollectionsPage() {
                     Field Description & Client Interaction Notes
                   </h4>
                   <div className="p-4 rounded-xl bg-surface border border-outline-variant/30 text-xs text-primary leading-relaxed whitespace-pre-wrap">
-                    {selectedCollection.description || 'No additional notes provided.'}
+                    {parseNoteText(selectedCollection) || 'No additional notes provided.'}
                   </div>
                 </div>
 
@@ -694,6 +781,147 @@ export default function CashCollectionsPage() {
                   </div>
                 )}
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* ── Create Collection Task Modal ── */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCreateModal(false)}
+              className="absolute inset-0 bg-primary/20 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 flex flex-col max-h-[90vh]"
+            >
+              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-primary/10 text-primary rounded-xl">
+                    <Wallet className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-primary font-display">Assign Field Cash Collection Task</h3>
+                    <p className="text-xs text-secondary">Create a task for field collectors or log an incoming cash payment.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="p-2 hover:bg-surface-container rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-secondary" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateCollectionTask} className="p-6 space-y-4 overflow-y-auto">
+                <div>
+                  <label className="block text-xs font-bold text-primary mb-1">Client Name <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={createForm.clientName}
+                    onChange={(e) => setCreateForm({ ...createForm, clientName: e.target.value })}
+                    placeholder="e.g. Kamer Logistics / Merchant Shop"
+                    className="w-full bg-surface border border-outline-variant/30 rounded-xl px-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-primary mb-1">Location / Market Sector</label>
+                    <input
+                      type="text"
+                      value={createForm.location}
+                      onChange={(e) => setCreateForm({ ...createForm, location: e.target.value })}
+                      placeholder="e.g. Akwa Commercial Hub"
+                      className="w-full bg-surface border border-outline-variant/30 rounded-xl px-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-primary mb-1">Assigned Collector</label>
+                    <input
+                      type="text"
+                      value={createForm.collectorName}
+                      onChange={(e) => setCreateForm({ ...createForm, collectorName: e.target.value })}
+                      placeholder="e.g. Christian Enako"
+                      className="w-full bg-surface border border-outline-variant/30 rounded-xl px-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-primary mb-1">Amount Collected / Target (XAF)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={createForm.amountCollected}
+                      onChange={(e) => setCreateForm({ ...createForm, amountCollected: e.target.value })}
+                      placeholder="e.g. 500000"
+                      className="w-full bg-surface border border-outline-variant/30 rounded-xl px-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-primary mb-1">Outstanding Balance (XAF)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={createForm.outstandingBalance}
+                      onChange={(e) => setCreateForm({ ...createForm, outstandingBalance: e.target.value })}
+                      placeholder="e.g. 0"
+                      className="w-full bg-surface border border-outline-variant/30 rounded-xl px-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-primary mb-1">Initial Task Status</label>
+                  <select
+                    value={createForm.status}
+                    onChange={(e) => setCreateForm({ ...createForm, status: e.target.value as any })}
+                    className="w-full bg-surface border border-outline-variant/30 rounded-xl px-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="PENDING">PENDING (Awaiting Collection / Deposit)</option>
+                    <option value="COMPLETE">COMPLETE (Collection Verified)</option>
+                    <option value="CANCELLED">CANCELLED</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-primary mb-1">Task Instructions / Notes</label>
+                  <textarea
+                    rows={3}
+                    value={createForm.description}
+                    onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                    placeholder="Instructions for the field collector or interaction details..."
+                    className="w-full bg-surface border border-outline-variant/30 rounded-xl px-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                <div className="pt-4 flex justify-end gap-3 border-t border-outline-variant/20">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-4 py-2.5 text-xs font-bold text-secondary hover:bg-surface-container rounded-xl transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={createSubmitting}
+                    className="px-6 py-2.5 bg-primary text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 shadow-md"
+                  >
+                    {createSubmitting ? 'Saving...' : 'Create Collection Task'}
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

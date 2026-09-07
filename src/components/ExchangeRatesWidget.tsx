@@ -163,7 +163,7 @@ export function ExchangeRatesWidget({ canEdit = true }: WidgetProps) {
     }
   };
 
-  const rateList = Object.values(rates);
+  const rateList: ExchangeRateItem[] = Object.values(rates);
 
   return (
     <div className="bg-white border border-outline-variant/30 rounded-2xl p-6 shadow-sm space-y-6">
@@ -232,7 +232,9 @@ export function ExchangeRatesWidget({ canEdit = true }: WidgetProps) {
                         <p className="font-bold text-slate-900 text-sm leading-tight">
                           {curr.code} <span className="text-xs font-normal text-slate-500">({curr.name})</span>
                         </p>
-                        <p className="text-[10px] font-mono text-slate-400">1 {curr.code} : FCFA</p>
+                        <p className="text-[10px] font-mono text-slate-400">
+                          {curr.code === 'NGN' ? 'NGN per 1,000 FCFA' : `1 ${curr.code} : FCFA`}
+                        </p>
                       </div>
                     </div>
                   </td>
@@ -318,7 +320,7 @@ export function ExchangeRatesWidget({ canEdit = true }: WidgetProps) {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                            Buying Rate (FCFA)
+                            Buying Rate {code === 'NGN' ? '(FCFA per 1,000 NGN)' : '(FCFA)'}
                           </label>
                           <input
                             type="text"
@@ -328,13 +330,13 @@ export function ExchangeRatesWidget({ canEdit = true }: WidgetProps) {
                               [code]: { ...editForm[code], buyingRate: e.target.value }
                             })}
                             className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-outline-variant/50 focus:ring-2 focus:ring-primary/20 outline-none"
-                            placeholder="Enter buying rate..."
+                            placeholder={code === 'NGN' ? "e.g. 400" : "Enter buying rate..."}
                           />
                         </div>
 
                         <div>
                           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                            Selling Rate (FCFA)
+                            Selling Rate {code === 'NGN' ? '(FCFA per 1,000 NGN)' : '(FCFA)'}
                           </label>
                           <input
                             type="text"
@@ -344,7 +346,7 @@ export function ExchangeRatesWidget({ canEdit = true }: WidgetProps) {
                               [code]: { ...editForm[code], sellingRate: e.target.value }
                             })}
                             className="w-full px-3 py-2 text-xs font-mono font-bold text-emerald-700 rounded-xl border border-outline-variant/50 focus:ring-2 focus:ring-primary/20 outline-none"
-                            placeholder="Enter selling rate..."
+                            placeholder={code === 'NGN' ? "e.g. 420" : "Enter selling rate..."}
                           />
                         </div>
                       </div>

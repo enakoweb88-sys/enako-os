@@ -499,8 +499,16 @@ ${dailyForm.recommendation}`;
           doc.text(`Total Volume: ${fmt(total)}`, 70, cy);
           cy += 8;
           
-          const tableData = data.map((t: any) => [new Date(t.createdAt).toLocaleDateString(), t.type, t.entity, fmt(t.amount), t.status]);
-          autoTable(doc, { startY: cy, head: [['Date', 'Type', 'Entity', 'Amount', 'Status']], body: tableData, ...commonTableStyles });
+          const tableData = data.map((t: any) => [
+            new Date(t.createdAt).toLocaleDateString(),
+            t.type,
+            t.entity || '-',
+            `${Number(t.amount || 0).toLocaleString()} ${t.currency || 'XAF'}`,
+            t.amountInXaf ? fmt(t.amountInXaf) : '-',
+            t.status,
+            (t.description || '').substring(0, 30)
+          ]);
+          autoTable(doc, { startY: cy, head: [['Date', 'Type', 'Entity', 'Amount', 'XAF Amount', 'Status', 'Rate & Margin Details']], body: tableData, ...commonTableStyles });
         }
       );
 

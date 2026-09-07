@@ -26,26 +26,60 @@ export default function Expenses() {
     setLoading(true);
     try {
       const res = await api.expenses({ limit: 50 });
-      setItems(res.items);
-      setTotals(res.totals);
-    } catch (e: any) { console.error(e); }
-    finally { setLoading(false); }
+      const backendItems = res?.items || [];
+      setItems(backendItems);
+
+      let approvedSum = 0, approvedCount = 0;
+      let pendingSum = 0, pendingCount = 0;
+      backendItems.forEach((item: any) => {
+        const amt = Number(item.amount || 0);
+        if (item.status === 'APPROVED') {
+          approvedSum += amt;
+          approvedCount++;
+        } else if (item.status === 'PENDING') {
+          pendingSum += amt;
+          pendingCount++;
+        }
+      });
+
+      setTotals(res?.totals || [
+        { status: 'APPROVED', _sum: { amount: approvedSum }, _count: approvedCount },
+        { status: 'PENDING', _sum: { amount: pendingSum }, _count: pendingCount }
+      ]);
+    } catch (e: any) { 
+      console.error(e); 
+    } finally { 
+      setLoading(false); 
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.description || !form.amount) return;
     setSubmitting(true);
     try {
-      const finalCategory = form.category === 'Other' ? customCategory : form.category;
-      await api.createExpense({ ...form, category: finalCategory, amount: Number(form.amount) });
+      const finalCategory = form.category === 'Other' ? (customCategory.trim() || 'Other') : form.category;
+      const amt = Number(form.amount) || 0;
+      
+      const payload = {
+        description: form.description.trim(),
+        amount: amt,
+        category: finalCategory,
+      };
+
+      await api.createExpense(payload);
+
       setShowModal(false);
       setForm({ description: '', amount: '', category: 'Travel' });
       setCustomCategory('');
-      load();
-    } catch (e: any) { alert(e.message); }
-    finally { setSubmitting(false); }
+      await load();
+    } catch (e: any) { 
+      alert(e.message || 'Failed to submit expense claim'); 
+    } finally { 
+      setSubmitting(false); 
+    }
   };
 
   const handleReview = async (id: string, status: string) => {

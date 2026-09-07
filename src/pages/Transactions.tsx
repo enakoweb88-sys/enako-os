@@ -87,99 +87,289 @@ export default function Transactions() {
   const [showFloatModal, setShowFloatModal] = useState(false);
   const [showChargesModal, setShowChargesModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ entity: '', type: 'Receive', channel: 'Bank Transfer', amount: '', amountInXaf: '', exchangeRate: '1', currency: 'XAF', description: '' });
+  const [form, setForm] = useState({ 
+    entity: '', 
+    type: 'Receive', 
+    channel: 'Bank Transfer', 
+    amount: '', 
+    amountInXaf: '', 
+    exchangeRate: '1', 
+    buyingRate: '1',
+    sellingRate: '1',
+    buyingAmountXaf: '',
+    sellingAmountXaf: '',
+    sellingCurrency: 'USD',
+    sellingCurrencyAmount: '',
+    marginXaf: '0',
+    currency: 'XAF', 
+    description: '' 
+  });
   const [floatForm, setFloatForm] = useState({ channel: 'MTN', balance: '' });
   const [chargesForm, setChargesForm] = useState({ id: '', charges: '' });
   const [showExportMenu, setShowExportMenu] = useState(false);
 
-  const calculateXaf = (amountStr: string, rateStr: string, curr: string) => {
-    const amt = Number(cleanCommas(amountStr));
-    const rate = Number(cleanCommas(rateStr));
-    if (isNaN(amt) || amt <= 0 || isNaN(rate) || rate <= 0) return '';
-    if (curr === 'NGN') {
-      return String(Math.round((amt / rate) * 1000));
+  const recalculateDualRates = (
+    amountStr: string,
+    srcCurr: string,
+    bRateStr: string,
+    sRateStr: string,
+    sellCurr: string
+  ) => {
+    const amt = Number(cleanCommas(amountStr)) || 0;
+    const bRate = Number(cleanCommas(bRateStr)) || 1;
+    const sRate = Number(cleanCommas(sRateStr)) || 1;
+
+    let buyingXaf = 0;
+    let sellingXaf = 0;
+    let sellCurrAmt = 0;
+
+    if (amt > 0) {
+      if (srcCurr === 'XAF') {
+        sellingXaf = amt;
+        if (sellCurr === 'XAF') {
+          buyingXaf = amt;
+          sellCurrAmt = amt;
+        } else if (sellCurr === 'NGN') {
+          // sRate is NGN per 1,000 XAF (e.g. 2150 NGN per 1,000 XAF)
+          // Amount in NGN = (Amount in XAF / 1000) * sRate
+          sellCurrAmt = (amt / 1000) * sRate;
+          buyingXaf = bRate > 0 ? (sellCurrAmt / bRate) * 1000 : amt;
+        } else {
+          // Foreign target currency (EUR, USD, USDT, CNY, etc.):
+          // Amount Sold in Target Currency = Amount in XAF / Selling Rate
+          sellCurrAmt = sRate > 0 ? amt / sRate : 0;
+          buyingXaf = bRate > 0 && bRate !== 1 ? sellCurrAmt * bRate : amt;
+        }
+      } else if (srcCurr === 'NGN') {
+        // bRate/sRate are NGN per 1,000 XAF
+        buyingXaf = bRate > 0 ? (amt / bRate) * 1000 : 0;
+        sellingXaf = sRate > 0 ? (amt / sRate) * 1000 : 0;
+        if (sellCurr === 'NGN') {
+          sellCurrAmt = amt;
+        } else if (sellCurr === 'XAF') {
+          sellCurrAmt = sellingXaf;
+        } else {
+          sellCurrAmt = sRate > 0 ? sellingXaf / sRate : 0;
+        }
+      } else {
+        // Foreign source currency (USD, EUR, USDT, CNY, etc.)
+        buyingXaf = amt * bRate;
+        sellingXaf = amt * sRate;
+
+        if (sellCurr === srcCurr) {
+          sellCurrAmt = amt;
+        } else if (sellCurr === 'XAF') {
+          sellCurrAmt = sellingXaf;
+        } else if (sellCurr === 'NGN') {
+          sellCurrAmt = (sellingXaf / 1000) * sRate;
+        } else {
+          sellCurrAmt = sRate > 0 ? sellingXaf / sRate : 0;
+        }
+      }
     }
-    if (curr === 'XAF') return String(amt);
-    return String(Math.round(amt * rate));
+
+    const margin = Math.max(0, sellingXaf - buyingXaf);
+
+    return {
+      buyingAmountXaf: buyingXaf > 0 ? String(Math.round(buyingXaf)) : '',
+      sellingAmountXaf: sellingXaf > 0 ? String(Math.round(sellingXaf)) : '',
+      sellingCurrencyAmount: sellCurrAmt > 0 ? String(Math.round(sellCurrAmt * 100) / 100) : '',
+      marginXaf: margin > 0 ? String(Math.round(margin)) : '0',
+    };
   };
 
   const handleCurrencyChange = (newCurr: string, txType: string = form.type) => {
     const storedRates = getStoredExchangeRates();
     const currData = storedRates[newCurr];
-    let defaultRate = '';
+    let bRate = form.buyingRate;
+    let sRate = form.sellingRate;
 
     if (newCurr === 'XAF') {
-      defaultRate = '1';
+      bRate = '1';
+      sRate = '1';
     } else if (currData) {
-      defaultRate = txType === 'Receive' ? (currData.buyingRate || '') : (currData.sellingRate || '');
+      bRate = String(currData.buyingRate || '1');
+      sRate = String(currData.sellingRate || '1');
     }
 
-    const calcXaf = calculateXaf(form.amount, defaultRate, newCurr);
+    const calcs = recalculateDualRates(form.amount, newCurr, bRate, sRate, form.sellingCurrency);
+
     setForm(f => ({
       ...f,
       currency: newCurr,
-      exchangeRate: defaultRate,
-      amountInXaf: calcXaf || (newCurr === 'XAF' ? f.amount : f.amountInXaf)
+      buyingRate: bRate,
+      sellingRate: sRate,
+      exchangeRate: txType === 'Receive' ? bRate : sRate,
+      amountInXaf: calcs.buyingAmountXaf,
+      ...calcs
     }));
   };
 
   const handleTypeChange = (newType: string) => {
     const storedRates = getStoredExchangeRates();
     const currData = storedRates[form.currency];
-    let newRate = form.exchangeRate;
+    let bRate = form.buyingRate;
+    let sRate = form.sellingRate;
 
     if (form.currency !== 'XAF' && currData) {
-      newRate = newType === 'Receive' ? (currData.buyingRate || '') : (currData.sellingRate || '');
+      bRate = String(currData.buyingRate || form.buyingRate);
+      sRate = String(currData.sellingRate || form.sellingRate);
     }
 
-    const calcXaf = calculateXaf(form.amount, newRate, form.currency);
+    const calcs = recalculateDualRates(form.amount, form.currency, bRate, sRate, form.sellingCurrency);
+
     setForm(f => ({
       ...f,
       type: newType,
-      exchangeRate: newRate,
-      amountInXaf: calcXaf || (f.currency === 'XAF' ? f.amount : f.amountInXaf)
+      exchangeRate: newType === 'Receive' ? bRate : sRate,
+      amountInXaf: calcs.buyingAmountXaf,
+      ...calcs
     }));
   };
 
   const handleAmountChange = (rawInput: string) => {
     const cleaned = cleanCommas(rawInput);
     if (cleaned !== '' && isNaN(Number(cleaned)) && cleaned !== '.') return;
-    const calcXaf = calculateXaf(cleaned, form.exchangeRate || '1', form.currency);
+
+    const calcs = recalculateDualRates(cleaned, form.currency, form.buyingRate, form.sellingRate, form.sellingCurrency);
+
     setForm(f => ({
       ...f,
       amount: cleaned,
-      amountInXaf: calcXaf || (f.currency === 'XAF' ? cleaned : f.amountInXaf)
+      amountInXaf: calcs.buyingAmountXaf,
+      ...calcs
     }));
   };
 
-  const handleExchangeRateChange = (rawInput: string) => {
+  const handleBuyingRateChange = (rawInput: string) => {
     const cleaned = cleanCommas(rawInput);
     if (cleaned !== '' && isNaN(Number(cleaned)) && cleaned !== '.') return;
-    const calcXaf = calculateXaf(form.amount, cleaned, form.currency);
+
+    const calcs = recalculateDualRates(form.amount, form.currency, cleaned, form.sellingRate, form.sellingCurrency);
+
     setForm(f => ({
       ...f,
-      exchangeRate: cleaned,
-      amountInXaf: calcXaf || f.amountInXaf
+      buyingRate: cleaned,
+      exchangeRate: form.type === 'Receive' ? cleaned : f.exchangeRate,
+      amountInXaf: calcs.buyingAmountXaf,
+      ...calcs
     }));
   };
 
-  const handleAmountInXafChange = (rawInput: string) => {
+  const handleSellingRateChange = (rawInput: string) => {
     const cleaned = cleanCommas(rawInput);
     if (cleaned !== '' && isNaN(Number(cleaned)) && cleaned !== '.') return;
-    const amt = Number(cleanCommas(form.amount));
-    const xaf = Number(cleaned);
-    let newRate = form.exchangeRate;
-    if (amt > 0 && xaf > 0) {
-      if (form.currency === 'NGN') {
-        newRate = String(Math.round((amt / xaf) * 1000 * 100) / 100);
-      } else {
-        newRate = String(Math.round((xaf / amt) * 100) / 100);
-      }
+
+    const calcs = recalculateDualRates(form.amount, form.currency, form.buyingRate, cleaned, form.sellingCurrency);
+
+    setForm(f => ({
+      ...f,
+      sellingRate: cleaned,
+      exchangeRate: form.type === 'Send' ? cleaned : f.exchangeRate,
+      ...calcs
+    }));
+  };
+
+  const handleSellingCurrencyChange = (newSellCurr: string) => {
+    const calcs = recalculateDualRates(form.amount, form.currency, form.buyingRate, form.sellingRate, newSellCurr);
+
+    setForm(f => ({
+      ...f,
+      sellingCurrency: newSellCurr,
+      ...calcs
+    }));
+  };
+
+  const handleBuyingAmountXafChange = (rawInput: string) => {
+    const cleaned = cleanCommas(rawInput);
+    if (cleaned !== '' && isNaN(Number(cleaned)) && cleaned !== '.') return;
+
+    const xaf = Number(cleaned) || 0;
+    const bRate = Number(cleanCommas(form.buyingRate)) || 1;
+
+    let srcAmt = 0;
+    if (form.currency === 'XAF') {
+      srcAmt = xaf;
+    } else if (form.currency === 'NGN') {
+      srcAmt = (xaf / 1000) * bRate;
+    } else {
+      srcAmt = bRate > 0 ? xaf / bRate : 0;
     }
+
+    const srcAmtStr = srcAmt > 0 ? String(Math.round(srcAmt * 100) / 100) : form.amount;
+    const calcs = recalculateDualRates(srcAmtStr, form.currency, form.buyingRate, form.sellingRate, form.sellingCurrency);
+
     setForm(f => ({
       ...f,
+      amount: srcAmtStr,
+      buyingAmountXaf: cleaned,
       amountInXaf: cleaned,
-      exchangeRate: newRate
+      ...calcs
+    }));
+  };
+
+  const handleSellingAmountXafChange = (rawInput: string) => {
+    const cleaned = cleanCommas(rawInput);
+    if (cleaned !== '' && isNaN(Number(cleaned)) && cleaned !== '.') return;
+
+    const sXaf = Number(cleaned) || 0;
+    const sRate = Number(cleanCommas(form.sellingRate)) || 1;
+
+    let sellCurrAmt = 0;
+    if (form.sellingCurrency === 'XAF') {
+      sellCurrAmt = sXaf;
+    } else if (form.sellingCurrency === 'NGN') {
+      sellCurrAmt = (sXaf / 1000) * sRate;
+    } else {
+      sellCurrAmt = sRate > 0 ? sXaf / sRate : 0;
+    }
+
+    const bXaf = Number(cleanCommas(form.buyingAmountXaf)) || 0;
+    const margin = Math.max(0, sXaf - bXaf);
+
+    setForm(f => ({
+      ...f,
+      sellingAmountXaf: cleaned,
+      sellingCurrencyAmount: sellCurrAmt > 0 ? String(Math.round(sellCurrAmt * 100) / 100) : '',
+      marginXaf: margin > 0 ? String(Math.round(margin)) : '0',
+    }));
+  };
+
+  const handleSellingCurrencyAmountChange = (rawInput: string) => {
+    const cleaned = cleanCommas(rawInput);
+    if (cleaned !== '' && isNaN(Number(cleaned)) && cleaned !== '.') return;
+
+    const sellAmt = Number(cleaned) || 0;
+    const sRate = Number(cleanCommas(form.sellingRate)) || 1;
+    const bRate = Number(cleanCommas(form.buyingRate)) || 1;
+
+    let sXaf = 0;
+    if (form.sellingCurrency === 'XAF') {
+      sXaf = sellAmt;
+    } else if (form.sellingCurrency === 'NGN') {
+      sXaf = sRate > 0 ? (sellAmt / sRate) * 1000 : 0;
+    } else {
+      sXaf = sellAmt * sRate;
+    }
+
+    let bXaf = 0;
+    if (form.sellingCurrency === 'XAF') {
+      bXaf = sellAmt;
+    } else if (form.sellingCurrency === 'NGN') {
+      bXaf = bRate > 0 ? (sellAmt / bRate) * 1000 : 0;
+    } else {
+      bXaf = sellAmt * bRate;
+    }
+
+    const margin = Math.max(0, sXaf - bXaf);
+
+    setForm(f => ({
+      ...f,
+      sellingCurrencyAmount: cleaned,
+      sellingAmountXaf: sXaf > 0 ? String(Math.round(sXaf)) : '',
+      buyingAmountXaf: f.currency === 'XAF' ? (bXaf > 0 ? String(Math.round(bXaf)) : f.buyingAmountXaf) : f.buyingAmountXaf,
+      amountInXaf: f.currency === 'XAF' ? (bXaf > 0 ? String(Math.round(bXaf)) : f.amountInXaf) : f.amountInXaf,
+      marginXaf: margin > 0 ? String(Math.round(margin)) : '0',
     }));
   };
 
@@ -218,17 +408,26 @@ export default function Transactions() {
     setSubmitting(true);
     try {
       const cleanedAmt = Number(cleanCommas(form.amount));
-      const cleanedXaf = form.amountInXaf ? Number(cleanCommas(form.amountInXaf)) : (form.currency === 'XAF' ? cleanedAmt : undefined);
-      const cleanedRate = form.exchangeRate ? Number(cleanCommas(form.exchangeRate)) : 1;
+      const cleanedXaf = form.buyingAmountXaf ? Number(cleanCommas(form.buyingAmountXaf)) : (form.amountInXaf ? Number(cleanCommas(form.amountInXaf)) : cleanedAmt);
+      const cleanedRate = form.buyingRate ? Number(cleanCommas(form.buyingRate)) : 1;
+
+      const rateDetails = `Buy Rate: ${form.buyingRate}, Sell Rate: ${form.sellingRate}, Target Sell: ${form.sellingCurrencyAmount || '0'} ${form.sellingCurrency}, Est. Margin: +${form.marginXaf || '0'} XAF`;
+      const fullDesc = form.description ? `${form.description} | ${rateDetails}` : rateDetails;
 
       await api.createTransaction({ 
         ...form, 
         amount: cleanedAmt,
         amountInXaf: cleanedXaf,
         exchangeRate: cleanedRate,
+        description: fullDesc,
       });
       setShowModal(false);
-      setForm({ entity: '', type: 'Receive', channel: 'Bank Transfer', amount: '', amountInXaf: '', exchangeRate: '1', currency: 'XAF', description: '' });
+      setForm({ 
+        entity: '', type: 'Receive', channel: 'Bank Transfer', amount: '', amountInXaf: '', 
+        exchangeRate: '1', buyingRate: '1', sellingRate: '1', buyingAmountXaf: '', 
+        sellingAmountXaf: '', sellingCurrency: 'USD', sellingCurrencyAmount: '', 
+        marginXaf: '0', currency: 'XAF', description: '' 
+      });
       load();
     } catch (e: any) { alert(e.message); }
     finally { setSubmitting(false); }
@@ -320,17 +519,17 @@ export default function Transactions() {
 
       const tableData = allTx.map((tx: any) => [
         new Date(tx.createdAt).toLocaleDateString(),
-        (tx.entity || '').substring(0, 25),
+        (tx.entity || '').substring(0, 20),
         `${tx.type} / ${tx.channel || 'N/A'}`,
         fmt(tx.amount, tx.currency),
         tx.amountInXaf ? fmt(tx.amountInXaf, 'XAF') : '-',
-        tx.exchangeRate ? tx.exchangeRate : '-',
-        tx.status
+        tx.status,
+        (tx.description || '').substring(0, 40)
       ]);
 
       autoTable(doc, {
         startY: cy,
-        head: [['Date', 'Entity', 'Type/Channel', 'Amount', 'XAF Amount', 'Rate', 'Status']],
+        head: [['Date', 'Entity', 'Type/Channel', 'Amount', 'XAF Amount', 'Status', 'Rate Details & Margin']],
         body: tableData,
         theme: 'grid',
         headStyles: {
@@ -339,8 +538,8 @@ export default function Transactions() {
           fontStyle: 'bold',
         },
         styles: {
-          fontSize: 8,
-          cellPadding: 3,
+          fontSize: 7.5,
+          cellPadding: 2.5,
         },
         alternateRowStyles: {
           fillColor: [248, 250, 252]
@@ -466,10 +665,10 @@ export default function Transactions() {
       const allTx = res.items || [];
       
       const wsData = [
-        [`ENAKO FINTECH - Transactions Report - ${period}`],
+        [`ENAKO FINTECH - FX Transactions & Operations Report - ${period}`],
         [`Generated: ${new Date().toLocaleDateString()}`],
         [],
-        ['Date', 'Entity', 'Type', 'Channel', 'Currency', 'Amount', 'Amount (XAF)', 'Exchange Rate', 'Status', 'Description']
+        ['Date', 'Entity / Reference', 'Type', 'Channel', 'Currency', 'Amount', 'Amount (XAF)', 'Base Rate', 'Status', 'Rate & Margin Details']
       ];
       
       allTx.forEach((tx: any) => {
@@ -980,27 +1179,108 @@ export default function Transactions() {
                     </select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Exchange Rate (Editable)</label>
-                    <input 
-                      type="text" 
-                      value={form.exchangeRate} 
-                      onChange={e => handleExchangeRateChange(e.target.value)} 
-                      className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20 font-mono" 
-                      placeholder="Rate (e.g. 655.95)" 
-                    />
+                {/* Dual Rates Section: Buying Rate & Selling Rate */}
+                <div className="p-4 bg-surface-container-low rounded-2xl border border-outline-variant/30 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-primary uppercase tracking-wider">Dual Rates & Selling Target</span>
+                    <span className="text-[10px] text-secondary font-medium">Independent Buying & Selling rates per transaction</span>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Amount in XAF</label>
-                    <input 
-                      type="text" 
-                      value={formatCommaNumber(form.amountInXaf)} 
-                      onChange={e => handleAmountInXafChange(e.target.value)} 
-                      className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20 font-mono font-bold text-emerald-700" 
-                      placeholder="Total XAF" 
-                    />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">
+                        Buying Rate {form.currency === 'NGN' || form.sellingCurrency === 'NGN' ? '(per 1,000 NGN)' : '(Buy)'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        value={form.buyingRate} 
+                        onChange={e => handleBuyingRateChange(e.target.value)} 
+                        className="w-full bg-white border border-outline-variant/30 rounded-xl p-3 text-sm font-mono font-bold text-primary outline-none focus:ring-2 focus:ring-primary/20" 
+                        placeholder={form.currency === 'NGN' || form.sellingCurrency === 'NGN' ? "e.g. 400 per 1k NGN" : "Buying Rate (e.g. 600)"} 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">
+                        Selling Rate {form.currency === 'NGN' || form.sellingCurrency === 'NGN' ? '(per 1,000 NGN)' : '(Sell)'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        value={form.sellingRate} 
+                        onChange={e => handleSellingRateChange(e.target.value)} 
+                        className="w-full bg-white border border-outline-variant/30 rounded-xl p-3 text-sm font-mono font-bold text-primary outline-none focus:ring-2 focus:ring-primary/20" 
+                        placeholder={form.currency === 'NGN' || form.sellingCurrency === 'NGN' ? "e.g. 420 per 1k NGN" : "Selling Rate (e.g. 620)"} 
+                      />
+                    </div>
                   </div>
+
+                  {/* Dual Totals & Target Selling Currency Amount */}
+                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-outline-variant/20">
+                    <div>
+                      <label className="block text-[10px] font-bold text-emerald-700 mb-1 uppercase tracking-widest">
+                        Total XAF Bought (Paid/Collected)
+                      </label>
+                      <input 
+                        type="text" 
+                        value={formatCommaNumber(form.buyingAmountXaf)} 
+                        onChange={e => handleBuyingAmountXafChange(e.target.value)} 
+                        className="w-full bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-sm font-mono font-bold text-emerald-800 outline-none" 
+                        placeholder="Total Buying XAF" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-blue-700 mb-1 uppercase tracking-widest">
+                        Total XAF Sold (Expected Sales)
+                      </label>
+                      <input 
+                        type="text" 
+                        value={formatCommaNumber(form.sellingAmountXaf)} 
+                        onChange={e => handleSellingAmountXafChange(e.target.value)} 
+                        className="w-full bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm font-mono font-bold text-blue-800 outline-none" 
+                        placeholder="Total Selling XAF" 
+                      />
+                    </div>
+                  </div>
+
+                  {/* Target Currency & Profit Spread Indicator */}
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary mb-1 uppercase tracking-widest">
+                        Selling Target Currency
+                      </label>
+                      <select 
+                        value={form.sellingCurrency} 
+                        onChange={e => handleSellingCurrencyChange(e.target.value)} 
+                        className="w-full bg-white border border-outline-variant/30 rounded-xl p-2.5 text-xs font-bold outline-none"
+                      >
+                        <option value="USD">USD (Dollar)</option>
+                        <option value="EUR">EUR (Euro)</option>
+                        <option value="CNY">CNY (China)</option>
+                        <option value="NGN">NGN (Naira)</option>
+                        <option value="USDT">USDT (Tether)</option>
+                        <option value="XAF">XAF (Franc)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-secondary mb-1 uppercase tracking-widest">
+                        Amount Sold in {form.sellingCurrency}
+                      </label>
+                      <input 
+                        type="text" 
+                        value={formatCommaNumber(form.sellingCurrencyAmount)} 
+                        onChange={e => handleSellingCurrencyAmountChange(e.target.value)} 
+                        placeholder={`e.g. 1,000 ${form.sellingCurrency}`}
+                        className="w-full bg-white border border-outline-variant/30 rounded-xl p-2.5 text-xs font-mono font-bold text-primary outline-none focus:ring-2 focus:ring-primary/20" 
+                      />
+                    </div>
+                  </div>
+
+                  {/* Profit Margin Spread Badge */}
+                  {Number(cleanCommas(form.marginXaf)) > 0 && (
+                    <div className="p-3 bg-emerald-100/70 border border-emerald-300 rounded-xl flex items-center justify-between text-xs font-bold text-emerald-900">
+                      <span>Estimated Profit Spread (Margin):</span>
+                      <span className="font-mono text-sm">+{formatCommaNumber(form.marginXaf)} XAF</span>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Type / Operation *</label>

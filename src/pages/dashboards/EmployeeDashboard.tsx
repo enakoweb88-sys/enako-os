@@ -4,8 +4,11 @@ import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
-import { Utensils, Wallet, ClipboardCheck, Target, Megaphone, BarChart3, Activity } from 'lucide-react';
-import { TasksWidget } from '../../components/TasksWidget';
+import {
+  Utensils, Wallet, ClipboardCheck, Target, Megaphone, BarChart3,
+  Activity, FileText, User, CheckCircle2, Clock, Calendar, Briefcase,
+  Mail, Phone, ShieldCheck, TrendingUp, AlertCircle
+} from 'lucide-react';
 
 function fmt(val: string | number | null | undefined, currency = true) {
   const n = Number(val ?? 0);
@@ -13,130 +16,339 @@ function fmt(val: string | number | null | undefined, currency = true) {
   return n.toLocaleString();
 }
 
-export function EmployeeDashboard() {
-  const { user } = useAuth();
-  const [expenses, setExpenses] = useState<any>(null);
+export function EmployeeDashboard({ targetUser }: { targetUser?: any }) {
+  const { user: authUser } = useAuth();
+  const user = targetUser || authUser;
+  const [expenses, setExpenses] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
-  const [meals, setMeals] = useState<any>(null);
+  const [meals, setMeals] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [goals, setGoals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     Promise.all([
-      api.expenses().catch(() => null),
+      api.expenses({ limit: 100 }).catch(() => ({ items: [] })),
       api.tasks().catch(() => []),
-      api.meals().catch(() => null),
+      api.meals().catch(() => ({ items: [] })),
       api.announcements().catch(() => []),
       api.goals().catch(() => [])
     ])
-      .then(([exp, t, m, ann, g]) => {
-        setExpenses(exp);
-        setTasks(Array.isArray(t) ? t.slice(0, 5) : []);
-        setMeals(m);
-        setAnnouncements(Array.isArray(ann) ? ann.slice(0, 1) : []);
-        setGoals(Array.isArray(g) ? g : []);
+      .then(([expRes, tRes, mRes, annRes, gRes]) => {
+        const allExp = expRes?.items || (Array.isArray(expRes) ? expRes : []);
+        const myExp = user?.id 
+          ? allExp.filter((e: any) => e.submittedById === user.id || e.submittedBy?.email === user.email)
+          : allExp;
+        setExpenses(myExp);
+
+        const allTasks = Array.isArray(tRes) ? tRes : [];
+        const myTasks = user?.id 
+          ? allTasks.filter((t: any) => t.assigneeId === user.id || t.assignee?.id === user.id)
+          : allTasks;
+        setTasks(myTasks);
+
+        const allMeals = mRes?.items || (Array.isArray(mRes) ? mRes : []);
+        const myMealsList = user?.id 
+          ? allMeals.filter((m: any) => m.employeeId === user.id)
+          : allMeals;
+        setMeals(myMealsList);
+
+        setAnnouncements(Array.isArray(annRes) ? annRes.slice(0, 3) : []);
+
+        const allGoals = Array.isArray(gRes) ? gRes : [];
+        const myGoalsList = user?.id 
+          ? allGoals.filter((g: any) => g.ownerId === user.id || g.departmentId === user.departmentId)
+          : allGoals;
+        setGoals(myGoalsList);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [user?.id, user?.email]);
 
-  if (loading) return <div className="text-secondary text-sm animate-pulse">Loading…</div>;
+  if (loading) {
+    return (
+      <div className="p-8 text-center space-y-4">
+        <div className="inline-block size-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-secondary text-sm font-medium animate-pulse">Loading employee workspace records...</p>
+      </div>
+    );
+  }
 
-  const pendingExpenses = expenses?.totals?.find((t: any) => t.status === 'PENDING')?._sum?.amount ?? 0;
-  const myMeals = meals?.items?.filter((m: any) => m.employeeId === user?.id) ?? [];
-  const myMealTotal = myMeals.filter((m: any) => m.status === 'ATE').length;
+  // Derived metrics for this specific employee
+  const pendingExpTotal = expenses.filter(e => e.status === 'PENDING').reduce((s, e) => s + Number(e.amount || 0), 0);
+  const approvedExpTotal = expenses.filter(e => e.status === 'APPROVED').reduce((s, e) => s + Number(e.amount || 0), 0);
+  
+  const eatenMeals = meals.filter(m => m.status === 'ATE');
+  const eatenMealsCount = eatenMeals.length;
+  const mealCostTotal = eatenMealsCount * 500;
 
-  const activeGoals = goals.filter((g: any) => g.status === 'ACTIVE').length;
+  const completedTasks = tasks.filter(t => t.status === 'DONE' || t.status === 'COMPLETED').length;
+  const pendingTasks = tasks.filter(t => t.status !== 'DONE' && t.status !== 'COMPLETED').length;
 
-  const employeeStats = [
-    { label: 'Meal Credits Used', value: `${myMealTotal} meals`, icon: Utensils },
-    { label: 'Pending Reimbursements', value: fmt(pendingExpenses), icon: Wallet },
-    { label: 'My Tasks', value: fmt(tasks.length, false), icon: ClipboardCheck },
-    { label: 'Active Goals', value: activeGoals.toString(), icon: Target },
-  ];
+  const activeGoalsCount = goals.filter(g => g.status === 'ACTIVE' || !g.status).length;
 
   return (
-    <div className="space-y-8">
-      {/* Operations Header: Work Stream */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-primary to-primary-fixed border border-primary/20 rounded-xl p-6 shadow-sm text-white">
-          <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest mb-1">Current Work Stream</p>
-          <p className="text-xl font-bold font-display">Active Operations</p>
-          <p className="text-xs text-white/70 mt-2">Check your tasks</p>
-        </div>
-        <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col justify-center">
-          <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1 flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Active Goals</p>
-          <p className="text-lg font-bold text-primary">{activeGoals} Goals Tracking</p>
-          <p className="text-xs text-secondary mt-1">Keep up the momentum</p>
-        </div>
-        <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm flex flex-col justify-center">
-          <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1 flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-primary" /> General Operations</p>
-          <p className="text-lg font-bold text-primary">Routine Maintenance</p>
-          <p className="text-xs text-secondary mt-1">System is healthy</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {employeeStats.map((stat, idx) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: idx * 0.08 }}
-            className="bg-white border border-outline-variant/30 rounded-xl p-5 shadow-sm"
-          >
-            <p className="text-secondary text-[10px] font-bold uppercase tracking-widest mb-2">{stat.label}</p>
-            <div className="flex items-end justify-between">
-              <p className="text-2xl font-bold font-display text-primary">{stat.value}</p>
-              <div className="p-1.5 bg-surface-container rounded text-primary">
-                <stat.icon className="w-4 h-4" />
-              </div>
+    <div className="space-y-8 animate-in fade-in duration-300">
+      
+      {/* Operative Header Info Banner */}
+      <div className="bg-gradient-to-r from-slate-900 via-primary to-slate-900 border border-primary/20 rounded-3xl p-6 shadow-xl text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          {user?.avatarUrl ? (
+            <img src={user.avatarUrl} alt="Avatar" className="size-16 rounded-2xl object-cover border-2 border-white/20 shadow-md" />
+          ) : (
+            <div className="size-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center font-bold text-white text-2xl shadow-inner border border-white/20">
+              {(user?.fullName || 'EP').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
             </div>
-          </motion.div>
-        ))}
+          )}
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="font-display text-2xl font-bold">{user?.fullName || 'Operative Workspace'}</h2>
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider">
+                {user?.status || 'ACTIVE'}
+              </span>
+            </div>
+            <p className="text-xs text-white/80 font-medium mt-0.5">
+              {user?.title || 'Operative'} &bull; <span className="text-amber-300 font-bold">{user?.department?.name || user?.department || 'General Operations'}</span>
+            </p>
+            <div className="flex flex-wrap items-center gap-4 mt-2 text-[11px] text-white/60 font-mono">
+              <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5 text-white/40" /> {user?.email}</span>
+              {user?.phone && <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-white/40" /> {user.phone}</span>}
+              {user?.hireDate && <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-white/40" /> Hired: {new Date(user.hireDate).toLocaleDateString()}</span>}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-4 shrink-0">
+          <div className="text-right">
+            <p className="text-[10px] uppercase font-bold text-white/60 tracking-wider">Total Claims</p>
+            <p className="font-mono text-lg font-bold text-white">{fmt(approvedExpTotal + pendingExpTotal)}</p>
+          </div>
+          <div className="h-8 w-px bg-white/10" />
+          <div className="text-right">
+            <p className="text-[10px] uppercase font-bold text-white/60 tracking-wider">Tasks Done</p>
+            <p className="font-mono text-lg font-bold text-emerald-400">{completedTasks} / {tasks.length}</p>
+          </div>
+        </div>
       </div>
 
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="bg-white border border-outline-variant/30 rounded-2xl p-5 shadow-xs space-y-3">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-secondary">My Tasks</span>
+            <div className="p-2 bg-blue-50 text-blue-700 rounded-xl"><ClipboardCheck className="w-5 h-5" /></div>
+          </div>
+          <div>
+            <div className="font-display text-3xl font-bold text-primary">{tasks.length}</div>
+            <p className="text-xs text-secondary mt-1">
+              <span className="text-emerald-600 font-bold">{completedTasks} completed</span> &bull; <span className="text-amber-600 font-bold">{pendingTasks} pending</span>
+            </p>
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white border border-outline-variant/30 rounded-2xl p-5 shadow-xs space-y-3">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-secondary">Pending Expenses</span>
+            <div className="p-2 bg-amber-50 text-amber-700 rounded-xl"><Wallet className="w-5 h-5" /></div>
+          </div>
+          <div>
+            <div className="font-mono text-2xl font-bold text-primary">{fmt(pendingExpTotal)}</div>
+            <p className="text-xs text-secondary mt-1">
+              {expenses.filter(e => e.status === 'PENDING').length} claim(s) awaiting review
+            </p>
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white border border-outline-variant/30 rounded-2xl p-5 shadow-xs space-y-3">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-secondary">Staff Meal Credits</span>
+            <div className="p-2 bg-emerald-50 text-emerald-700 rounded-xl"><Utensils className="w-5 h-5" /></div>
+          </div>
+          <div>
+            <div className="font-display text-3xl font-bold text-primary">{eatenMealsCount} <span className="text-xs font-normal text-secondary">meals</span></div>
+            <p className="text-xs text-secondary mt-1">
+              Cost share: <span className="font-mono font-bold text-primary">{fmt(mealCostTotal)}</span>
+            </p>
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white border border-outline-variant/30 rounded-2xl p-5 shadow-xs space-y-3">
+          <div className="flex justify-between items-start">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-secondary">Active Goals</span>
+            <div className="p-2 bg-purple-50 text-purple-700 rounded-xl"><Target className="w-5 h-5" /></div>
+          </div>
+          <div>
+            <div className="font-display text-3xl font-bold text-primary">{activeGoalsCount}</div>
+            <p className="text-xs text-secondary mt-1">
+              Tracking performance targets
+            </p>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Main Grid: Tasks & Expense Claims */}
       <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 lg:col-span-8">
-          <TasksWidget limit={10} />
-        </div>
-
-        <div className="col-span-12 lg:col-span-4 space-y-6">
-          <div className="bg-surface-container-low border border-outline-variant/20 rounded-xl p-6 relative overflow-hidden">
-            <div className="flex items-center gap-3 text-secondary mb-4">
-              <Megaphone className="w-5 h-5" />
-              <span className="text-[11px] font-black uppercase tracking-[0.2em]">Latest Announcement</span>
+        
+        {/* Assigned Tasks List */}
+        <div className="col-span-12 lg:col-span-7 bg-white border border-outline-variant/30 rounded-2xl p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-outline-variant/20 pb-4">
+            <div className="flex items-center gap-2.5">
+              <ClipboardCheck className="w-5 h-5 text-primary" />
+              <h3 className="font-display text-lg font-bold text-primary">Assigned Tasks ({tasks.length})</h3>
             </div>
-            {announcements.length > 0 ? (
-              <>
-                <p className="text-sm font-bold text-primary mb-2">{announcements[0].title}</p>
-                <p className="text-[11px] text-secondary leading-relaxed">{announcements[0].content?.slice(0, 120)}…</p>
-              </>
+            <span className="text-xs font-bold text-secondary">{completedTasks} of {tasks.length} Completed</span>
+          </div>
+
+          <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+            {tasks.length > 0 ? (
+              tasks.map(t => (
+                <div key={t.id} className="p-4 bg-surface-container-low/40 rounded-xl border border-outline-variant/20 flex items-center justify-between gap-4 hover:bg-surface-container-low transition-colors">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-primary">{t.title}</span>
+                      <span className={cn(
+                        'px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border',
+                        t.priority === 'HIGH' || t.priority === 'URGENT' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-100 text-slate-700 border-slate-200'
+                      )}>
+                        {t.priority || 'NORMAL'}
+                      </span>
+                    </div>
+                    {t.description && <p className="text-xs text-secondary line-clamp-1">{t.description}</p>}
+                    {t.dueDate && <p className="text-[10px] text-slate-400 font-mono">Due: {new Date(t.dueDate).toLocaleDateString()}</p>}
+                  </div>
+
+                  <span className={cn(
+                    'px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border shrink-0',
+                    t.status === 'DONE' || t.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                  )}>
+                    {t.status || 'PENDING'}
+                  </span>
+                </div>
+              ))
             ) : (
-              <p className="text-sm font-bold text-primary">No active announcements</p>
+              <div className="p-8 text-center text-xs text-secondary italic">No tasks currently assigned to this operative.</div>
             )}
-            <Link to="/app/announcements" className="mt-4 block text-[10px] font-black text-primary uppercase tracking-widest hover:underline">View All</Link>
-          </div>
-
-          <div className="bg-white border border-outline-variant/30 rounded-xl p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <BarChart3 className="w-5 h-5 text-primary" />
-              <h3 className="font-display text-lg font-bold text-primary">Meal Summary</h3>
-            </div>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-secondary">Meals eaten</span>
-                <span className="font-bold text-primary">{myMealTotal}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-secondary">My contribution</span>
-                <span className="font-bold text-primary">{fmt(myMealTotal * 500)}</span>
-              </div>
-            </div>
           </div>
         </div>
+
+        {/* Expense Reimbursements List */}
+        <div className="col-span-12 lg:col-span-5 bg-white border border-outline-variant/30 rounded-2xl p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-outline-variant/20 pb-4">
+            <div className="flex items-center gap-2.5">
+              <Wallet className="w-5 h-5 text-primary" />
+              <h3 className="font-display text-lg font-bold text-primary">Expense Claims ({expenses.length})</h3>
+            </div>
+            <span className="text-xs font-mono font-bold text-primary">{fmt(approvedExpTotal + pendingExpTotal)}</span>
+          </div>
+
+          <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+            {expenses.length > 0 ? (
+              expenses.map(e => (
+                <div key={e.id} className="p-3.5 bg-surface-container-low/40 rounded-xl border border-outline-variant/20 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-bold text-xs text-primary">{e.description}</p>
+                    <p className="text-[10px] text-secondary font-medium mt-0.5">{e.category} &bull; {new Date(e.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-mono font-bold text-xs text-primary">{fmt(e.amount)}</p>
+                    <span className={cn(
+                      'px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border inline-block mt-1',
+                      e.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                      e.status === 'REJECTED' ? 'bg-red-50 text-red-700 border-red-200' :
+                      'bg-amber-50 text-amber-700 border-amber-200'
+                    )}>
+                      {e.status}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center text-xs text-secondary italic">No expense reimbursement claims recorded for this employee.</div>
+            )}
+          </div>
+        </div>
+
       </div>
+
+      {/* Secondary Grid: Staff Meals Log & Goals Tracking */}
+      <div className="grid grid-cols-12 gap-6">
+        
+        {/* Goals & Performance Targets */}
+        <div className="col-span-12 lg:col-span-7 bg-white border border-outline-variant/30 rounded-2xl p-6 shadow-xs space-y-4">
+          <div className="flex items-center gap-2.5 border-b border-outline-variant/20 pb-4">
+            <Target className="w-5 h-5 text-purple-600" />
+            <h3 className="font-display text-lg font-bold text-primary">Assigned Performance Goals ({goals.length})</h3>
+          </div>
+
+          <div className="space-y-4">
+            {goals.length > 0 ? (
+              goals.map(g => {
+                const current = Number(g.currentValue || 0);
+                const target = Number(g.targetValue || 100);
+                const pct = Math.min(100, Math.round((current / target) * 100));
+
+                return (
+                  <div key={g.id} className="p-4 bg-slate-50 rounded-xl border border-outline-variant/30 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-bold text-sm text-primary">{g.title}</p>
+                        {g.description && <p className="text-xs text-secondary mt-0.5">{g.description}</p>}
+                      </div>
+                      <span className="font-mono text-xs font-bold text-primary">{current} / {target} {g.unit || ''}</span>
+                    </div>
+
+                    <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                      <div className="bg-purple-600 h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                    </div>
+
+                    <div className="flex justify-between text-[10px] text-secondary font-medium">
+                      <span>Progress: {pct}%</span>
+                      {g.dueDate && <span>Target Date: {new Date(g.dueDate).toLocaleDateString()}</span>}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="p-6 text-center text-xs text-secondary italic">No active performance goals assigned to this operative.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Staff Meal Usage Log */}
+        <div className="col-span-12 lg:col-span-5 bg-white border border-outline-variant/30 rounded-2xl p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-outline-variant/20 pb-4">
+            <div className="flex items-center gap-2.5">
+              <Utensils className="w-5 h-5 text-emerald-600" />
+              <h3 className="font-display text-lg font-bold text-primary">Staff Meal Log</h3>
+            </div>
+            <span className="text-xs font-bold text-emerald-700">{eatenMealsCount} Meals Recorded</span>
+          </div>
+
+          <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+            {meals.length > 0 ? (
+              meals.map(m => (
+                <div key={m.id} className="p-3 bg-slate-50 rounded-xl border border-outline-variant/30 flex items-center justify-between text-xs">
+                  <div>
+                    <p className="font-bold text-primary">{m.mealName || 'Standard Staff Meal'}</p>
+                    <p className="text-[10px] text-secondary">{new Date(m.date).toLocaleDateString()} &bull; {m.mealTime || 'Lunch'}</p>
+                  </div>
+                  <span className={cn(
+                    'px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase border',
+                    m.status === 'ATE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'
+                  )}>
+                    {m.status}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="p-6 text-center text-xs text-secondary italic">No staff meal logs found for this employee.</div>
+            )}
+          </div>
+        </div>
+
+      </div>
+
     </div>
   );
 }

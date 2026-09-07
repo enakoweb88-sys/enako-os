@@ -9,6 +9,7 @@ import { cn } from '../lib/utils';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { toast } from 'sonner';
+import { EmployeeDashboard } from './dashboards/EmployeeDashboard';
 
 const DEPARTMENT_POSITIONS: Record<string, string[]> = {
   'Engineering': [
@@ -97,6 +98,7 @@ export default function Employees() {
   });
 
   const [viewEmployee, setViewEmployee] = useState<any>(null);
+  const [showEmployeeDashboardModal, setShowEmployeeDashboardModal] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [showFormPassword, setShowFormPassword] = useState(false);
@@ -247,28 +249,27 @@ export default function Employees() {
 
     return (
       <div className="space-y-8 animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => { setViewEmployee(null); setEditMode(false); }}
-            className="p-3 bg-white border border-outline-variant/30 rounded-xl hover:bg-surface-container transition-all"
-          >
-            <ArrowLeft className="w-5 h-5 text-secondary" />
-          </button>
-          <div>
-            <h1 className="font-display text-4xl font-bold text-primary tracking-tight">Operative Profile</h1>
-            <p className="text-secondary text-base">Detailed records and administrative controls.</p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => { setViewEmployee(null); setEditMode(false); }}
+              className="p-3 bg-white border border-outline-variant/30 rounded-xl hover:bg-surface-container transition-all"
+            >
+              <ArrowLeft className="w-5 h-5 text-secondary" />
+            </button>
+            <div>
+              <h1 className="font-display text-4xl font-bold text-primary tracking-tight">Operative Profile</h1>
+              <p className="text-secondary text-base">Detailed records and administrative controls.</p>
+            </div>
           </div>
 
-          {/* CEO-Exclusive Open Employee Dashboard Action Button */}
-          {role === 'ceo' && (
-            <button
-              onClick={() => navigate(`/app/cash-collections?collectorId=${viewEmployee.id}`)}
-              className="ml-auto px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-[2px] text-xs font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all flex items-center gap-2"
-              title="Open filtered dashboard & field activity for this employee"
-            >
-              <LayoutDashboard className="w-4 h-4" /> Open Employee Dashboard
-            </button>
-          )}
+          <button
+            onClick={() => setShowEmployeeDashboardModal(true)}
+            className="bg-primary text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-primary/90 transition-all shadow-md active:scale-95 shrink-0"
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            <span>Open Employee Dashboard</span>
+          </button>
         </div>
 
         <div className="bg-white border border-outline-variant/30 rounded-3xl shadow-sm overflow-hidden flex flex-col md:flex-row">
@@ -644,6 +645,43 @@ export default function Employees() {
 
           </div>
         </div>
+
+        <AnimatePresence>
+          {showEmployeeDashboardModal && viewEmployee && (
+            <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 md:p-8">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-surface border border-outline-variant/30 rounded-3xl w-full max-w-6xl max-h-[90vh] overflow-y-auto p-8 shadow-2xl space-y-6"
+              >
+                <div className="flex items-center justify-between border-b border-outline-variant/20 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-primary/10 rounded-2xl text-primary">
+                      <LayoutDashboard className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="font-display text-2xl font-bold text-primary">
+                        {viewEmployee.fullName}'s Live Workspace Dashboard
+                      </h2>
+                      <p className="text-secondary text-xs font-medium">
+                        Administrative Oversight &bull; {viewEmployee.title || 'Operative'} ({viewEmployee.department || 'General'})
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setShowEmployeeDashboardModal(false)}
+                    className="p-2.5 rounded-xl border border-outline-variant/30 hover:bg-surface-container-high transition-all text-secondary"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <EmployeeDashboard targetUser={viewEmployee} />
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     );
   }
