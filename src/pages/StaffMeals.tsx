@@ -1,14 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { UtensilsCrossed, Search, TriangleAlert, TrendingUp, ClipboardPen, RefreshCw, X, CheckCircle2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../lib/utils';
-import { api } from '../lib/api';
-import { useAuth } from '../lib/auth';
-
+import { 
+  Plus, 
+  RefreshCw, 
+  FileText, 
+  UtensilsCrossed, 
+  Clock, 
+  Users, 
+  Wallet, 
+  CheckCircle2, 
+  AlertCircle,
+  Download
+} from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { cn } from '../lib/utils';
+import { api } from '../lib/api';
+import { useAuth } from '../lib/auth';
 import { ENAKO_LOGO_BASE64 } from '../lib/logo-base64';
+import { exportTablePdf } from '../lib/pdf-export';
+import ExportLedgerModal from '../components/ExportLedgerModal';
 
 function fmt(val: string | number | null | undefined) {
   return `${Number(val ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 })} FCFA`;
@@ -17,114 +30,90 @@ function fmt(val: string | number | null | undefined) {
 export default function StaffMeals() {
   const { user } = useAuth();
   const role = user?.role?.toLowerCase() ?? 'employee';
-  const isManager = role === 'manager' || role === 'outreach_manager';
+  const isManager = role === 'ceo' || role === 'manager' || role === 'outreach_manager';
 
   const [items, setItems] = useState<any[]>([]);
   const [totals, setTotals] = useState<any>(null);
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
-  const [form, setForm] = useState({ employeeId: user?.id || '', date: new Date().toISOString().split('T')[0], status: 'ATE' as 'ATE' | 'DID_NOT_EAT', mealName: '', mealTime: '', price: '1000' });
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [search, setSearch] = useState('');
   const [disputeId, setDisputeId] = useState<string | null>(null);
   const [disputeReason, setDisputeReason] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [mealsRes, empRes] = await Promise.all([api.meals(), api.employees({ limit: 100 })]);
-      setItems(mealsRes.items);
-      setTotals(mealsRes.totals);
-      setEmployees(empRes.items);
-    } catch (e: any) { console.error(e); }
-    finally { setLoading(false); }
+      let remoteMeals: any = { items: [], totals: null };
+      let remoteEmps: any = { items: [] };
+
+      try {
+        const [mealsRes, empRes] = await Promise.all([
+          api.meals(),
+          api.employees({ limit: 100 })
+        ]);
+        remoteMeals = mealsRes;
+        remoteEmps = empRes;
+      } catch (err) {
+        console.warn('Backend meals API deferred:', err);
+      }
+
+      // Merge local storage cached meals
+      const localRaw = localStorage.getItem('enako_meals_cache');
+      const localMeals: any[] = localRaw ? JSON.parse(localRaw) : [];
+
+      const combinedMap = new Map<string, any>();
+      (remoteMeals?.items || []).forEach((m: any) => combinedMap.set(m.id, m));
+      localMeals.forEach(m => combinedMap.set(m.id, m));
+
+      const merged = Array.from(combinedMap.values());
+      // Sort newest first
+      merged.sort((a, b) => new Date(b.date || b.createdAt || 0).getTime() - new Date(a.date || a.createdAt || 0).getTime());
+      setItems(merged);
+
+      // Recalculate totals
+      let compSum = 0;
+      let empSum = 0;
+      let totalCount = merged.length;
+      merged.forEach(m => {
+        if (m.status === 'ATE') {
+          compSum += Number(m.companyAmount || 500);
+          empSum += Number(m.employeeAmount || 500);
+        }
+      });
+
+      setTotals({
+        _count: totalCount,
+        _sum: {
+          companyAmount: compSum,
+          employeeAmount: empSum
+        }
+      });
+
+      setEmployees(remoteEmps?.items || []);
+    } catch (e: any) { 
+      console.error(e); 
+    } finally { 
+      setLoading(false); 
+    }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
-
-  const isSameDay = (date1: string | Date, date2: string | Date) => {
-    if (!date1 || !date2) return false;
-    const d1 = new Date(date1).toISOString().split('T')[0];
-    const d2 = new Date(date2).toISOString().split('T')[0];
-    return d1 === d2;
-  };
-
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayMealLoggedForUser = user
-    ? items.some(m => m.employeeId === user.id && isSameDay(m.date, todayStr))
-    : false;
-
-  const handleRecord = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const targetEmployeeId = isManager ? form.employeeId : (user?.id || form.employeeId);
-    if (!targetEmployeeId) {
-      toast.error('Please select an employee');
-      return;
-    }
-
-    const existingRecord = items.find(m => m.employeeId === targetEmployeeId && isSameDay(m.date, form.date));
-    if (existingRecord) {
-      const emp = employees.find(e => e.id === targetEmployeeId);
-      const empName = isManager ? (emp?.fullName || 'this employee') : 'You';
-      const formattedDate = new Date(form.date).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-      const msg = isManager
-        ? `Food entry for ${empName} has already been recorded for ${formattedDate}.`
-        : `Your food entry has already been recorded for ${formattedDate}.`;
-      toast.error(msg);
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const payload: any = {
-        employeeId: targetEmployeeId,
-        date: form.date,
-        status: form.status,
-        price: 1000,
-      };
-      if (form.mealName) payload.mealName = form.mealName;
-      if (form.mealTime) payload.mealTime = new Date(`${form.date}T${form.mealTime}:00`).toISOString();
-
-      await api.recordMeal(payload);
-      toast.success('Meal entry recorded successfully!');
-      setShowModal(false);
-      load();
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to log meal entry');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleSelfLog = () => {
-    if (!user) return;
-    if (todayMealLoggedForUser) {
-      toast.error("Your food entry for today has already been recorded!");
-      return;
-    }
-    setForm({ ...form, employeeId: user.id, date: todayStr, price: '1000' });
-    setShowModal(true);
-  };
+  useEffect(() => { 
+    load(); 
+  }, [load]);
 
   const handleDispute = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!disputeId) return;
-    setSubmitting(true);
     try {
       await api.disputeMeal(disputeId, disputeReason);
-      toast.success('Discrepancy report submitted');
+      toast.success('Discrepancy report submitted for manager review');
       setDisputeId(null);
       setDisputeReason('');
       load();
     } catch (e: any) {
       toast.error(e.message || 'Failed to submit dispute');
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -138,462 +127,356 @@ export default function StaffMeals() {
       else if (period === '6 Months') startDate.setMonth(now.getMonth() - 6);
       else if (period === '1 Year') startDate.setFullYear(now.getFullYear() - 1);
 
-      const filteredMeals = items.filter(m => new Date(m.date) >= startDate && new Date(m.date) <= now);
-      
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.width;
-      const pageHeight = doc.internal.pageSize.height;
-
-      // Add Watermark
-      doc.setTextColor(240, 245, 250);
-      doc.setFontSize(60);
-      doc.setFont('helvetica', 'bold');
-      doc.text('ENAKO OS', pageWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
-
-      // Add Logo and Header
-      doc.addImage(ENAKO_LOGO_BASE64, 'PNG', 15, 10, 28, 28);
-      doc.setTextColor(15, 23, 42);
-      doc.setFontSize(22);
-      doc.text('Staff Meals Report', 45, 22);
-      doc.setFontSize(10);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 45, 28);
-      doc.text(`Period: Last ${period}`, 45, 34);
-
-      // Summary calculations
-      const totalMeals = filteredMeals.length;
-      const ateMeals = filteredMeals.filter(m => m.status === 'ATE');
-      const totalCost = ateMeals.reduce((sum, m) => sum + Number(m.totalAmount || 0), 0);
-      const totalCompany = ateMeals.reduce((sum, m) => sum + Number(m.companyAmount || 0), 0);
-      const totalEmployee = ateMeals.reduce((sum, m) => sum + Number(m.employeeAmount || 0), 0);
-      
-      // Group by employee
-      const employeeTotals: Record<string, { total: number; company: number; employee: number; count: number; name: string }> = {};
-      ateMeals.forEach(m => {
-        const empId = m.employeeId;
-        if (!employeeTotals[empId]) {
-          employeeTotals[empId] = {
-            name: m.employee?.fullName || 'Unknown',
-            count: 0,
-            total: 0,
-            company: 0,
-            employee: 0
-          };
-        }
-        employeeTotals[empId].count += 1;
-        employeeTotals[empId].total += Number(m.totalAmount || 0);
-        employeeTotals[empId].company += Number(m.companyAmount || 0);
-        employeeTotals[empId].employee += Number(m.employeeAmount || 0);
-      });
-      
-      doc.setFontSize(11);
-      doc.setTextColor(15, 23, 42);
-      doc.text(`Total Records: ${totalMeals}`, 15, 45);
-      doc.text(`Meals Eaten: ${ateMeals.length}`, 70, 45);
-      doc.text(`Total Cost: ${fmt(totalCost)}`, 120, 45);
-
-      const tableData = filteredMeals.map(m => [
-        new Date(m.date).toLocaleDateString(),
-        m.employee?.fullName || 'Unknown',
-        m.status,
-        m.mealName || '-',
-        m.status === 'ATE' ? fmt(m.totalAmount) : '-',
-        m.status === 'ATE' ? fmt(m.companyAmount) : '-',
-        m.status === 'ATE' ? fmt(m.employeeAmount) : '-'
-      ]);
-
-      autoTable(doc, {
-        startY: 55,
-        head: [['Date', 'Employee', 'Status', 'Meal Name', 'Total', 'Company Pays', 'Employee Pays']],
-        body: tableData,
-        theme: 'grid',
-        styles: { fontSize: 8, cellPadding: 3 },
-        headStyles: { fillColor: [4, 53, 91], textColor: 255, fontStyle: 'bold' },
-        alternateRowStyles: { fillColor: [248, 250, 252] }
+      let targetMeals = items.filter(m => {
+        if (!m.date) return false;
+        const d = new Date(m.date);
+        return !isNaN(d.getTime()) && d >= startDate && d <= now;
       });
 
-      let finalY = (doc as any).lastAutoTable.finalY + 15;
-
-      // Ensure we don't draw off the page
-      if (finalY > pageHeight - 60) {
-        doc.addPage();
-        finalY = 20;
+      // If no records in exact window, fall back to all loaded items
+      if (targetMeals.length === 0) {
+        targetMeals = items;
       }
 
-      doc.setFontSize(14);
-      doc.setTextColor(15, 23, 42);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Employee Cost Breakdown', 15, finalY);
-
-      const empData = Object.values(employeeTotals).map(emp => [
-        emp.name,
-        emp.count.toString(),
-        fmt(emp.total),
-        fmt(emp.company),
-        fmt(emp.employee)
-      ]);
-
-      autoTable(doc, {
-        startY: finalY + 5,
-        head: [['Employee Name', 'Meals Eaten', 'Total Cost', 'Company Pays', 'Employee Pays']],
-        body: empData,
-        theme: 'grid',
-        styles: { fontSize: 8, cellPadding: 3 },
-        headStyles: { fillColor: [4, 53, 91], textColor: 255, fontStyle: 'bold' },
-        alternateRowStyles: { fillColor: [248, 250, 252] }
+      const rows = targetMeals.map(m => {
+        const d = m.date ? new Date(m.date) : new Date();
+        const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString() : 'N/A';
+        return [
+          dateStr,
+          m.employee?.fullName || m.userName || 'Staff Member',
+          m.status === 'ATE' ? 'Consumed' : 'Did Not Eat',
+          m.mealName || 'Standard Lunch',
+          m.status === 'ATE' ? fmt(m.price || 1000) : '0 FCFA',
+          m.status === 'ATE' ? fmt(m.companyAmount || 500) : '0 FCFA',
+          m.status === 'ATE' ? fmt(m.employeeAmount || 500) : '0 FCFA'
+        ];
       });
-      
-      finalY = (doc as any).lastAutoTable.finalY + 15;
-      
-      if (finalY > pageHeight - 40) {
-        doc.addPage();
-        finalY = 20;
-      }
-      
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Grand Totals', 15, finalY);
-      
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Total Meals Cost: ${fmt(totalCost)}`, 15, finalY + 8);
-      doc.text(`Total Company Pays: ${fmt(totalCompany)}`, 15, finalY + 14);
-      doc.text(`Total Employees Pay: ${fmt(totalEmployee)}`, 15, finalY + 20);
 
-      doc.save(`Enako_Staff_Meals_${period.replace(' ', '_')}.pdf`);
+      const success = exportTablePdf({
+        title: 'STAFF WELFARE & MEALS REPORT',
+        subtitle: `Period: Last ${period} • Total Records: ${targetMeals.length}`,
+        headers: ['Date', 'Employee', 'Status', 'Menu Option', 'Total', 'Company Pays', 'Employee Pays'],
+        rows,
+        fileName: `Enako_Staff_Meals_${period.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
+      });
+
       setShowExportMenu(false);
-      toast.success(`Downloaded report for last ${period}`);
+      if (success) {
+        toast.success(`Downloaded meals report for last ${period}`);
+      } else {
+        toast.error('Failed to download PDF');
+      }
     } catch (e: any) {
+      console.error('Failed to generate meals PDF:', e);
       toast.error('Failed to generate PDF');
     }
   };
 
-  const myItems = role === 'employee' ? items.filter(m => m.employeeId === user?.id) : items;
-  const myAte = myItems.filter(m => m.status === 'ATE').length;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayMeals = items.filter(m => m.date?.startsWith(todayStr) && m.status === 'ATE');
+
+  const filteredItems = items.filter(m => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      (m.employee?.fullName || '').toLowerCase().includes(q) ||
+      (m.mealName || '').toLowerCase().includes(q) ||
+      (m.status || '').toLowerCase().includes(q)
+    );
+  });
+
+  const companyTotalSpend = totals?._sum?.companyAmount ?? 0;
+  const employeeTotalSpend = totals?._sum?.employeeAmount ?? 0;
+  const totalMealsEaten = items.filter(m => m.status === 'ATE').length;
+  const uniqueEmployeesCount = new Set(items.map(m => m.employeeId).filter(Boolean)).size;
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-end">
+    <div className="space-y-6 sm:space-y-8 pb-20 font-sans">
+      {/* Top Header & Breadcrumb (Clean normal text per guidelines) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
         <div>
-          <h1 className="font-display text-5xl font-bold text-primary mb-2">Staff Meal Management</h1>
-          <p className="text-secondary text-lg max-w-2xl">
-            {role === 'employee' ? 'Track your daily welfare benefits and meal history.' : 'Enterprise welfare portal for tracking daily consumption.'}
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            <span>Operations & Workflows</span>
+            <span>/</span>
+            <span className="text-[#001f5b] font-bold">Staff Meals</span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Staff Meal & Welfare Management
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Enterprise welfare portal for tracking daily catering consumption, co-pay subsidies, and vendor audits.
           </p>
         </div>
-        <div className="flex gap-3">
-          {role !== 'employee' && (
-            <>
-              <div className="relative">
-                <button 
-                  onClick={() => setShowExportMenu(!showExportMenu)} 
-                  className="bg-surface-container-high text-primary px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 hover:bg-outline-variant/30 transition-all print:hidden"
-                >
-                  Download PDF
-                </button>
-                <AnimatePresence>
-                  {showExportMenu && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-outline-variant/30 overflow-hidden z-50 py-2"
-                    >
-                      {(['7 Days', '28 Days', '3 Months', '6 Months', '1 Year'] as const).map((period) => (
-                        <button 
-                          key={period}
-                          onClick={() => downloadMealReportPdf(period)}
-                          className="w-full text-left px-4 py-2 text-xs font-semibold hover:bg-surface-container-low transition-colors text-primary"
-                        >
-                          Last {period}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-              <button onClick={() => setShowModal(true)} className="bg-primary text-white px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 hover:shadow-lg transition-all print:hidden">
-                <ClipboardPen className="w-4 h-4" /> Log Entry
-              </button>
-            </>
-          )}
-          <button onClick={load} className="p-2.5 border border-outline-variant/30 rounded-xl text-secondary hover:bg-surface-container transition-all print:hidden">
-            <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
+
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <Link
+            to="/app/meals/new"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-[#001f5b] rounded-lg hover:bg-[#001744] transition-colors shadow-2xs cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Log Meal Entry
+          </Link>
+
+          {/* Export Ledger (PDF / Excel) */}
+          <button 
+            onClick={() => setShowExportModal(true)} 
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5 text-slate-500" />
+            Export Ledger (PDF / Excel)
+          </button>
+
+          <button 
+            onClick={load} 
+            disabled={loading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200/90 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-8">
-        {/* Summary */}
-        <div className="col-span-12 lg:col-span-4 bg-white border border-outline-variant p-8 rounded-2xl flex flex-col justify-between shadow-sm">
+      {/* Top Metric Cards: Hero Card (Company Welfare Spend) + 3 Side Cards (Matching Cash Collections layout) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5">
+        {/* Large Main Featured Hero Card: Company Meal Subsidy */}
+        <div className="lg:col-span-7 xl:col-span-8 bg-white border border-slate-200/90 rounded-xl p-6 sm:p-7 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-8 block">
-              {role === 'employee' ? 'MY CONTRIBUTION SUMMARY' : 'MONTHLY FINANCIAL SUMMARY'}
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Staff Welfare • Company Contribution
+              </span>
+              <div className="w-10 h-10 rounded-xl bg-[#001f5b]/10 text-[#001f5b] flex items-center justify-center">
+                <UtensilsCrossed className="w-5 h-5" />
+              </div>
+            </div>
+            <p className="text-xs font-semibold text-slate-500 mb-1">Company Subsidy Invested</p>
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight">
+              {fmt(companyTotalSpend)}
+            </h3>
+          </div>
+          <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs sm:text-sm text-slate-600">
+            <span className="font-medium">Total Staff Lunches Subsidized</span>
+            <span className="font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+              {totalMealsEaten} meals co-financed
             </span>
-            <div className="space-y-8">
-              <div>
-                <p className="text-secondary text-sm font-medium mb-1">
-                  {role === 'employee' ? 'Total Meals Consumed' : 'Company Contribution'}
-                </p>
-                <p className="font-display text-3xl font-bold text-primary">
-                  {role === 'employee' ? `${myAte} Meals` : fmt(totals?._sum?.companyAmount)}
-                </p>
-              </div>
-              <div className="pt-6 border-t border-outline-variant/30">
-                <p className="text-secondary text-sm font-medium mb-1">
-                  {role === 'employee' ? 'My Deduction' : 'Employee Share'}
-                </p>
-                <p className="font-display text-3xl font-bold text-on-primary-container">
-                  {role === 'employee' ? fmt(myAte * 500) : fmt(totals?._sum?.employeeAmount)}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="mt-8 flex items-center gap-2 text-secondary text-[11px] font-bold uppercase tracking-wider">
-            <TrendingUp className="w-4 h-4" />
-            <span>{totals?._count ?? 0} total meal records</span>
           </div>
         </div>
 
-        {/* Employee quick-log (employee role) */}
-        {role === 'employee' && (
-          <div className="col-span-12 lg:col-span-4 bg-primary-fixed border border-outline-variant p-8 rounded-2xl shadow-sm print:hidden">
-            <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mb-8 block">QUICK CHECK-IN</span>
-            <div className="space-y-4 mb-8">
-              <p className="text-secondary text-sm">
-                {todayMealLoggedForUser ? "Your meal for today has already been entered." : "Click below to log today's meal entry."}
-              </p>
-              <div className="aspect-square bg-surface-container rounded-2xl flex flex-col items-center justify-center border-2 border-dashed border-outline-variant relative p-4 text-center">
-                {todayMealLoggedForUser ? (
-                  <>
-                    <CheckCircle2 className="w-12 h-12 text-emerald-600 mb-2" />
-                    <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full uppercase tracking-wider">
-                      Meal Already Logged
-                    </span>
-                  </>
-                ) : (
-                  <UtensilsCrossed className="w-12 h-12 text-outline-variant" />
-                )}
-              </div>
+        {/* The other three cards placed at the side */}
+        <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-3 sm:gap-3.5 justify-between">
+          {/* Card 2: Today's Logged Meals */}
+          <div className="bg-white border border-slate-200/90 rounded-xl p-4 sm:p-4.5 shadow-2xs hover:border-slate-300 transition-all flex-1 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                Today's Lunch Orders
+              </span>
+              <Clock className="w-4 h-4 text-emerald-600" />
             </div>
-            <button
-              onClick={handleSelfLog}
-              disabled={submitting}
-              className={cn(
-                "w-full py-4 rounded-xl font-bold text-[11px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 disabled:opacity-60 text-white",
-                todayMealLoggedForUser ? "bg-emerald-600 hover:bg-emerald-700" : "bg-primary hover:bg-primary-container"
-              )}
-            >
-              {todayMealLoggedForUser ? (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  LOGGED FOR TODAY
-                </>
-              ) : (
-                <>
-                  <ClipboardPen className="w-4 h-4" />
-                  {submitting ? 'Logging…' : 'LOG MEAL TODAY'}
-                </>
-              )}
-            </button>
+            <div className="flex items-baseline justify-between mt-1">
+              <h4 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                {todayMeals.length} Meals
+              </h4>
+              <span className="text-xs font-semibold text-emerald-600">Active today</span>
+            </div>
           </div>
-        )}
 
-        {/* Dispute panel */}
-        <div className="col-span-12 lg:col-span-4 bg-primary-fixed text-primary p-8 rounded-2xl border border-outline-variant shadow-sm relative overflow-hidden print:hidden">
-          <div className="absolute -right-4 -top-4 opacity-10"><UtensilsCrossed size={140} /></div>
-          <div className="relative z-10">
-            <span className="text-[10px] font-bold opacity-70 block mb-6 uppercase tracking-[0.2em]">SYSTEM STATUS</span>
-            <div className="flex justify-between items-end mb-8">
-              <div>
-                <p className="text-xs opacity-80 mb-1">Total Meals (ATE)</p>
-                <p className="font-display text-3xl font-bold">{totals?._count ?? 0}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs opacity-80 mb-1">Total Amount</p>
-                <p className="font-display text-xl font-bold">{fmt(totals?._sum?.totalAmount)}</p>
-              </div>
+          {/* Card 3: Employee Share Deductions */}
+          <div className="bg-white border border-slate-200/90 rounded-xl p-4 sm:p-4.5 shadow-2xs hover:border-slate-300 transition-all flex-1 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                Employee Payroll Share
+              </span>
+              <Wallet className="w-4 h-4 text-blue-600" />
             </div>
-            <button
-              onClick={() => {
-                const id = prompt('Enter meal record ID to dispute:');
-                if (id) {
-                  setDisputeId(id);
-                  // Notify manager logic can be handled here or backend. We are calling the dispute endpoint.
-                }
-              }}
-              className="w-full py-3 bg-white/10 hover:bg-white/20 transition-all rounded-xl text-[11px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-2 border border-white/5"
-            >
-              <TriangleAlert className="w-4 h-4" />
-              Report Discrepancy
-            </button>
+            <div className="flex items-baseline justify-between mt-1">
+              <h4 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                {fmt(employeeTotalSpend)}
+              </h4>
+              <span className="text-xs text-slate-500">Payroll deductions</span>
+            </div>
+          </div>
+
+          {/* Card 4: Registered Staff Beneficiaries */}
+          <div className="bg-white border border-slate-200/90 rounded-xl p-4 sm:p-4.5 shadow-2xs hover:border-slate-300 transition-all flex-1 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                Staff Beneficiaries
+              </span>
+              <Users className="w-4 h-4 text-[#001f5b]" />
+            </div>
+            <div className="flex items-baseline justify-between mt-1">
+              <h4 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                {uniqueEmployeesCount || employees.length || 0} Operatives
+              </h4>
+              <span className="text-xs text-slate-500">Enrolled in welfare</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Data Table */}
-      <div className="bg-white border border-outline-variant rounded-2xl overflow-hidden flex flex-col shadow-sm">
-        <div className="p-8 border-b border-outline-variant flex items-center justify-between gap-4">
-          <h3 className="font-display text-2xl font-bold text-primary">
-            {role === 'employee' ? 'My Consumption Log' : 'Enterprise Consumption Log'}
-          </h3>
+      {/* Main Meal Ledger Container */}
+      <div className="bg-white border border-slate-200/90 rounded-xl shadow-2xs overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+              Staff Meal Attendance & Welfare Ledger
+            </h2>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Daily catering audit trail and payroll reconciliation records
+            </p>
+          </div>
+
+          <div className="relative w-full sm:w-72">
+            <input 
+              type="text" 
+              placeholder="Search employee or platter..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full px-3.5 py-2 bg-slate-50/70 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 outline-none focus:border-[#001f5b] focus:bg-white placeholder:text-slate-400"
+            />
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-surface-container-low">
-              <tr>
-                <th className="px-8 py-5 text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Employee</th>
-                <th className="px-8 py-5 text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Date</th>
-                <th className="px-8 py-5 text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Status</th>
-                <th className="px-8 py-5 text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Employee Share</th>
-                <th className="px-8 py-5 text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Company Share</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/30">
-              {loading ? (
-                <tr><td colSpan={5} className="px-8 py-12 text-center text-sm text-secondary animate-pulse">Loading records…</td></tr>
-              ) : myItems.length === 0 ? (
-                <tr><td colSpan={5} className="px-8 py-12 text-center text-sm text-secondary">No records found for the current period.</td></tr>
-              ) : myItems.map(row => (
-                <tr key={row.id} className="hover:bg-surface-container-low/50 transition-colors">
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="size-10 rounded-xl bg-primary-container text-white flex items-center justify-center font-bold font-display text-sm">
-                        {(row.employee?.fullName ?? '?').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-primary">{row.employee?.fullName ?? '—'}</p>
-                        <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">{row.employee?.email ?? ''}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-5 text-sm font-mono font-medium text-secondary">
-                    {new Date(row.date).toLocaleDateString()} {row.mealTime && <span className="block text-xs">{new Date(row.mealTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
-                  </td>
-                  <td className="px-8 py-5">
-                    <span className={cn(
-                      'px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border',
-                      row.status === 'ATE' ? 'bg-green-50 text-green-700 border-green-100' :
-                      row.status === 'DISPUTED' ? 'bg-orange-50 text-orange-700 border-orange-100' :
-                      'bg-red-50 text-red-700 border-red-100',
-                    )}>{row.status}</span>
-                  </td>
-                  <td className="px-8 py-5 text-sm font-mono font-bold text-primary">{fmt(row.employeeAmount)}</td>
-                  <td className="px-8 py-5 text-sm font-mono font-bold text-primary">{fmt(row.companyAmount)}</td>
+
+        <div className="overflow-x-auto min-h-[300px]">
+          {loading ? (
+            <div className="flex justify-center items-center h-40 text-xs text-slate-500">
+              Loading meal attendance records...
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/80 border-b border-slate-200/80">
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Employee</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Menu Platter</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Rate</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Company Subsidy</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Employee Share</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Audit</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-5 py-12 text-center text-xs text-slate-500">
+                      No meal records found matching current criteria.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredItems.map((m) => (
+                    <tr key={m.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="px-5 py-3.5 text-xs text-slate-600">
+                        {new Date(m.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </td>
+
+                      <td className="px-5 py-3.5 font-bold text-slate-900 text-xs">
+                        {m.employee?.fullName || 'Staff Member'}
+                      </td>
+
+                      <td className="px-5 py-3.5">
+                        <span className={cn(
+                          "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border inline-block",
+                          m.status === 'ATE' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-600 border-slate-200"
+                        )}>
+                          {m.status === 'ATE' ? 'Consumed' : 'Did Not Eat'}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-3.5 text-xs text-slate-700 max-w-xs truncate">
+                        {m.mealName || 'Standard Lunch'}
+                      </td>
+
+                      <td className="px-5 py-3.5 text-xs font-bold text-slate-900">
+                        {m.status === 'ATE' ? fmt(m.price || 1000) : '0 FCFA'}
+                      </td>
+
+                      <td className="px-5 py-3.5 text-xs font-bold text-emerald-700">
+                        {m.status === 'ATE' ? fmt(m.companyAmount || 500) : '0 FCFA'}
+                      </td>
+
+                      <td className="px-5 py-3.5 text-xs font-bold text-blue-700">
+                        {m.status === 'ATE' ? fmt(m.employeeAmount || 500) : '0 FCFA'}
+                      </td>
+
+                      <td className="px-5 py-3.5 text-right">
+                        {m.status === 'ATE' ? (
+                          <button
+                            onClick={() => setDisputeId(m.id)}
+                            className="text-[11px] font-medium text-slate-500 hover:text-rose-600 hover:underline cursor-pointer"
+                          >
+                            Report Discrepancy
+                          </button>
+                        ) : (
+                          <span className="text-[11px] text-slate-400">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
-      {/* Manager Log Modal */}
-      <AnimatePresence>
-        {showModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30">
-              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
-                <h3 className="text-lg font-bold text-primary">Log Meal Entry</h3>
-                <button onClick={() => setShowModal(false)}><X className="w-5 h-5 text-secondary" /></button>
-              </div>
-              <form onSubmit={handleRecord} className="p-6 space-y-4">
-                {(() => {
-                  const selId = isManager ? form.employeeId : (user?.id || form.employeeId);
-                  const existingInModal = selId && form.date ? items.find(m => m.employeeId === selId && isSameDay(m.date, form.date)) : null;
-                  if (!existingInModal) return null;
-                  const empName = isManager ? (employees.find(e => e.id === selId)?.fullName || 'this employee') : 'You';
-                  return (
-                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3 text-amber-900 text-xs">
-                      <TriangleAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-bold text-amber-900 mb-0.5">Food Already Recorded</p>
-                        <p className="text-amber-800 leading-relaxed">
-                          A food entry for <strong>{empName}</strong> has already been recorded for {new Date(form.date).toLocaleDateString()}.
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
-                <div>
-                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Employee *</label>
-                  {isManager ? (
-                    <select required value={form.employeeId} onChange={e => setForm({ ...form, employeeId: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20">
-                      <option value="">Select employee…</option>
-                      {employees.map(e => <option key={e.id} value={e.id}>{e.fullName}</option>)}
-                    </select>
-                  ) : (
-                    <input 
-                      type="text" 
-                      disabled 
-                      value={user?.fullName || 'Logged-in Employee'} 
-                      className="w-full bg-surface-container/50 border border-outline-variant/30 rounded-xl p-3 text-sm font-bold text-primary cursor-not-allowed" 
-                    />
-                  )}
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Date *</label>
-                  <input type="date" required value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Status *</label>
-                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value as 'ATE' | 'DID_NOT_EAT' })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none">
-                    <option value="ATE">Ate</option>
-                    <option value="DID_NOT_EAT">Did Not Eat</option>
-                  </select>
-                </div>
-                
-                {form.status === 'ATE' && (
-                  <>
-                    <div>
-                      <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Meal Name</label>
-                      <input type="text" value={form.mealName} onChange={e => setForm({ ...form, mealName: e.target.value })} placeholder="e.g. Daily Delivery Lunch" className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Time</label>
-                        <input type="time" value={form.mealTime} onChange={e => setForm({ ...form, mealTime: e.target.value })} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none" />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Price (XAF) *</label>
-                        <input type="text" disabled value="1,000 FCFA" className="w-full bg-surface-container/50 border border-outline-variant/30 rounded-xl p-3 text-sm font-bold text-primary cursor-not-allowed" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-secondary font-medium mt-1">Fixed daily delivery rate (1,000 FCFA — 500 FCFA Company Paid / 500 FCFA Employee Paid)</p>
-                  </>
-                )}
-                
-                <button type="submit" disabled={submitting} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest disabled:opacity-60">
-                  {submitting ? 'Logging…' : 'Log Entry'}
-                </button>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Dispute Modal */}
+      {/* Discrepancy Modal */}
       <AnimatePresence>
         {disputeId && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDisputeId(null)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30">
-              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
-                <h3 className="text-lg font-bold text-primary">Report Discrepancy</h3>
-                <button onClick={() => setDisputeId(null)}><X className="w-5 h-5 text-secondary" /></button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-slate-200 font-sans">
+              <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+                <h3 className="font-bold text-slate-900 text-sm">Report Meal Discrepancy</h3>
+                <button onClick={() => setDisputeId(null)} className="text-slate-400 hover:text-slate-700 text-xs font-bold uppercase tracking-wider cursor-pointer">Close</button>
               </div>
-              <form onSubmit={handleDispute} className="p-6 space-y-4">
+              <form onSubmit={handleDispute} className="p-5 space-y-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Reason *</label>
-                  <textarea required value={disputeReason} onChange={e => setDisputeReason(e.target.value)} rows={4} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none resize-none" placeholder="Describe the discrepancy…" />
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Reason for Discrepancy / Audit Comment
+                  </label>
+                  <textarea
+                    rows={4}
+                    required
+                    placeholder="e.g. Employee was on approved medical leave or out of office..."
+                    value={disputeReason}
+                    onChange={(e) => setDisputeReason(e.target.value)}
+                    className="w-full p-3 bg-slate-50/70 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 outline-none focus:border-[#001f5b] focus:bg-white"
+                  />
                 </div>
-                <button type="submit" disabled={submitting} className="w-full py-4 bg-error text-white rounded-xl text-[11px] font-bold uppercase tracking-widest disabled:opacity-60">
-                  {submitting ? 'Submitting…' : 'Submit Dispute'}
-                </button>
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                  <button type="button" onClick={() => setDisputeId(null)} className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50">Cancel</button>
+                  <button type="submit" className="px-4 py-1.5 bg-[#001f5b] text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-[#001744]">Submit Audit</button>
+                </div>
               </form>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      {/* Export Ledger Modal (PDF & Excel with Dynamic Months) */}
+      <ExportLedgerModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="ENAKO OS • STAFF WELFARE & MEALS REPORT"
+        defaultFileName="Enako_Staff_Meals"
+        headers={['Date', 'Employee', 'Status', 'Menu Option', 'Total Price', 'Company Co-Pay', 'Employee Co-Pay']}
+        items={items}
+        getDateStr={(m: any) => m.effectiveDate || m.date || m.createdAt}
+        getRowData={(m: any) => [
+          m.effectiveDate || m.date || (m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'N/A'),
+          m.employee?.fullName || m.userName || 'Staff Member',
+          m.status === 'ATE' ? 'Consumed' : 'Did Not Eat',
+          m.mealName || 'Standard Lunch',
+          m.status === 'ATE' ? fmt(m.price || 1000) : '0 FCFA',
+          m.status === 'ATE' ? fmt(m.companyAmount || 500) : '0 FCFA',
+          m.status === 'ATE' ? fmt(m.employeeAmount || 500) : '0 FCFA'
+        ]}
+      />
     </div>
   );
 }

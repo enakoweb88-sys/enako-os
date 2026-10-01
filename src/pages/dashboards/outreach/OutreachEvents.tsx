@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { outreachAPI } from '../../../lib/api';
 import { toast } from 'sonner';
-import { 
-  Calendar, Plus, Target, CheckCircle2, Trash2, Heart, 
-  GraduationCap, Droplets, Stethoscope, AlertTriangle, RefreshCw, 
-  FileText, Video, Image as ImageIcon, Sparkles, Filter
-} from 'lucide-react';
 
 export default function OutreachEvents() {
   const [events, setEvents] = useState<any[]>([]);
@@ -172,6 +167,10 @@ export default function OutreachEvents() {
     ? events.filter(e => e.type === selectedTypeFilter) 
     : events;
 
+  const totalFundraisingGoal = events.reduce((sum, e) => sum + (parseFloat(e.targetAmount) || 0), 0);
+  const totalFundraisingRaised = events.reduce((sum, e) => sum + (parseFloat(e.currentAmount) || 0), 0);
+  const activeEventsCount = events.filter(e => e.status === 'ACTIVE').length;
+
   const getTypeBadgeColor = (type: string) => {
     switch (type) {
       case 'SCHOLARSHIP': return 'bg-blue-100 text-blue-800';
@@ -183,28 +182,16 @@ export default function OutreachEvents() {
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'SCHOLARSHIP': return <GraduationCap className="w-4 h-4 text-blue-600" />;
-      case 'FUNDRAISER': return <Heart className="w-4 h-4 text-purple-600" />;
-      case 'CLEAN_WATER': return <Droplets className="w-4 h-4 text-cyan-600" />;
-      case 'HEALTH_CAMPAIGN': return <Stethoscope className="w-4 h-4 text-emerald-600" />;
-      case 'EMERGENCY_AID': return <AlertTriangle className="w-4 h-4 text-red-600" />;
-      default: return <Calendar className="w-4 h-4 text-slate-600" />;
-    }
-  };
-
   return (
     <div className="space-y-6 pb-20 p-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-outline-variant/30 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider mb-1">
-            <Calendar className="w-4 h-4 text-primary" />
-            <span>Outreach Manager Portal</span>
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+            Outreach Manager Portal
           </div>
-          <h2 className="text-3xl font-bold font-display text-primary">Outreach Events & Fundraisers</h2>
-          <p className="text-secondary text-sm mt-1">
+          <h2 className="text-3xl font-bold font-display text-slate-900">Outreach Events & Fundraisers</h2>
+          <p className="text-slate-600 text-sm mt-1">
             Create, track, and manage scholarship drives, fundraising galas, and field campaigns.
           </p>
         </div>
@@ -212,31 +199,78 @@ export default function OutreachEvents() {
         <div className="flex items-center gap-3">
           <button 
             onClick={fetchEvents}
-            className="bg-surface-container border border-outline-variant/40 text-primary font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 hover:bg-surface-container-high transition-colors"
+            className="bg-white border border-slate-300 text-slate-700 font-bold px-4 py-2.5 rounded-lg text-xs hover:bg-slate-50 transition-colors"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
             Refresh
           </button>
 
           <button
             onClick={() => setIsModalOpen(true)}
-            className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-primary-dark transition-all shadow-sm shrink-0"
+            className="bg-slate-900 text-white px-5 py-2.5 rounded-lg font-bold text-xs hover:bg-slate-800 transition-all shadow-sm shrink-0"
           >
-            <Plus className="w-4 h-4" />
             Publish Event / Fundraiser
           </button>
         </div>
       </div>
 
+      {/* Featured Main Card Layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="sm:col-span-2 lg:col-span-2 bg-white border-2 border-slate-300 rounded-lg p-6 shadow-md flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Featured Initiative</span>
+              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+                {activeEventsCount} Active Drives
+              </span>
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-1">Campaign Goal & Mobilization</h3>
+            <p className="text-sm text-slate-600 mb-4">Total capital allocated to humanitarian drives, medical tours, and education assistance.</p>
+            <div className="text-3xl font-extrabold text-slate-900 tracking-tight">
+              {totalFundraisingRaised.toLocaleString()} XAF
+            </div>
+            <div className="text-xs text-slate-500 mt-1">
+              of {totalFundraisingGoal.toLocaleString()} XAF Target Allocation
+            </div>
+          </div>
+          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mt-4">
+            <div 
+              className="h-full bg-slate-900 rounded-full transition-all" 
+              style={{ width: `${totalFundraisingGoal > 0 ? Math.min(100, Math.round((totalFundraisingRaised / totalFundraisingGoal) * 100)) : 0}%` }} 
+            />
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Active Events</span>
+            <div className="text-2xl font-extrabold text-slate-900 mt-1">{activeEventsCount}</div>
+            <p className="text-xs text-slate-500 mt-1">Currently taking contributions</p>
+          </div>
+          <div className="text-[11px] font-bold text-slate-700 bg-slate-50 px-2.5 py-1 rounded-md mt-3 inline-block self-start">
+            Live Deployment
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Total Initiatives</span>
+            <div className="text-2xl font-extrabold text-slate-900 mt-1">{events.length}</div>
+            <p className="text-xs text-slate-500 mt-1">Scholarships, Galas & Relief</p>
+          </div>
+          <div className="text-[11px] font-bold text-slate-700 bg-slate-50 px-2.5 py-1 rounded-md mt-3 inline-block self-start">
+            All Records
+          </div>
+        </div>
+      </div>
+
       {/* Filter Bar */}
-      <div className="bg-white border border-outline-variant/30 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Filter className="w-4 h-4 text-primary" />
-          <span className="text-xs font-bold text-primary">Filter Event Type:</span>
+          <span className="text-xs font-bold text-slate-700">Filter Event Type:</span>
           <select
             value={selectedTypeFilter}
             onChange={(e) => setSelectedTypeFilter(e.target.value)}
-            className="bg-surface-container border border-outline-variant/40 rounded-lg px-3 py-1.5 text-xs font-bold text-primary focus:outline-none"
+            className="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
           >
             <option value="">All Event Categories</option>
             <option value="FUNDRAISER">Fundraisers</option>
@@ -247,22 +281,21 @@ export default function OutreachEvents() {
           </select>
         </div>
 
-        <span className="text-xs font-bold text-secondary">
-          Total Events: <strong className="text-primary">{filteredEvents.length}</strong>
+        <span className="text-xs font-bold text-slate-500">
+          Total Events: <strong className="text-slate-900">{filteredEvents.length}</strong>
         </span>
       </div>
 
       {/* Events Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
-          <div className="col-span-full py-16 text-center text-secondary text-sm font-medium animate-pulse">
+          <div className="col-span-full py-16 text-center text-slate-500 text-sm font-medium animate-pulse">
             Loading events & fundraisers from database...
           </div>
         ) : filteredEvents.length === 0 ? (
-          <div className="col-span-full bg-white border border-outline-variant/30 rounded-2xl p-12 text-center text-secondary space-y-3">
-            <Calendar className="w-12 h-12 text-outline-variant mx-auto opacity-40" />
-            <h4 className="font-bold text-primary text-base">No Events / Fundraisers Found</h4>
-            <p className="text-xs text-secondary max-w-sm mx-auto">
+          <div className="col-span-full bg-white border border-slate-200 rounded-lg p-12 text-center text-slate-500 space-y-3">
+            <h4 className="font-bold text-slate-900 text-base">No Events / Fundraisers Found</h4>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
               Click <strong>"Publish Event / Fundraiser"</strong> above to launch a new scholarship drive, water campaign, or charity fundraiser.
             </p>
           </div>
@@ -273,12 +306,11 @@ export default function OutreachEvents() {
             const percent = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
 
             return (
-              <div key={ev.id} className="bg-white border border-outline-variant/30 rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative group">
+              <div key={ev.id} className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative group">
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider flex items-center gap-1.5 ${getTypeBadgeColor(ev.type)}`}>
-                      {getTypeIcon(ev.type)}
-                      <span>{ev.type.replace('_', ' ')}</span>
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider ${getTypeBadgeColor(ev.type)}`}>
+                      {ev.type.replace('_', ' ')}
                     </span>
 
                     <button
@@ -290,25 +322,25 @@ export default function OutreachEvents() {
                     </button>
                   </div>
 
-                  <h3 className="font-bold text-primary text-base mb-2">{ev.title}</h3>
-                  <p className="text-xs text-secondary line-clamp-3 leading-relaxed mb-4">{ev.description}</p>
+                  <h3 className="font-bold text-slate-900 text-base mb-2">{ev.title}</h3>
+                  <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed mb-4">{ev.description}</p>
                 </div>
 
-                <div className="pt-3 border-t border-outline-variant/30 space-y-2">
+                <div className="pt-3 border-t border-slate-100 space-y-2">
                   {target > 0 && (
                     <div className="space-y-1 mb-2">
-                      <div className="flex justify-between text-xs font-bold text-primary">
+                      <div className="flex justify-between text-xs font-bold text-slate-900">
                         <span>Fundraising Goal: {current.toLocaleString()} XAF</span>
                         <span>{percent}%</span>
                       </div>
                       <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${percent}%` }} />
+                        <div className="h-full bg-slate-900 rounded-full transition-all" style={{ width: `${percent}%` }} />
                       </div>
                     </div>
                   )}
 
                   <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium pt-1">
-                    <span>📅 {new Date(ev.createdAt).toLocaleDateString()}</span>
+                    <span>Date: {new Date(ev.createdAt).toLocaleDateString()}</span>
                     <span>{ev.targetSchools?.length || 0} Target Locations</span>
                   </div>
                 </div>
@@ -320,44 +352,44 @@ export default function OutreachEvents() {
 
       {/* Modal: Create Event / Fundraiser */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-primary/20 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl border border-outline-variant/30 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-outline-variant/30 pb-3">
-              <h3 className="font-bold text-primary text-lg">Publish Outreach Event / Fundraiser</h3>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-sm">
+          <div className="bg-white rounded-lg max-w-xl w-full p-6 space-y-4 shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="font-bold text-slate-900 text-lg">Publish Outreach Event / Fundraiser</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-base">✕</button>
             </div>
 
-            <form onSubmit={handleCreate} className="space-y-4 text-xs font-bold text-primary">
+            <form onSubmit={handleCreate} className="space-y-4 text-xs font-bold text-slate-800">
               <div>
-                <label className="block mb-1 text-secondary uppercase tracking-wider">Event / Fundraiser Title (English) *</label>
+                <label className="block mb-1 text-slate-600 uppercase tracking-wider">Event / Fundraiser Title (English) *</label>
                 <input
                   required
                   type="text"
                   placeholder="e.g. Annual Cameroon Clean Water Gala & Borehole Drive"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                  className="w-full p-3 bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-slate-400 font-medium"
                 />
               </div>
 
               <div>
-                <label className="block mb-1 text-secondary uppercase tracking-wider">Title (French)</label>
+                <label className="block mb-1 text-slate-600 uppercase tracking-wider">Title (French)</label>
                 <input
                   type="text"
                   placeholder="Titre de l'événement en français..."
                   value={form.titleFr}
                   onChange={(e) => setForm({ ...form, titleFr: e.target.value })}
-                  className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                  className="w-full p-3 bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-slate-400 font-medium"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block mb-1 text-secondary uppercase tracking-wider">Event Category *</label>
+                  <label className="block mb-1 text-slate-600 uppercase tracking-wider">Event Category *</label>
                   <select
                     value={form.type}
                     onChange={(e) => setForm({ ...form, type: e.target.value })}
-                    className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                    className="w-full p-3 bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-slate-400 font-medium"
                   >
                     <option value="FUNDRAISER">Fundraiser Gala</option>
                     <option value="SCHOLARSHIP">Scholarship Drive</option>
@@ -370,78 +402,78 @@ export default function OutreachEvents() {
 
                 {form.type === 'CUSTOM' && (
                   <div>
-                    <label className="block mb-1 text-secondary uppercase tracking-wider">Custom Category Name</label>
+                    <label className="block mb-1 text-slate-600 uppercase tracking-wider">Custom Category Name</label>
                     <input
                       type="text"
                       placeholder="e.g. YOUTH_TECH"
                       value={form.customType}
                       onChange={(e) => setForm({ ...form, customType: e.target.value })}
-                      className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                      className="w-full p-3 bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-slate-400 font-medium"
                     />
                   </div>
                 )}
 
                 <div>
-                  <label className="block mb-1 text-secondary uppercase tracking-wider">Location / City</label>
+                  <label className="block mb-1 text-slate-600 uppercase tracking-wider">Location / City</label>
                   <input
                     type="text"
                     placeholder="e.g. Douala, Kumba, Yaoundé"
                     value={form.location}
                     onChange={(e) => setForm({ ...form, location: e.target.value })}
-                    className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                    className="w-full p-3 bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-slate-400 font-medium"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block mb-1 text-secondary uppercase tracking-wider">Target Fundraising Goal (XAF)</label>
+                  <label className="block mb-1 text-slate-600 uppercase tracking-wider">Target Fundraising Goal (XAF)</label>
                   <input
                     type="number"
                     value={form.targetAmount}
                     onChange={(e) => setForm({ ...form, targetAmount: e.target.value })}
-                    className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                    className="w-full p-3 bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-slate-400 font-medium"
                   />
                 </div>
 
                 <div>
-                  <label className="block mb-1 text-secondary uppercase tracking-wider">Target Schools / Beneficiaries</label>
+                  <label className="block mb-1 text-slate-600 uppercase tracking-wider">Target Schools / Beneficiaries</label>
                   <input
                     type="text"
                     placeholder="Comma-separated list..."
                     value={form.targetSchools}
                     onChange={(e) => setForm({ ...form, targetSchools: e.target.value })}
-                    className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                    className="w-full p-3 bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-slate-400 font-medium"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block mb-1 text-secondary uppercase tracking-wider">Event Description (English) *</label>
+                <label className="block mb-1 text-slate-600 uppercase tracking-wider">Event Description (English) *</label>
                 <textarea
                   required
                   rows={3}
                   placeholder="Describe event schedule, fundraising objectives, and impact..."
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium resize-none"
+                  className="w-full p-3 bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-slate-400 font-medium resize-none"
                 />
               </div>
 
               <div>
-                <label className="block mb-1 text-secondary uppercase tracking-wider">Media Upload (Select Image)</label>
+                <label className="block mb-1 text-slate-600 uppercase tracking-wider">Media Upload (Select Image)</label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleStoryMediaChange}
-                  className="w-full p-2 bg-surface border border-outline-variant/40 rounded-xl outline-none text-xs"
+                  className="w-full p-2 bg-white border border-slate-300 rounded-lg outline-none text-xs"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3.5 bg-primary text-white font-bold rounded-xl shadow hover:bg-primary-dark transition-all uppercase tracking-widest disabled:opacity-50"
+                className="w-full py-3.5 bg-slate-900 text-white font-bold rounded-lg shadow hover:bg-slate-800 transition-all uppercase tracking-widest disabled:opacity-50"
               >
                 {isSubmitting ? 'Publishing Event...' : 'Publish Event / Fundraiser'}
               </button>

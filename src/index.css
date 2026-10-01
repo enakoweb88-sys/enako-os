@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Hanken+Grotesk:wght@600;700;900&family=JetBrains+Mono:wght@500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Hanken+Grotesk:wght@600;700;800;900&family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 @import "tailwindcss";
 
@@ -43,8 +43,8 @@
   --color-on-tertiary-container: #b5785f;
   --color-tertiary-container: #391303;
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Hanken Grotesk", sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Hanken Grotesk", "Outfit", "Inter", system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", "Hanken Grotesk", "Outfit", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
@@ -123,8 +123,44 @@
 
 .enako-sphere { animation: enako-sphere-breathe 4s ease-in-out infinite; }
 
+
 .enako-fade-up {
   opacity: 0;
   animation: enako-fade-in-up 0.7s ease forwards;
 }
+
+/* Glassmorphism Dark Mode Utilities */
+.glass-dark-card {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.glass-dark-nav {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.4; filter: blur(40px); }
+  50% { opacity: 0.75; filter: blur(55px); }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 6s ease-in-out infinite;
+}
+
+@keyframes float-subtle {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-float-subtle {
+  animation: float-subtle 4s ease-in-out infinite;
+}
+
 

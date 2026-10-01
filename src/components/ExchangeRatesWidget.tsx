@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  DollarSign, Edit3, X, RefreshCw, 
+import {
+  DollarSign, Edit3, X, RefreshCw,
   ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -18,7 +18,7 @@ export interface ExchangeRateItem {
 }
 
 export const INITIAL_CURRENCIES: Record<string, ExchangeRateItem> = {
-  NGN: { code: 'NGN', name: 'Nigerian Naira', flag: '🇳🇬', buyingRate: '', sellingRate: '', change24h: 0 },
+  NGN: { code: 'NGN', name: 'Cameroonn Naira', flag: '🇳🇬', buyingRate: '', sellingRate: '', change24h: 0 },
   USDT: { code: 'USDT', name: 'Tether Crypto', flag: '🪙', buyingRate: '', sellingRate: '', change24h: 0 },
   USD: { code: 'USD', name: 'US Dollar', flag: '💵', buyingRate: '', sellingRate: '', change24h: 0 },
   EUR: { code: 'EUR', name: 'Euro', flag: '💶', buyingRate: '', sellingRate: '', change24h: 0 },
@@ -166,32 +166,27 @@ export function ExchangeRatesWidget({ canEdit = true }: WidgetProps) {
   const rateList: ExchangeRateItem[] = Object.values(rates);
 
   return (
-    <div className="bg-white border border-outline-variant/30 rounded-2xl p-6 shadow-sm space-y-6">
+    <div id="exchange-rates" className="scroll-mt-6 bg-white border border-slate-200/90 rounded-lg p-5 shadow-2xs space-y-4 font-sans">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-outline-variant/20 pb-4">
+      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider mb-1">
-            <DollarSign className="w-4 h-4 text-emerald-600" />
-            <span>Market Command & Rate Matrix</span>
-          </div>
-          <h3 className="font-display text-xl font-bold text-slate-900">
-            Live Buying & Selling Exchange Rates
-          </h3>
+          <h3 className="text-sm font-bold text-slate-900">Market Command & Rate Matrix</h3>
+          <p className="text-xs text-slate-500 font-medium">Live Buying & Selling Exchange Rates</p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={fetchRates}
-            className="p-2 border border-outline-variant/40 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-1.5 border border-slate-200 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors cursor-pointer"
             title="Refresh Market Rates from Database"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
 
           {canEdit && (
             <button
               onClick={openEditor}
-              className="bg-primary text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 hover:bg-primary/90 transition-all shadow-xs active:scale-[0.98]"
+              className="bg-[#001f5b] text-white px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 hover:bg-[#001744] transition-all shadow-2xs cursor-pointer"
             >
               <Edit3 className="w-3.5 h-3.5" />
               <span>Update Rates</span>
@@ -204,42 +199,42 @@ export function ExchangeRatesWidget({ canEdit = true }: WidgetProps) {
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-xs font-sans">
           <thead>
-            <tr className="bg-slate-50 text-slate-500 text-[10px] font-bold uppercase tracking-wider border-b border-outline-variant/30">
-              <th className="p-3.5">Currency Pair</th>
-              <th className="p-3.5 text-right">Buying Rate (FCFA)</th>
-              <th className="p-3.5 text-right">Selling Rate (FCFA)</th>
-              <th className="p-3.5 text-right">24h Market Trend</th>
-              <th className="p-3.5 text-right">Spread Margin</th>
+            <tr className="bg-slate-50/80 text-slate-500 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100">
+              <th className="py-2.5 px-3">Currency Pair</th>
+              <th className="py-2.5 px-3 text-right">Buying Rate (FCFA)</th>
+              <th className="py-2.5 px-3 text-right">Selling Rate (FCFA)</th>
+              <th className="py-2.5 px-3 text-right">24h Market Trend</th>
+              <th className="py-2.5 px-3 text-right">Spread Margin</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-outline-variant/20 font-medium">
+          <tbody className="divide-y divide-slate-100 font-medium">
             {rateList.map(curr => {
               const hasBuying = Boolean(curr.buyingRate && curr.buyingRate.trim() !== '');
               const hasSelling = Boolean(curr.sellingRate && curr.sellingRate.trim() !== '');
               const buying = Number(curr.buyingRate || 0);
               const selling = Number(curr.sellingRate || 0);
-              const spread = (hasBuying && hasSelling && selling > buying) 
+              const spread = (hasBuying && hasSelling && selling > buying)
                 ? (selling - buying).toFixed(curr.code === 'NGN' ? 3 : 2)
                 : null;
               const isPositive = curr.change24h >= 0;
 
               return (
                 <tr key={curr.code} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="p-3.5">
+                  <td className="py-2.5 px-3">
                     <div className="flex items-center gap-2.5">
-                      <span className="text-xl leading-none">{curr.flag}</span>
+                      <span className="text-lg leading-none">{curr.flag}</span>
                       <div>
-                        <p className="font-bold text-slate-900 text-sm leading-tight">
-                          {curr.code} <span className="text-xs font-normal text-slate-500">({curr.name})</span>
+                        <p className="font-bold text-slate-800 text-xs leading-tight">
+                          {curr.code} <span className="text-[11px] font-normal text-slate-500">({curr.name})</span>
                         </p>
-                        <p className="text-[10px] font-mono text-slate-400">
+                        <p className="text-[10px] text-slate-400">
                           {curr.code === 'NGN' ? 'NGN per 1,000 FCFA' : `1 ${curr.code} : FCFA`}
                         </p>
                       </div>
                     </div>
                   </td>
 
-                  <td className="p-3.5 text-right font-mono font-bold text-slate-900 text-sm">
+                  <td className="py-2.5 px-3 text-right font-bold text-slate-900 text-xs">
                     {hasBuying ? (
                       <span>{curr.buyingRate} <span className="text-[10px] font-normal text-slate-400">XAF</span></span>
                     ) : (
@@ -247,7 +242,7 @@ export function ExchangeRatesWidget({ canEdit = true }: WidgetProps) {
                     )}
                   </td>
 
-                  <td className="p-3.5 text-right font-mono font-bold text-emerald-700 text-sm">
+                  <td className="py-2.5 px-3 text-right font-bold text-emerald-700 text-xs">
                     {hasSelling ? (
                       <span>{curr.sellingRate} <span className="text-[10px] font-normal text-slate-400">XAF</span></span>
                     ) : (
@@ -255,14 +250,13 @@ export function ExchangeRatesWidget({ canEdit = true }: WidgetProps) {
                     )}
                   </td>
 
-                  <td className="p-3.5 text-right">
+                  <td className="py-2.5 px-3 text-right">
                     {(hasBuying || hasSelling) ? (
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold font-mono border ${
-                        isPositive 
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                          : 'bg-red-50 text-red-700 border-red-200'
-                      }`}>
-                        {isPositive ? <ArrowUpRight className="w-3 h-3 text-emerald-600" /> : <ArrowDownRight className="w-3 h-3 text-red-600" />}
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${isPositive
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
+                          : 'bg-rose-50 text-rose-700 border-rose-200/60'
+                        }`}>
+                        {isPositive ? <ArrowUpRight className="w-3 h-3 text-emerald-600" /> : <ArrowDownRight className="w-3 h-3 text-rose-600" />}
                         <span>{isPositive ? `+${curr.change24h}%` : `${curr.change24h}%`}</span>
                       </span>
                     ) : (
@@ -270,7 +264,7 @@ export function ExchangeRatesWidget({ canEdit = true }: WidgetProps) {
                     )}
                   </td>
 
-                  <td className="p-3.5 text-right font-mono font-bold text-slate-500 text-xs">
+                  <td className="py-2.5 px-3 text-right font-semibold text-slate-600 text-xs">
                     {spread !== null ? `+${spread} XAF` : <span className="text-slate-400 font-normal">—</span>}
                   </td>
                 </tr>
@@ -288,39 +282,39 @@ export function ExchangeRatesWidget({ canEdit = true }: WidgetProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-slate-900/50 backdrop-blur-xs"
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs"
               onClick={() => setIsEditModalOpen(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh] border border-outline-variant/30"
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative bg-white rounded-lg shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh] border border-slate-200"
             >
-              <div className="p-6 border-b border-outline-variant/30 flex justify-between items-center bg-slate-50 shrink-0">
+              <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/70 shrink-0">
                 <div>
-                  <h3 className="text-lg font-black text-slate-900">Manage Live Currency Rates</h3>
-                  <p className="text-xs text-slate-500 font-medium">Enter buying & selling rates for Naira, USDT, Dollar, Euro & GBP into database.</p>
+                  <h3 className="text-sm font-bold text-slate-900">Manage Live Currency Rates</h3>
+                  <p className="text-xs text-slate-500 font-normal">Enter buying & selling rates for Naira, USDT, Dollar, Euro & GBP into database.</p>
                 </div>
-                <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
-                  <X className="w-5 h-5 text-slate-500" />
+                <button onClick={() => setIsEditModalOpen(false)} className="p-1.5 hover:bg-slate-200 rounded-md transition-colors cursor-pointer">
+                  <X className="w-4 h-4 text-slate-500" />
                 </button>
               </div>
 
-              <form onSubmit={handleSaveRates} className="p-6 space-y-5 overflow-y-auto">
+              <form onSubmit={handleSaveRates} className="p-5 space-y-4 overflow-y-auto">
                 {Object.keys(editForm).map(code => {
                   const curr = rates[code] || INITIAL_CURRENCIES[code];
                   return (
-                    <div key={code} className="p-4 bg-slate-50 rounded-2xl border border-outline-variant/40 space-y-3">
+                    <div key={code} className="p-3.5 bg-slate-50/60 rounded-md border border-slate-200/80 space-y-2.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-xl">{curr.flag}</span>
-                        <span className="font-bold text-slate-900 text-sm">{code} - {curr.name}</span>
+                        <span className="text-base">{curr.flag}</span>
+                        <span className="font-bold text-slate-900 text-xs">{code} - {curr.name}</span>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                            Buying Rate {code === 'NGN' ? '(FCFA per 1,000 NGN)' : '(FCFA)'}
+                            Buying Rate {code === 'NGN' ? '(FCFA / 1,000 NGN)' : '(FCFA)'}
                           </label>
                           <input
                             type="text"
@@ -329,14 +323,14 @@ export function ExchangeRatesWidget({ canEdit = true }: WidgetProps) {
                               ...editForm,
                               [code]: { ...editForm[code], buyingRate: e.target.value }
                             })}
-                            className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-outline-variant/50 focus:ring-2 focus:ring-primary/20 outline-none"
+                            className="w-full px-2.5 py-1.5 text-xs font-mono font-bold rounded-md border border-slate-200 focus:ring-1 focus:ring-[#001f5b] outline-none bg-white"
                             placeholder={code === 'NGN' ? "e.g. 400" : "Enter buying rate..."}
                           />
                         </div>
 
                         <div>
                           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                            Selling Rate {code === 'NGN' ? '(FCFA per 1,000 NGN)' : '(FCFA)'}
+                            Selling Rate {code === 'NGN' ? '(FCFA / 1,000 NGN)' : '(FCFA)'}
                           </label>
                           <input
                             type="text"
@@ -345,7 +339,7 @@ export function ExchangeRatesWidget({ canEdit = true }: WidgetProps) {
                               ...editForm,
                               [code]: { ...editForm[code], sellingRate: e.target.value }
                             })}
-                            className="w-full px-3 py-2 text-xs font-mono font-bold text-emerald-700 rounded-xl border border-outline-variant/50 focus:ring-2 focus:ring-primary/20 outline-none"
+                            className="w-full px-2.5 py-1.5 text-xs font-mono font-bold text-emerald-700 rounded-md border border-slate-200 focus:ring-1 focus:ring-[#001f5b] outline-none bg-white"
                             placeholder={code === 'NGN' ? "e.g. 420" : "Enter selling rate..."}
                           />
                         </div>
@@ -354,19 +348,19 @@ export function ExchangeRatesWidget({ canEdit = true }: WidgetProps) {
                   );
                 })}
 
-                <div className="pt-2 flex justify-end gap-3">
+                <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setIsEditModalOpen(false)}
-                    className="px-5 py-2.5 rounded-xl font-bold text-xs text-slate-600 hover:bg-slate-200 transition-colors uppercase tracking-wider"
+                    className="px-4 py-2 rounded-md font-semibold text-xs text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-primary text-white hover:bg-primary/90 transition-all shadow-md active:scale-[0.98]"
+                    className="px-4 py-2 rounded-md font-semibold text-xs bg-[#001f5b] text-white hover:bg-[#001744] transition-all shadow-2xs cursor-pointer"
                   >
-                    Save Market Rates to DB
+                    Save Rates to DB
                   </button>
                 </div>
               </form>

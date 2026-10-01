@@ -1,25 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  FileText, 
-  Download, 
-  Search,
-  Plus,
-  ArrowLeft,
-  Calendar,
-  Save,
-  Users,
-  Archive,
-  Edit,
-  BarChart,
-  Check
-} from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
 import { api, apiRequest } from '../lib/api';
 import { ENAKO_LOGO_BASE64 } from '../lib/logo-base64';
+import { OrganizationHeaderCard } from '../components/OrganizationHeaderCard';
+import { WorkplaceStatCards } from '../components/WorkplaceStatCards';
+import { savePdf, runAutoTable } from '../lib/pdf-export';
 
 function fmt(val: string | number | null | undefined) {
   return `${Number(val ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 })} FCFA`;
@@ -203,32 +193,45 @@ ${dailyForm.recommendation}`;
   };
 
   const downloadDailyPdf = async (report: any) => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
-    const isGeneral = report.type === 'GENERAL';
-    const brandGreen = [0, 31, 91]; // #001f5b
-    const brandGreenLight = [230, 237, 245]; // #e6edf5
-    const darkText = [33, 37, 41];
-    const mutedText = [108, 117, 125];
-    const borderColor = [206, 212, 218];
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
+      const isGeneral = report.type === 'GENERAL';
+      const brandGreen = [0, 31, 91] as [number, number, number]; // #001f5b
+      const brandGreenLight = [230, 237, 245] as [number, number, number]; // #e6edf5
+      const darkText = [33, 37, 41] as [number, number, number];
+      const mutedText = [108, 117, 125] as [number, number, number];
+      const borderColor = [206, 212, 218] as [number, number, number];
 
-    // ─── WATERMARK (diagonal, repeated, very faint) ───
-    doc.saveGraphicsState();
-    // @ts-ignore
-    doc.setGState(new doc.GState({ opacity: 0.04 }));
-    doc.setFontSize(52);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
-    // Draw diagonal watermark text across the page
-    for (let y = 40; y < pageHeight; y += 80) {
-      doc.text('ENAKO FINTECH', pageWidth / 2, y, { angle: 35, align: 'center' });
-    }
-    doc.restoreGraphicsState();
+      const rawDate = report.date || report.createdAt || new Date();
+      const parsedDate = new Date(rawDate);
+      const validDate = isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+      const safeDateStr = validDate.toISOString().split('T')[0];
+      const formattedDate = validDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+      const formattedTime = validDate.toLocaleTimeString();
 
-    // ─── TOP GREEN ACCENT BAR ───
-    doc.setFillColor(brandGreen[0], brandGreen[1], brandGreen[2]);
-    doc.rect(0, 0, pageWidth, 4, 'F');
+      // ─── WATERMARK (diagonal, repeated, very faint) ───
+      try {
+        doc.saveGraphicsState();
+        // @ts-ignore
+        if (typeof doc.GState === 'function') {
+          doc.setGState(new doc.GState({ opacity: 0.04 }));
+        }
+        doc.setFontSize(52);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+        for (let y = 40; y < pageHeight; y += 80) {
+          doc.text('ENAKO FINTECH', pageWidth / 2, y, { angle: 35, align: 'center' });
+        }
+        doc.restoreGraphicsState();
+      } catch {
+        // Watermark is non-critical
+      }
+
+      // ─── TOP GREEN ACCENT BAR ───
+      doc.setFillColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+      doc.rect(0, 0, pageWidth, 4, 'F');
 
     // ─── HEADER SECTION ───
     // Logo
@@ -292,13 +295,13 @@ ${dailyForm.recommendation}`;
     doc.setFont(undefined, 'bold');
     doc.text('Date:', 115, 65);
     doc.setFont(undefined, 'normal');
-    doc.text(new Date(report.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }), 132, 65);
+    doc.text(formattedDate, 132, 65);
 
     // Row 2
     doc.setFont(undefined, 'bold');
     doc.text('Submitted At:', 20, 75);
     doc.setFont(undefined, 'normal');
-    doc.text(new Date(report.date).toLocaleTimeString(), 52, 75);
+    doc.text(formattedTime, 52, 75);
 
     // Row 3
     if (report.user?.email) {
@@ -474,8 +477,8 @@ ${dailyForm.recommendation}`;
           doc.text(`Total Amount: ${fmt(total)}`, 70, cy);
           cy += 8;
           
-          const tableData = data.map((e: any) => [new Date(e.createdAt).toLocaleDateString(), e.category || 'Other', e.description || '-', fmt(e.amount), e.status]);
-          autoTable(doc, { startY: cy, head: [['Date', 'Category', 'Description', 'Amount', 'Status']], body: tableData, ...commonTableStyles });
+          const tableData = data.map((e: any) => [new Date(e.createdAt || Date.now()).toLocaleDateString(), e.category || 'Other', e.description || '-', fmt(e.amount), e.status || 'APPROVED']);
+          runAutoTable(doc, { startY: cy, head: [['Date', 'Category', 'Description', 'Amount', 'Status']], body: tableData, ...commonTableStyles });
         }
       );
 
@@ -508,7 +511,7 @@ ${dailyForm.recommendation}`;
             t.status,
             (t.description || '').substring(0, 30)
           ]);
-          autoTable(doc, { startY: cy, head: [['Date', 'Type', 'Entity', 'Amount', 'XAF Amount', 'Status', 'Rate & Margin Details']], body: tableData, ...commonTableStyles });
+          runAutoTable(doc, { startY: cy, head: [['Date', 'Type', 'Entity', 'Amount', 'XAF Amount', 'Status', 'Rate & Margin Details']], body: tableData, ...commonTableStyles });
         }
       );
 
@@ -536,8 +539,8 @@ ${dailyForm.recommendation}`;
           doc.text(`MRR: ${fmt(mrr)}`, 110, cy);
           cy += 8;
 
-          const tableData = data.map((s: any) => [s.name, s.cycle, fmt(s.costInXaf || s.cost), new Date(s.startDate).toLocaleDateString(), new Date(s.nextBilling).toLocaleDateString(), s.status]);
-          autoTable(doc, { startY: cy, head: [['Service', 'Cycle', 'Cost', 'Start Date', 'Next Bill', 'Status']], body: tableData, ...commonTableStyles });
+          const tableData = data.map((s: any) => [s.name, s.cycle, fmt(s.costInXaf || s.cost), new Date(s.startDate || Date.now()).toLocaleDateString(), new Date(s.nextBilling || Date.now()).toLocaleDateString(), s.status || 'Active']);
+          runAutoTable(doc, { startY: cy, head: [['Service', 'Cycle', 'Cost', 'Start Date', 'Next Bill', 'Status']], body: tableData, ...commonTableStyles });
         }
       );
 
@@ -584,9 +587,9 @@ ${dailyForm.recommendation}`;
           doc.text('Employee Cost Breakdown', 15, cy);
           cy += 4;
           
-          autoTable(doc, { startY: cy, head: [['Employee Name', 'Meals Eaten', 'Total Cost', 'Company Pays', 'Employee Pays']], body: empData, ...commonTableStyles });
+          runAutoTable(doc, { startY: cy, head: [['Employee Name', 'Meals Eaten', 'Total Cost', 'Company Pays', 'Employee Pays']], body: empData, ...commonTableStyles });
           
-          cy = (doc as any).lastAutoTable.finalY + 10;
+          cy = ((doc as any).lastAutoTable?.finalY ?? cy) + 10;
           if (cy > pageHeight - 40) { doc.addPage(); cy = 20; }
           
           doc.setFontSize(11);
@@ -594,8 +597,8 @@ ${dailyForm.recommendation}`;
           doc.text('Detailed Meal Records', 15, cy);
           cy += 4;
           
-          const tableData = data.map((m: any) => [new Date(m.date).toLocaleDateString(), m.employee?.fullName || 'Unknown', m.mealName || '-', m.status, m.status === 'ATE' ? fmt(m.totalAmount) : '-', m.status === 'ATE' ? fmt(m.companyAmount) : '-', m.status === 'ATE' ? fmt(m.employeeAmount) : '-']);
-          autoTable(doc, { startY: cy, head: [['Date', 'Employee', 'Meal', 'Status', 'Total', 'Company', 'Employee']], body: tableData, ...commonTableStyles });
+          const tableData = data.map((m: any) => [new Date(m.date || Date.now()).toLocaleDateString(), m.employee?.fullName || 'Unknown', m.mealName || '-', m.status, m.status === 'ATE' ? fmt(m.totalAmount) : '-', m.status === 'ATE' ? fmt(m.companyAmount) : '-', m.status === 'ATE' ? fmt(m.employeeAmount) : '-']);
+          runAutoTable(doc, { startY: cy, head: [['Date', 'Employee', 'Meal', 'Status', 'Total', 'Company', 'Employee']], body: tableData, ...commonTableStyles });
         }
       );
 
@@ -619,8 +622,8 @@ ${dailyForm.recommendation}`;
           doc.text(`Approved: ${approved}`, 80, cy);
           cy += 8;
           
-          const tableData = data.map((k: any) => [new Date(k.createdAt).toLocaleDateString(), k.user?.fullName || k.userId, k.documentType || 'ID', k.status]);
-          autoTable(doc, { startY: cy, head: [['Date', 'User', 'Document Type', 'Status']], body: tableData, ...commonTableStyles });
+          const tableData = data.map((k: any) => [new Date(k.createdAt || Date.now()).toLocaleDateString(), k.user?.fullName || k.userId, k.documentType || 'ID', k.status]);
+          runAutoTable(doc, { startY: cy, head: [['Date', 'User', 'Document Type', 'Status']], body: tableData, ...commonTableStyles });
         }
       );
 
@@ -644,8 +647,8 @@ ${dailyForm.recommendation}`;
           doc.text(`Approved: ${approved}`, 80, cy);
           cy += 8;
           
-          const tableData = data.map((l: any) => [l.employee?.fullName || 'Unknown', l.leaveType || 'Annual', new Date(l.startDate).toLocaleDateString(), new Date(l.endDate).toLocaleDateString(), l.status]);
-          autoTable(doc, { startY: cy, head: [['Employee', 'Type', 'Start Date', 'End Date', 'Status']], body: tableData, ...commonTableStyles });
+          const tableData = data.map((l: any) => [l.employee?.fullName || 'Unknown', l.leaveType || 'Annual', new Date(l.startDate || Date.now()).toLocaleDateString(), new Date(l.endDate || Date.now()).toLocaleDateString(), l.status]);
+          runAutoTable(doc, { startY: cy, head: [['Employee', 'Type', 'Start Date', 'End Date', 'Status']], body: tableData, ...commonTableStyles });
         }
       );
 
@@ -666,8 +669,8 @@ ${dailyForm.recommendation}`;
           doc.text(`Total Events: ${data.length}`, 15, cy);
           cy += 8;
           
-          const tableData = data.map((e: any) => [new Date(e.timestamp || e.createdAt).toLocaleDateString(), e.eventType || 'Pageview', e.path || '/', e.metadata?.referrer || 'Direct']);
-          autoTable(doc, { startY: cy, head: [['Date', 'Event Type', 'Page/Path', 'Referrer']], body: tableData, ...commonTableStyles });
+          const tableData = data.map((e: any) => [new Date(e.timestamp || e.createdAt || Date.now()).toLocaleDateString(), e.eventType || 'Pageview', e.path || '/', e.metadata?.referrer || 'Direct']);
+          runAutoTable(doc, { startY: cy, head: [['Date', 'Event Type', 'Page/Path', 'Referrer']], body: tableData, ...commonTableStyles });
         }
       );
     }
@@ -711,9 +714,16 @@ ${dailyForm.recommendation}`;
     }
 
     // Save
-    const fileName = isGeneral ? 'ENano_General_Report' : 'ENano_Weekly_Report';
-    doc.save(`${fileName}_${new Date(report.date).toISOString().split('T')[0]}.pdf`);
-  };
+    const fileName = isGeneral ? 'ENAKO_General_Report' : 'ENAKO_Weekly_Report';
+    const saved = savePdf(doc, `${fileName}_${safeDateStr}.pdf`);
+    if (saved) {
+      toast.success('Report PDF downloaded successfully');
+    }
+  } catch (err: any) {
+    console.error('Failed to generate daily report PDF:', err);
+    toast.error(err.message || 'Failed to generate report PDF');
+  }
+};
 
   // Filter Logic
   const getFilteredReports = () => {
@@ -739,145 +749,171 @@ ${dailyForm.recommendation}`;
   const displayedReports = getFilteredReports();
 
   return (
-    <div className="space-y-8 font-sans animate-in fade-in slide-in-from-bottom-4 duration-500">
-      
+    <div className="space-y-6 font-sans">
       {!isCreatingReport ? (
         <>
-          <div className="flex justify-between items-end">
+          <OrganizationHeaderCard subtitle={isCeo ? "Executive Overview • General Executive Reports" : "Executive Overview • Reports & Activity Logs"} />
+
+          <WorkplaceStatCards
+            domainsCount={reports.length}
+            usersCount={reports.filter(r => r.status === 'SUBMITTED').length}
+            groupsCount={reports.filter(r => r.status === 'DRAFT').length}
+            licensesCount={reports.filter(r => r.type === 'WEEKLY').length}
+            card1Label="TOTAL REPORTS"
+            card2Label="SUBMITTED / APPROVED"
+            card3Label="PENDING DRAFTS"
+            card4Label="WEEKLY DIGESTS"
+          />
+
+          {/* Page Action Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-slate-200/90 rounded-lg p-5 shadow-2xs">
             <div>
-              <h1 className="font-display text-4xl font-bold text-primary tracking-tight">
-                {isCeo ? 'General Reports' : 'Reports & Logs'}
-              </h1>
-              <p className="text-secondary text-base mt-1">
+              <h2 className="text-sm font-semibold text-slate-900">
+                {isCeo ? 'General Executive Reports' : 'Reports & Activity Logs'}
+              </h2>
+              <p className="text-slate-500 text-xs mt-0.5">
                 {isCeo 
-                  ? 'Review general reports submitted by management.' 
-                  : 'Track work logs, active sessions, and shift activities.'}
+                  ? 'Review general reports submitted by management and departments.' 
+                  : 'Track work logs, operational summaries, and shift activities.'}
               </p>
             </div>
-            {!isCeo && (
-              <div className="flex gap-4">
+            <div className="flex items-center gap-2">
+              {!isCeo && (
                 <button 
                   onClick={() => setIsCreatingReport(true)}
-                  className="bg-primary text-white px-6 py-3 rounded-xl text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 hover:shadow-lg transition-all"
+                  className="bg-[#001f5b] hover:bg-[#001f5b]/90 text-white px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all shadow-2xs"
                 >
-                  <Plus className="w-4 h-4" />
                   Create Report
                 </button>
-              </div>
-            )}
+              )}
+              <button 
+                onClick={load} 
+                className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700 transition-colors"
+              >
+                {loading ? 'Refreshing…' : 'Refresh'}
+              </button>
+            </div>
           </div>
 
+          {/* Manager Tabs */}
           {isManager && (
-            <div className="flex gap-2 p-1 bg-surface-container-low rounded-xl w-fit">
+            <div className="flex gap-2 p-1 bg-slate-100 rounded-lg w-fit border border-slate-200">
               <button 
                 onClick={() => setManagerTab('today')} 
-                className={cn("px-6 py-2 rounded-lg text-sm font-bold transition-all", managerTab === 'today' ? "bg-white text-primary shadow-sm" : "text-secondary hover:text-primary")}
+                className={cn("px-4 py-1.5 rounded-md text-xs font-semibold transition-colors", managerTab === 'today' ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900")}
               >
                 This Week's Team Reports
               </button>
               <button 
                 onClick={() => setManagerTab('all')} 
-                className={cn("px-6 py-2 rounded-lg text-sm font-bold transition-all", managerTab === 'all' ? "bg-white text-primary shadow-sm" : "text-secondary hover:text-primary")}
+                className={cn("px-4 py-1.5 rounded-md text-xs font-semibold transition-colors", managerTab === 'all' ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900")}
               >
                 All Stored Reports
               </button>
             </div>
           )}
 
-          <div className="bg-white border border-outline-variant/30 rounded-[2.5rem] shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-            <div className="p-8 border-b border-outline-variant/20 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-primary flex items-center gap-2">
-                {isManager && managerTab === 'today' ? <Users className="w-5 h-5 text-primary-container" /> : <Archive className="w-5 h-5 text-primary-container" />} 
-                {isCeo ? 'General Reports' : (isManager && managerTab === 'today' ? 'Available Reports for the Week' : 'Stored Reports')}
-              </h3>
-              <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-outline w-4 h-4" />
-                  <input 
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    className="pl-11 pr-4 py-3 bg-surface-container-low border border-outline-variant/30 rounded-xl text-xs outline-none w-56 focus:ring-2 focus:ring-primary-container" 
-                    placeholder="Search reports..." 
-                  />
+          {/* Reports Table / List */}
+          <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden flex flex-col min-h-[400px]">
+            <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {isCeo ? 'General Reports' : (isManager && managerTab === 'today' ? 'Available Reports for the Week' : 'Stored Reports')}
+                </h3>
+                <p className="text-xs text-slate-500">Showing {displayedReports.length} records</p>
+              </div>
+              <div className="w-full sm:w-auto">
+                <input 
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="w-full sm:w-64 px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs outline-none focus:border-slate-500 text-slate-900" 
+                  placeholder="Search reports by author or content..." 
+                />
               </div>
             </div>
 
             <div className="p-4 space-y-2 flex-1">
               {loading ? (
-                <div className="py-12 text-center text-sm text-secondary animate-pulse">Loading reports...</div>
+                <div className="py-12 text-center text-sm text-slate-500 animate-pulse">Loading reports...</div>
               ) : displayedReports.length === 0 ? (
-                <div className="py-12 text-center space-y-3">
-                    <FileText className="w-10 h-10 text-outline-variant mx-auto" />
-                    <p className="text-sm font-medium text-secondary">No reports found.</p>
+                <div className="py-12 text-center space-y-2">
+                  <p className="text-sm font-semibold text-slate-700">No reports found.</p>
+                  <p className="text-xs text-slate-400">There are no reports matching your active filters.</p>
                 </div>
               ) : (
                 displayedReports.map((report) => (
-                    <div key={report.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 hover:bg-surface-container-low/50 rounded-2xl transition-all group border border-transparent hover:border-outline-variant/20 gap-4">
-                      <div className="flex items-center gap-6">
-                          <div className={cn("size-14 rounded-2xl flex items-center justify-center transition-all shadow-sm", report.type === 'GENERAL' ? "bg-primary text-white" : "bg-surface-container text-primary-container group-hover:bg-primary-container group-hover:text-white")}>
-                            <FileText className="w-6 h-6" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="text-base font-bold text-primary leading-tight">{report.user?.fullName || 'Unknown'}</p>
-                              {report.type === 'GENERAL' && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">General</span>}
-                              {report.status === 'DRAFT' && <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">Draft</span>}
-                              {report.status === 'SUBMITTED' && <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">Submitted</span>}
-                            </div>
-                            <p className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mt-1.5">
-                              {new Date(report.date).toLocaleDateString()} • {new Date(report.date).toLocaleTimeString()}
-                            </p>
-                          </div>
+                  <div key={report.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-slate-50 rounded-lg transition-colors border border-slate-200 gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="size-10 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center font-bold text-xs">
+                        {(report.user?.fullName ?? '?').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                       </div>
-                      <div className="flex items-center gap-3">
-                          {report.status === 'DRAFT' && report.userId === user?.id && (
-                            <button onClick={() => handleEditDraft(report)} className="py-3 px-5 bg-orange-50 text-orange-600 rounded-xl hover:bg-orange-100 transition-all flex items-center gap-2 border border-orange-200">
-                              <Edit className="w-4 h-4" />
-                              <span className="text-[11px] font-bold uppercase tracking-widest">Edit Draft</span>
-                            </button>
-                          )}
-                          <button onClick={() => downloadDailyPdf(report)} className="py-3 px-5 bg-primary text-white rounded-xl hover:shadow-lg transition-all flex items-center gap-2">
-                            <Download className="w-4 h-4" />
-                            <span className="text-[11px] font-bold uppercase tracking-widest">Print / PDF</span>
-                          </button>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-slate-900">{report.user?.fullName || 'Unknown'}</p>
+                          {report.type === 'GENERAL' && <span className="bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">General</span>}
+                          {report.status === 'DRAFT' && <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Draft</span>}
+                          {report.status === 'SUBMITTED' && <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Submitted</span>}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {new Date(report.date).toLocaleDateString()} • {new Date(report.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
                       </div>
                     </div>
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      {report.status === 'DRAFT' && report.userId === user?.id && (
+                        <button 
+                          onClick={() => handleEditDraft(report)} 
+                          className="py-1.5 px-3 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors text-xs font-semibold border border-amber-200"
+                        >
+                          Edit Draft
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => downloadDailyPdf(report)} 
+                        className="py-1.5 px-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors text-xs font-semibold shadow-sm"
+                      >
+                        Print PDF
+                      </button>
+                    </div>
+                  </div>
                 ))
               )}
             </div>
           </div>
         </>
       ) : (
+        /* Create / Edit Report Form */
         <div className="space-y-6">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button 
               onClick={() => {
                 setIsCreatingReport(false);
                 setEditingId(null);
                 setDailyForm({
                   title: '', type: 'DAILY', category: 'General', impact: 'Low', details: '', recommendation: '',
-                  attachments: { transactions: false, expenses: false, foodAndMeal: false, subscriptions: false }
+                  attachments: { transactions: false, expenses: false, foodAndMeal: false, subscriptions: false, kyc: false, leaves: false, websites: false },
+                  attachmentDescriptions: { transactions: '', expenses: '', foodAndMeal: '', subscriptions: '', kyc: '', leaves: '', websites: '' }
                 });
               }}
-              className="w-10 h-10 flex items-center justify-center bg-white rounded-xl border border-outline-variant/30 text-secondary hover:text-primary hover:border-primary transition-all shadow-sm"
+              className="px-3 py-1.5 bg-white rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors text-xs font-semibold"
             >
-              <ArrowLeft className="w-5 h-5" />
+              ← Back
             </button>
             <div>
-              <h2 className="text-2xl font-black text-primary">{editingId ? 'Edit Draft Report' : 'Create New Report'}</h2>
-              <p className="text-sm text-secondary">Fill out the details for your shift or activity report.</p>
+              <h2 className="text-xl font-bold text-slate-900">{editingId ? 'Edit Draft Report' : 'Create New Report'}</h2>
+              <p className="text-xs text-slate-500">Fill out the details for your shift or operational report.</p>
             </div>
           </div>
 
-          <form onSubmit={(e) => e.preventDefault()} className="bg-white rounded-[2rem] border border-outline-variant/30 shadow-sm p-8 max-w-4xl space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
+          <form onSubmit={(e) => e.preventDefault()} className="bg-white rounded-lg border border-slate-200 shadow-sm p-6 max-w-4xl space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {isExecutiveManager && (
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-bold text-secondary mb-2 uppercase tracking-wider">Report Type *</label>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Report Type *</label>
                   <select 
                     value={dailyForm.type}
                     onChange={e => setDailyForm({...dailyForm, type: e.target.value})}
-                    className="w-full bg-primary/5 border border-primary/20 text-primary rounded-xl px-5 py-3.5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary-container transition-all"
+                    className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm font-semibold outline-none focus:border-slate-500 text-slate-900"
                   >
                     <option value="WEEKLY">Weekly Report (Internal)</option>
                     <option value="GENERAL">General Report (Submit to CEO)</option>
@@ -886,34 +922,31 @@ ${dailyForm.recommendation}`;
               )}
 
               <div>
-                <label className="block text-xs font-bold text-secondary mb-2 uppercase tracking-wider">Date *</label>
-                <div className="relative">
-                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
-                  <input 
-                    type="text" 
-                    disabled 
-                    value={new Date().toLocaleDateString()} 
-                    className="w-full bg-surface-container/50 border border-outline-variant/30 rounded-xl pl-11 pr-4 py-3.5 text-sm font-medium text-secondary cursor-not-allowed" 
-                  />
-                </div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Date *</label>
+                <input 
+                  type="text" 
+                  disabled 
+                  value={new Date().toLocaleDateString()} 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm font-medium text-slate-500 cursor-not-allowed" 
+                />
               </div>
               <div>
-                <label className="block text-xs font-bold text-secondary mb-2 uppercase tracking-wider">Report Title *</label>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Report Title *</label>
                 <input 
                   required
                   value={dailyForm.title}
                   onChange={e => setDailyForm({...dailyForm, title: e.target.value})}
-                  className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-5 py-3.5 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-container transition-all" 
+                  className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-slate-500 text-slate-900" 
                   placeholder="E.g., Weekly Summary Report" 
                 />
               </div>
               
               <div>
-                <label className="block text-xs font-bold text-secondary mb-2 uppercase tracking-wider">Category *</label>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Category *</label>
                 <select 
                   value={dailyForm.category}
                   onChange={e => setDailyForm({...dailyForm, category: e.target.value})}
-                  className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-5 py-3.5 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-container transition-all"
+                  className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-slate-500 text-slate-900"
                 >
                   <option value="General">General</option>
                   <option value="Outreach Event">Outreach Event</option>
@@ -924,11 +957,11 @@ ${dailyForm.recommendation}`;
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-secondary mb-2 uppercase tracking-wider">Impact Level *</label>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Impact Level *</label>
                 <select 
                   value={dailyForm.impact}
                   onChange={e => setDailyForm({...dailyForm, impact: e.target.value})}
-                  className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-5 py-3.5 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-container transition-all"
+                  className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-slate-500 text-slate-900"
                 >
                   <option value="Low">Low</option>
                   <option value="Medium">Medium</option>
@@ -939,51 +972,48 @@ ${dailyForm.recommendation}`;
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-secondary mb-2 uppercase tracking-wider">Details *</label>
+              <label className="block text-[11px] font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Details *</label>
               <textarea 
                 required 
-                rows={6} 
+                rows={5} 
                 value={dailyForm.details} 
                 onChange={e => setDailyForm({...dailyForm, details: e.target.value})} 
-                className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-5 py-3.5 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-container transition-all resize-none" 
+                className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-slate-500 resize-none text-slate-900" 
                 placeholder="What did your team work on this week?" 
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-secondary mb-2 uppercase tracking-wider">Recommendations / Next Steps</label>
+              <label className="block text-[11px] font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Recommendations / Next Steps</label>
               <textarea 
-                rows={4} 
+                rows={3} 
                 value={dailyForm.recommendation} 
                 onChange={e => setDailyForm({...dailyForm, recommendation: e.target.value})} 
-                className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-5 py-3.5 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-container transition-all resize-none" 
+                className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-slate-500 resize-none text-slate-900" 
                 placeholder="Any recommendations for next week or ongoing issues?" 
               />
             </div>
 
             {isExecutiveManager && (
-              <div className="pt-4 border-t border-outline-variant/20">
-                <label className="block text-xs font-bold text-secondary mb-4 uppercase tracking-wider">Attach Data Modules (Auto-generates charts & tables)</label>
+              <div className="pt-4 border-t border-slate-200">
+                <label className="block text-[11px] font-bold text-slate-600 mb-3 uppercase tracking-wider">Attach Data Modules (Auto-generates charts & tables)</label>
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {Object.keys(dailyForm.attachments).map(key => (
-                      <label key={key} className={cn("flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all", dailyForm.attachments[key as keyof typeof dailyForm.attachments] ? "bg-primary/5 border-primary" : "bg-white border-outline-variant/30 hover:border-primary/50")}>
-                        <div className={cn("w-5 h-5 rounded flex items-center justify-center transition-all", dailyForm.attachments[key as keyof typeof dailyForm.attachments] ? "bg-primary text-white" : "border border-outline-variant/50")}>
-                          {dailyForm.attachments[key as keyof typeof dailyForm.attachments] && <Check className="w-3.5 h-3.5" />}
-                        </div>
-                        <span className="text-sm font-bold text-primary capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                      <label key={key} className={cn("flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors text-xs font-semibold", dailyForm.attachments[key as keyof typeof dailyForm.attachments] ? "bg-slate-50 border-slate-900 text-slate-900" : "bg-white border-slate-200 text-slate-600 hover:border-slate-400")}>
                         <input 
                           type="checkbox" 
-                          className="hidden" 
                           checked={dailyForm.attachments[key as keyof typeof dailyForm.attachments]}
                           onChange={(e) => setDailyForm({...dailyForm, attachments: {...dailyForm.attachments, [key]: e.target.checked}})}
+                          className="rounded border-slate-300 text-slate-900 focus:ring-0" 
                         />
+                        <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
                       </label>
                     ))}
                   </div>
                   
                   {/* Custom Descriptions for selected attachments */}
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <AnimatePresence>
                       {Object.keys(dailyForm.attachments).filter(k => dailyForm.attachments[k as keyof typeof dailyForm.attachments]).map(key => (
                         <motion.div 
@@ -991,15 +1021,15 @@ ${dailyForm.recommendation}`;
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
                           key={`desc-${key}`} 
-                          className="bg-surface-container-low rounded-xl p-4 border border-outline-variant/30"
+                          className="bg-slate-50 rounded-lg p-3.5 border border-slate-200"
                         >
-                          <label className="block text-xs font-bold text-secondary mb-2 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1').trim()} Summary / Description (Optional)</label>
-                          <p className="text-[10px] text-secondary mb-3">If left blank, the system will automatically generate a detailed, smart insight based on the actual data.</p>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1 uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1').trim()} Summary / Description (Optional)</label>
+                          <p className="text-[10px] text-slate-500 mb-2">If left blank, the system will automatically generate a detailed insight based on the actual data.</p>
                           <textarea
                             rows={2}
                             value={(dailyForm.attachmentDescriptions as any)?.[key] || ''}
                             onChange={(e) => setDailyForm({...dailyForm, attachmentDescriptions: {...dailyForm.attachmentDescriptions, [key]: e.target.value}})}
-                            className="w-full bg-white border border-outline-variant/30 rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-primary-container transition-all resize-none"
+                            className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs font-medium outline-none focus:border-slate-500 resize-none text-slate-900"
                             placeholder={`Enter custom description for ${key}...`}
                           />
                         </motion.div>
@@ -1010,15 +1040,14 @@ ${dailyForm.recommendation}`;
               </div>
             )}
 
-            <div className={cn("flex items-center pt-4 border-t border-outline-variant/20", isExecutiveManager ? "justify-between" : "justify-end")}>
+            <div className={cn("flex items-center pt-4 border-t border-slate-200 gap-3", isExecutiveManager ? "justify-between" : "justify-end")}>
               {isExecutiveManager && (
                 <button 
                   disabled={isGenerating} 
                   onClick={(e) => handleSaveReport(e, 'DRAFT')}
                   type="button" 
-                  className="px-6 py-3 bg-white border border-outline-variant/30 text-secondary rounded-xl text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-surface-container-low transition-all disabled:opacity-50"
+                  className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-xs font-semibold uppercase tracking-wider hover:bg-slate-50 transition-colors disabled:opacity-50"
                 >
-                  <Save className="w-4 h-4" />
                   {isGenerating ? 'Saving...' : 'Save Draft'}
                 </button>
               )}
@@ -1027,9 +1056,8 @@ ${dailyForm.recommendation}`;
                 disabled={isGenerating} 
                 onClick={(e) => handleSaveReport(e, 'SUBMITTED')}
                 type="button" 
-                className="px-8 py-4 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transition-all disabled:opacity-50"
+                className="px-5 py-2.5 bg-slate-900 text-white rounded-lg text-xs font-semibold uppercase tracking-wider hover:bg-slate-800 transition-colors disabled:opacity-50 shadow-sm"
               >
-                <FileText className="w-4 h-4" />
                 {isGenerating ? 'Submitting...' : 'Review & Submit Report'}
               </button>
             </div>

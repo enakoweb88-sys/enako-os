@@ -122,76 +122,71 @@ export function CashCollectionsWidget() {
   }
 
   return (
-    <div className="bg-white border border-outline-variant/30 rounded-2xl p-6 shadow-sm space-y-6">
+    <div id="cash-collections" className="scroll-mt-6 bg-white border border-slate-200/90 rounded-lg p-5 shadow-2xs space-y-4 font-sans">
       {/* Widget Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
-            <Wallet className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="font-display text-lg font-bold text-primary">Live Field Cash Collections Stream</h3>
-            <p className="text-xs text-secondary font-medium">Real-time mobile field reports & notes submitted by collectors.</p>
-          </div>
+      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900">Live Field Cash Collections Stream</h3>
+          <p className="text-xs text-slate-500 font-medium">Real-time mobile field reports & notes submitted by collectors</p>
         </div>
 
         <Link
           to="/app/cash-collections"
-          className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 hover:underline"
+          className="text-xs text-[#001f5b] hover:underline font-semibold"
         >
-          View All Collections <ArrowRight className="w-4 h-4" />
+          View All
         </Link>
       </div>
 
       {/* Quick Summary Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/20">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 rounded-md bg-slate-50/70 border border-slate-100">
         <div>
-          <span className="text-[10px] font-bold text-secondary uppercase tracking-widest block">Today's Total</span>
-          <span className="text-lg font-bold font-mono text-emerald-600">{fmt(stats?.todayCollected)}</span>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Today's Total</span>
+          <span className="text-base font-bold text-emerald-700">{fmt(stats?.todayCollected)}</span>
         </div>
         <div>
-          <span className="text-[10px] font-bold text-secondary uppercase tracking-widest block">Pending Deposits</span>
-          <span className="text-lg font-bold font-mono text-amber-600">{fmt(stats?.pendingAmount)}</span>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Pending Deposits</span>
+          <span className="text-base font-bold text-amber-600">{fmt(stats?.pendingAmount)}</span>
         </div>
         <div className="col-span-2 sm:col-span-1">
-          <span className="text-[10px] font-bold text-secondary uppercase tracking-widest block">Total Outstanding</span>
-          <span className="text-lg font-bold font-mono text-primary">{fmt(stats?.totalOutstanding)}</span>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total Outstanding</span>
+          <span className="text-base font-bold text-slate-900">{fmt(stats?.totalOutstanding)}</span>
         </div>
       </div>
 
       {/* Collections Feed List */}
       {collections.length === 0 ? (
-        <p className="text-xs text-secondary text-center py-4 font-medium">No field collection reports submitted yet today.</p>
+        <p className="text-xs text-slate-400 text-center py-6 font-medium">No field collection reports submitted yet today.</p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {collections.map((col) => {
             const noteText = parseNoteText(col);
             return (
               <div
                 key={col.id}
-                className="p-4 rounded-2xl border border-outline-variant/20 hover:bg-surface-container-low/40 transition-all flex flex-col gap-2.5 bg-white shadow-2xs"
+                className="p-3.5 rounded-md border border-slate-100 hover:bg-slate-50/60 transition-all flex flex-col gap-2 bg-white"
               >
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-md bg-[#001f5b]/10 flex items-center justify-center text-xs font-bold text-[#001f5b] shrink-0">
                       {col.collector?.fullName?.slice(0, 2).toUpperCase() || 'CC'}
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-primary">{col.clientName}</p>
-                      <p className="text-[10px] text-secondary flex items-center gap-1 mt-0.5">
-                        <MapPin className="w-3 h-3 text-secondary" /> {col.location} • <span className="font-semibold text-primary/80">{col.collector?.fullName || 'Field Agent'}</span>
+                      <p className="text-xs font-bold text-slate-900">{col.clientName}</p>
+                      <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                        <MapPin className="w-3 h-3 text-slate-400" /> {col.location} • <span className="font-medium text-slate-700">{col.collector?.fullName || 'Field Agent'}</span>
                       </p>
                     </div>
                   </div>
 
                   <div className="text-right shrink-0">
-                    <p className="text-xs font-bold font-mono text-emerald-600">+{fmt(col.amountCollected)}</p>
+                    <p className="text-xs font-bold text-emerald-700">+{fmt(col.amountCollected)}</p>
                     <span
                       className={cn(
-                        "inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider mt-0.5 border",
-                        col.status === 'COMPLETE' && "bg-emerald-50 text-emerald-700 border-emerald-200",
-                        col.status === 'PENDING' && "bg-amber-50 text-amber-700 border-amber-200",
-                        col.status === 'CANCELLED' && "bg-red-50 text-red-700 border-red-200"
+                        "inline-block px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider mt-0.5 border",
+                        col.status === 'COMPLETE' && "bg-emerald-50 text-emerald-700 border-emerald-200/60",
+                        col.status === 'PENDING' && "bg-amber-50 text-amber-700 border-amber-200/60",
+                        col.status === 'CANCELLED' && "bg-rose-50 text-rose-700 border-rose-200/60"
                       )}
                     >
                       {col.status}
@@ -200,10 +195,10 @@ export function CashCollectionsWidget() {
                 </div>
 
                 {noteText && (
-                  <div className="px-3 py-2 rounded-xl bg-amber-50/80 border border-amber-200/60 text-xs text-amber-950 font-medium flex items-start gap-2">
+                  <div className="px-2.5 py-1.5 rounded-md bg-amber-50/60 border border-amber-200/50 text-[11px] text-amber-950 font-normal flex items-start gap-1.5">
                     <FileText className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
                     <div className="flex-1">
-                      <span className="text-[9px] font-bold text-amber-800 uppercase tracking-widest block">Written Note / Instructions:</span>
+                      <span className="text-[9px] font-bold text-amber-800 uppercase tracking-wider block">Note:</span>
                       <p className="leading-relaxed text-amber-900">{noteText}</p>
                     </div>
                   </div>

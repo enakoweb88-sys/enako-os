@@ -1,9 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import {
-  PenTool, Sparkles, Image, PlaySquare, FileText, Send, RefreshCw, CheckCircle2,
-  Share2, Video, DollarSign, BookOpen, Layers, Wand2, Upload, FileVideo, Trash2
-} from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
@@ -33,7 +28,6 @@ export default function CreatePostStudio() {
   const [caption, setCaption] = useState('');
   const [mediaFiles, setMediaFiles] = useState<{ url: string; type: 'image' | 'video'; name: string }[]>([]);
 
-  const [aiPrompt, setAiPrompt] = useState('');
   const [generatingAi, setGeneratingAi] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,22 +51,11 @@ export default function CreatePostStudio() {
       canvas.height = 1080;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        // Gradient Background
-        const grad = ctx.createLinearGradient(0, 0, 1080, 1080);
-        grad.addColorStop(0, '#1e1b4b');
-        grad.addColorStop(0.5, '#4338ca');
-        grad.addColorStop(1, '#0f172a');
-        ctx.fillStyle = grad;
+        ctx.fillStyle = '#0f172a';
         ctx.fillRect(0, 0, 1080, 1080);
 
-        // Decorative Glass Circle
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-        ctx.beginPath();
-        ctx.arc(900, 200, 300, 0, Math.PI * 2);
-        ctx.fill();
-
-        // ENAKO Badge Header
-        ctx.fillStyle = '#fbbf24';
+        // Header
+        ctx.fillStyle = '#94a3b8';
         ctx.font = 'bold 36px sans-serif';
         ctx.fillText('ENAKO CLOUD OS · OFFICIAL CAMPAIGN', 90, 120);
 
@@ -80,7 +63,6 @@ export default function CreatePostStudio() {
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 64px sans-serif';
         
-        // Wrap text
         const words = (topic || 'ENAKO Fintech Solutions').toUpperCase().split(' ');
         let line = '';
         let y = 240;
@@ -99,70 +81,74 @@ export default function CreatePostStudio() {
         // Subtext Callout
         ctx.fillStyle = '#cbd5e1';
         ctx.font = '36px sans-serif';
-        ctx.fillText('Instant MoMo, Savings, School Fees & Remittance', 90, y + 90);
+        ctx.fillText('Official Verified Digital Assets & Merchant Solutions', 90, y + 80);
 
-        // CTA Button Box
-        ctx.fillStyle = '#fbbf24';
-        ctx.roundRect ? ctx.roundRect(90, y + 160, 520, 100, 20) : ctx.fillRect(90, y + 160, 520, 100);
-        ctx.fill();
+        // Footer Call to action
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 44px sans-serif';
+        ctx.fillText('www.enako.app · Powered by ENAKO CLOUD', 90, 980);
 
-        ctx.fillStyle = '#1e1b4b';
-        ctx.font = 'bold 38px sans-serif';
-        ctx.fillText('DOWNLOAD ENAKO APP NOW 📲', 120, y + 225);
-      }
-
-      const generatedDataUrl = canvas.toDataURL('image/png');
-      setMediaFiles(prev => [...prev, { url: generatedDataUrl, type: 'image', name: `${topic} — Promo Flyer.png` }]);
-      if (!caption) {
-        setCaption(`🚀 ${topic}\n\nFast, secure, and automated financial services powered by ENAKO OS!\n\n📲 Download the app today on iOS & Android! #ENAKO #Fintech #Cameroon #MoMo`);
-      }
-      if (!title) {
-        setTitle(`${topic} — Promo Flyer`);
+        const dataUrl = canvas.toDataURL('image/png');
+        setMediaFiles(prev => [...prev, { url: dataUrl, type: 'image', name: `${topic.replace(/\s+/g, '_')}_Flyer.png` }]);
+        toast.success('Promotional flyer generated and added to media queue!');
       }
       setGeneratingAi(false);
-      toast.success('Custom Marketing Flyer generated successfully!');
     }, 600);
   };
 
-  // Upload Multiple Local Machine Files (Videos/Photos)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    files.forEach(file => {
-      const isVideo = file.type.startsWith('video/');
+    Array.from(files).forEach(file => {
+      const isVideo = file.type.startsWith('video');
       const reader = new FileReader();
       reader.onload = (event) => {
-        const dataUrl = event.target?.result as string;
-        setMediaFiles(prev => [...prev, { url: dataUrl, type: isVideo ? 'video' : 'image', name: file.name }]);
+        if (event.target?.result) {
+          setMediaFiles(prev => [
+            ...prev,
+            { url: event.target!.result as string, type: isVideo ? 'video' : 'image', name: file.name }
+          ]);
+        }
       };
       reader.readAsDataURL(file);
     });
-    toast.success(`${files.length} file${files.length > 1 ? 's' : ''} added to media library`);
-    // Reset input so same files can be re-selected
-    e.target.value = '';
+
+    toast.success(`${files.length} file(s) loaded into queue`);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const removeMedia = (index: number) => {
-    setMediaFiles(prev => prev.filter((_, i) => i !== index));
+    setMediaFiles(prev => prev.filter((_, idx) => idx !== index));
   };
 
   const handleSubmitPost = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (selectedPlatforms.length === 0) {
+      toast.error('Please select at least one target social channel');
+      return;
+    }
+    if (!title.trim()) {
+      toast.error('Please enter a headline / title');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const platformStr = selectedPlatforms.length === ALL_PLATFORMS.length ? 'All Channels' : selectedPlatforms.join(', ');
-      await api.createPost({
-        title: title || `${topic} (${postFormat})`,
-        platform: platformStr,
-        type: postFormat,
-        status: 'Pending',
-        author: 'Digital Marketer',
-        reach: 0,
-        engagement: 0,
-        date: new Date().toISOString()
-      });
-      toast.success(`Post published to ${platformStr}! Saved to PostgreSQL.`);
+      await Promise.all(
+        selectedPlatforms.map(platform =>
+          api.createPost({
+            title,
+            platform,
+            type: postFormat,
+            status: 'Pending',
+            author: 'Digital Marketer',
+            date: new Date().toISOString(),
+          })
+        )
+      );
+
+      toast.success(`Post successfully queued across ${selectedPlatforms.length} platform(s)!`);
       setTitle('');
       setCaption('');
       setMediaFiles([]);
@@ -174,30 +160,25 @@ export default function CreatePostStudio() {
   };
 
   return (
-    <div className="space-y-8 font-sans pb-20 max-w-6xl mx-auto">
-      
+    <div className="space-y-6 font-sans pb-20">
       {/* Header */}
-      <div className="flex justify-between items-center bg-white border border-outline-variant/30 rounded-2xl p-6 shadow-sm">
+      <div className="flex justify-between items-center bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
         <div>
-          <h1 className="font-display text-2xl font-bold text-primary flex items-center gap-2">
-            <PenTool className="w-6 h-6 text-primary" /> Social Content Creation & AI Studio
-          </h1>
-          <p className="text-xs text-secondary mt-1 uppercase tracking-widest font-bold">Generate promotional videos, graphics, captions, or upload local files from machine</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Social Content Creation & Production Studio</h1>
+          <p className="text-slate-500 text-sm mt-1">Generate promotional videos, graphics, captions, or upload local files</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Form: Topic & Configuration */}
-        <div className="lg:col-span-7 bg-white border border-outline-variant/30 rounded-3xl p-8 shadow-sm space-y-6">
-          <form onSubmit={handleSubmitPost} className="space-y-6">
-            
+        <div className="lg:col-span-7 bg-white border border-slate-200 rounded-lg p-6 shadow-sm space-y-5">
+          <form onSubmit={handleSubmitPost} className="space-y-5">
             {/* Topic Selection Grid */}
             <div>
-              <label className="block text-[11px] font-bold text-secondary mb-3 uppercase tracking-widest">
+              <label className="block text-[11px] font-bold text-slate-600 mb-2 uppercase tracking-wider">
                 1. Select Marketing Topic / Campaign Focus *
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {MARKETING_TOPICS.map(t => (
                   <button
                     key={t}
@@ -207,12 +188,12 @@ export default function CreatePostStudio() {
                       if (!title) setTitle(`${t} Campaign`);
                     }}
                     className={cn(
-                      "p-3 rounded-xl border text-xs font-bold text-left transition-all flex items-center justify-between",
-                      topic === t ? "bg-primary text-white border-primary shadow-sm" : "bg-surface-container-low text-secondary border-outline-variant/30 hover:border-primary/40"
+                      "p-2.5 rounded-lg border text-xs font-semibold text-left transition-colors flex items-center justify-between",
+                      topic === t ? "bg-slate-900 text-white border-slate-900 shadow-sm" : "bg-white text-slate-700 border-slate-200 hover:border-slate-400"
                     )}
                   >
                     <span className="truncate">{t}</span>
-                    {topic === t && <CheckCircle2 className="w-3.5 h-3.5 shrink-0 ml-1" />}
+                    {topic === t && <span className="text-[10px] font-bold ml-1">✓</span>}
                   </button>
                 ))}
               </div>
@@ -220,21 +201,21 @@ export default function CreatePostStudio() {
 
             {/* Platform Multi-Select Pill Toggles */}
             <div>
-              <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">
-                Target Social Channels * <span className="ml-2 text-primary font-black">{selectedPlatforms.length === ALL_PLATFORMS.length ? '— All Channels Selected' : selectedPlatforms.length > 0 ? `— ${selectedPlatforms.length} selected` : '— None selected'}</span>
+              <label className="block text-[11px] font-bold text-slate-600 mb-1.5 uppercase tracking-wider">
+                Target Social Channels * <span className="ml-2 text-slate-900 font-bold">{selectedPlatforms.length === ALL_PLATFORMS.length ? '— All Channels Selected' : selectedPlatforms.length > 0 ? `— ${selectedPlatforms.length} selected` : '— None selected'}</span>
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 <button
                   type="button"
                   onClick={() => togglePlatform('All')}
                   className={cn(
-                    "px-4 py-2 rounded-xl text-xs font-bold border transition-all",
+                    "px-3 py-1.5 rounded-md text-xs font-semibold border transition-colors",
                     selectedPlatforms.length === ALL_PLATFORMS.length
-                      ? "bg-primary text-white border-primary shadow-md"
-                      : "bg-surface-container-low text-secondary border-outline-variant/30 hover:border-primary/40"
+                      ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                      : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
                   )}
                 >
-                  🌐 All Channels
+                  All Channels
                 </button>
                 {ALL_PLATFORMS.map(p => (
                   <button
@@ -242,13 +223,13 @@ export default function CreatePostStudio() {
                     type="button"
                     onClick={() => togglePlatform(p)}
                     className={cn(
-                      "px-3 py-2 rounded-xl text-xs font-bold border transition-all",
+                      "px-3 py-1.5 rounded-md text-xs font-semibold border transition-colors",
                       selectedPlatforms.includes(p)
-                        ? "bg-primary text-white border-primary shadow-sm"
-                        : "bg-surface-container-low text-secondary border-outline-variant/30 hover:border-primary/40"
+                        ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                        : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
                     )}
                   >
-                    {p === 'Instagram' ? '📸' : p === 'TikTok' ? '🎵' : p === 'Facebook' ? '👥' : p === 'LinkedIn' ? '💼' : p === 'X' ? '𝕏' : '▶️'} {p}
+                    {p}
                   </button>
                 ))}
               </div>
@@ -256,8 +237,8 @@ export default function CreatePostStudio() {
 
             {/* Content Format */}
             <div>
-              <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Content Format *</label>
-              <select value={postFormat} onChange={e => setPostFormat(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm font-bold text-primary outline-none focus:ring-2 focus:ring-primary/20">
+              <label className="block text-[11px] font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Content Format *</label>
+              <select value={postFormat} onChange={e => setPostFormat(e.target.value)} className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm font-semibold text-slate-900 outline-none focus:border-slate-500">
                 <option value="Reel">Short Video / Reel / TikTok</option>
                 <option value="Post">Graphic Image Post</option>
                 <option value="Article">Educational Article</option>
@@ -267,7 +248,7 @@ export default function CreatePostStudio() {
 
             {/* Upload Multiple Machine Photos / Videos */}
             <div>
-              <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Upload Photos & Videos from Machine <span className="text-primary">(multiple allowed)</span></label>
+              <label className="block text-[11px] font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Upload Photos & Videos from Machine <span className="text-slate-500 font-normal">(multiple allowed)</span></label>
               <input 
                 ref={fileInputRef} 
                 type="file" 
@@ -278,30 +259,29 @@ export default function CreatePostStudio() {
               />
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-outline-variant/50 rounded-2xl p-5 flex flex-col items-center justify-center bg-surface-container-low/40 hover:bg-surface-container-low transition-all cursor-pointer group"
+                className="border-2 border-dashed border-slate-300 rounded-lg p-5 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100/60 transition-colors cursor-pointer text-center"
               >
-                <Upload className="w-7 h-7 text-primary group-hover:scale-110 transition-transform mb-1.5" />
-                <p className="text-xs font-bold text-primary uppercase tracking-wider">Click to browse & upload multiple Photos or Videos</p>
-                <p className="text-[10px] text-secondary mt-1">MP4, MOV, PNG, JPG, WEBP — select as many as you want</p>
+                <p className="text-xs font-semibold text-slate-800 uppercase tracking-wider">Click to browse & upload multiple Photos or Videos</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">MP4, MOV, PNG, JPG, WEBP — select as many as you want</p>
               </div>
 
               {/* Uploaded Files Grid */}
               {mediaFiles.length > 0 && (
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   {mediaFiles.map((m, i) => (
-                    <div key={i} className="relative rounded-xl overflow-hidden aspect-square border border-outline-variant/20 bg-black group">
+                    <div key={i} className="relative rounded-lg overflow-hidden aspect-square border border-slate-200 bg-slate-900 group">
                       {m.type === 'video' ? (
                         <video src={m.url} className="w-full h-full object-cover" />
                       ) : (
                         <img src={m.url} alt={m.name} className="w-full h-full object-cover" />
                       )}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button type="button" onClick={() => removeMedia(i)} className="p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600">
-                          <Trash2 className="w-3.5 h-3.5" />
+                      <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button type="button" onClick={() => removeMedia(i)} className="p-1 bg-rose-600 text-white rounded text-xs font-bold hover:bg-rose-700">
+                          Remove
                         </button>
                       </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-1">
-                        <p className="text-[8px] text-white truncate">{m.name}</p>
+                      <div className="absolute bottom-0 left-0 right-0 bg-slate-900/80 p-1">
+                        <p className="text-[9px] text-white truncate font-mono">{m.name}</p>
                       </div>
                     </div>
                   ))}
@@ -311,87 +291,74 @@ export default function CreatePostStudio() {
 
             {/* Post Title */}
             <div>
-              <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Post Title / Headline *</label>
+              <label className="block text-[11px] font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Post Title / Headline *</label>
               <input 
                 required 
                 value={title} 
                 onChange={e => setTitle(e.target.value)} 
-                className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm font-bold text-primary outline-none focus:ring-2 focus:ring-primary/20" 
+                className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm font-semibold text-slate-900 outline-none focus:border-slate-500" 
                 placeholder="e.g. Save on Akawo & Transfer Remittance Instantly" 
               />
             </div>
 
             {/* Caption Textarea */}
             <div>
-              <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Caption & Promotional Copy *</label>
+              <label className="block text-[11px] font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Caption & Promotional Copy *</label>
               <textarea 
                 required 
                 rows={4} 
                 value={caption} 
                 onChange={e => setCaption(e.target.value)} 
-                className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary/20 resize-none font-sans" 
+                className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:border-slate-500 resize-none text-slate-900" 
                 placeholder="Write compelling captions, hashtags, and call to action..." 
               />
             </div>
 
-            <button type="submit" disabled={submitting} className="w-full py-4 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:shadow-lg transition-all disabled:opacity-60">
+            <button type="submit" disabled={submitting} className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors disabled:opacity-60 shadow-sm">
               {submitting ? 'Publishing...' : 'Save & Publish Post'}
             </button>
           </form>
         </div>
 
-        {/* Right Panel: AI Generator Studio & Media Preview */}
+        {/* Right Panel: Studio Generator & Media Preview */}
         <div className="lg:col-span-5 space-y-6">
-          
-          {/* Generator Controls */}
-          <div className="bg-gradient-to-br from-purple-900 via-primary to-slate-900 text-white rounded-3xl p-6 shadow-lg space-y-4">
-            <div className="flex items-center gap-2 text-amber-300">
-              <Wand2 className="w-5 h-5" />
-              <h3 className="font-display text-lg font-bold">AI Studio & Graphic Flyer Generator</h3>
-            </div>
-            <p className="text-xs text-purple-200 leading-relaxed">
-              Generate custom campaign flyers or promotional reels instantly for <span className="font-bold text-white">{topic}</span>.
+          <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm space-y-3">
+            <h3 className="text-base font-bold text-slate-900">Campaign Graphic Generator</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Generate custom campaign flyers or promotional graphics instantly for <strong className="text-slate-800">{topic}</strong>.
             </p>
 
             <button 
               type="button" 
               onClick={handleGenerateFlyer} 
               disabled={generatingAi}
-              className="w-full py-3.5 bg-amber-400 text-primary font-bold rounded-xl text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-amber-300 transition-all disabled:opacity-50 shadow-md"
+              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg text-xs uppercase tracking-wider transition-colors disabled:opacity-50 shadow-sm"
             >
-              {generatingAi ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" /> Generating Flyer...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" /> Generate Marketing Flyer / Reel Graphic
-                </>
-              )}
+              {generatingAi ? 'Generating Graphic...' : 'Generate Marketing Graphic'}
             </button>
           </div>
 
-          {/* Media Preview Box (Upload or AI Generated) */}
+          {/* Media Preview Box */}
           {mediaFiles.length > 0 ? (
-            <div className="bg-white border border-outline-variant/30 rounded-3xl p-6 shadow-sm space-y-4">
+            <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold text-secondary uppercase tracking-widest">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   {mediaFiles.length} Media File{mediaFiles.length > 1 ? 's' : ''} Ready
                 </span>
-                <button type="button" onClick={() => setMediaFiles([])} className="p-1 text-red-500 hover:bg-red-50 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1" title="Clear All">
-                  <Trash2 className="w-3.5 h-3.5" /> Clear All
+                <button type="button" onClick={() => setMediaFiles([])} className="text-xs font-semibold text-rose-600 hover:underline">
+                  Clear All
                 </button>
               </div>
               <div className={cn("grid gap-2", mediaFiles.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
                 {mediaFiles.slice(0, 4).map((m, i) => (
-                  <div key={i} className="relative rounded-2xl overflow-hidden aspect-square border border-outline-variant/20 bg-black group">
+                  <div key={i} className="relative rounded-lg overflow-hidden aspect-square border border-slate-200 bg-slate-900 group">
                     {m.type === 'video' ? (
                       <video src={m.url} controls={mediaFiles.length === 1} className="w-full h-full object-cover" />
                     ) : (
                       <img src={m.url} alt={m.name} className="w-full h-full object-cover" />
                     )}
                     {mediaFiles.length > 4 && i === 3 && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                      <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center">
                         <span className="text-white font-bold text-lg">+{mediaFiles.length - 4}</span>
                       </div>
                     )}
@@ -400,14 +367,12 @@ export default function CreatePostStudio() {
               </div>
             </div>
           ) : (
-            <div className="p-8 border border-dashed border-outline-variant/40 rounded-3xl text-center space-y-2 bg-white/50">
-              <Image className="w-10 h-10 text-secondary/40 mx-auto" />
-              <p className="text-xs font-bold text-secondary uppercase tracking-wider">No Media Attached Yet</p>
-              <p className="text-[10px] text-secondary">Click 'Generate Marketing Flyer' above or upload photos/videos from your machine.</p>
+            <div className="p-8 border border-dashed border-slate-300 rounded-lg text-center space-y-1.5 bg-white">
+              <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">No Media Attached Yet</p>
+              <p className="text-[11px] text-slate-400">Click 'Generate Marketing Graphic' above or upload photos/videos from your machine.</p>
             </div>
           )}
         </div>
-
       </div>
     </div>
   );

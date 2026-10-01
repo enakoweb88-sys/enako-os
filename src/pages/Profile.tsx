@@ -1,27 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  User, 
-  Mail, 
-  Shield, 
-  Clock, 
-  MapPin, 
-  Briefcase, 
-  Globe, 
-  CheckCircle2, 
-  Award, 
-  BarChart3,
-  MessageSquare,
-  Settings as SettingsIcon,
-  LogOut,
-  UserCheck,
-  Zap,
-  Target,
-  X,
-  Lock,
-  PauseCircle
-} from 'lucide-react';
-import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
@@ -83,8 +61,6 @@ export default function Profile() {
     navigate('/select-role');
   };
 
-
-
   const getRoleSpecificData = () => {
     const completion = stats ? `${stats.taskCompletion || 0}%` : '0%';
     const goals = stats ? `${stats.completedGoals || 0}/${stats.totalGoals || 0}` : '0/0';
@@ -96,226 +72,318 @@ export default function Profile() {
     return {
       title: user?.title || defaultTitle,
       stats: [
-        { label: 'Task completion', value: completion, icon: CheckCircle2, color: 'text-primary' },
-        { label: 'System Uptime', value: uptime, icon: Zap, color: 'text-secondary' },
-        { label: 'Goals Reached', value: goals, icon: Target, color: 'text-tertiary' },
+        { label: 'Task completion', value: completion },
+        { label: 'System Uptime', value: uptime },
+        { label: 'Goals Reached', value: goals },
       ],
       badges: badges.length ? badges : ['Verified Member'],
-      bio: `Professional profile for ${userName}, serving as ${user?.title || defaultTitle} within the organization.`
+      bio: `Professional profile for ${userName}, serving as ${user?.title || defaultTitle} within the ${user?.department || 'Operations'} organization.`
     };
   };
 
   const data = getRoleSpecificData();
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 font-sans">
-      {/* Hero Profile Header */}
-      <div className="relative rounded-[2.5rem] overflow-hidden bg-white border border-outline-variant/30 shadow-sm">
-        <div className="h-48 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 relative">
-          <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #000 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
+    <div className="space-y-6 font-sans pb-20">
+      {/* Top Header & Breadcrumb (No Icons) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            <span>Human Resources</span>
+            <span>/</span>
+            <span className="text-[#001f5b] font-bold">Profile</span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Executive & Operative Profile
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Personal credentials, security clearances, and workspace activity.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button 
+            onClick={() => { 
+              setEditName(userName); 
+              setEditPhone(user?.phone || ''); 
+              setEditTitle(user?.title || ''); 
+              setEditAddress(user?.address || '');
+              setEditPersonalEmail(user?.personalEmail || '');
+              setEditEmergencyContact(user?.emergencyContact || '');
+              setEditDateOfBirth(user?.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : '');
+              setShowEditProfile(true); 
+            }}
+            className="px-3.5 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+          >
+            Edit Profile
+          </button>
+          <button 
+            onClick={() => { setCurrentPassword(''); setNewPassword(''); setShowChangePassword(true); }}
+            className="px-3.5 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200/90 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+          >
+            Change Password
+          </button>
+          <button 
+            onClick={handleLogout}
+            className="px-3.5 py-1.5 text-xs font-bold text-white bg-rose-600 rounded-lg hover:bg-rose-700 transition-colors shadow-2xs cursor-pointer"
+          >
+            Deauthorize Session
+          </button>
+        </div>
+      </div>
+
+      {/* Hero Profile Banner Card (No Icons) */}
+      <div className="relative rounded-lg overflow-hidden bg-white border border-slate-200/90 shadow-2xs">
+        <div className="h-28 sm:h-32 bg-gradient-to-r from-[#001f5b] via-[#002d7a] to-[#001744] relative flex items-center justify-end px-6">
+          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
+            ENAKO CLOUD SYSTEMS • AUTHORIZED ACCESS
+          </span>
         </div>
         
-        <div className="px-12 pb-12 -mt-16 relative">
-          <div className="flex flex-col md:flex-row items-end gap-8">
-            <div className="relative group size-32 rounded-[2rem] bg-primary border-8 border-white shadow-2xl flex items-center justify-center text-white text-5xl font-black overflow-hidden cursor-pointer" onClick={() => document.getElementById('avatar-upload')?.click()}>
-              {user?.avatarUrl ? (
-                <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                <span>{userName.charAt(0)}</span>
-              )}
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <span className="text-[10px] uppercase tracking-wider font-bold">Upload</span>
-              </div>
-              <input 
-                type="file" 
-                id="avatar-upload" 
-                className="hidden" 
-                accept="image/*"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  if (file.size > 2 * 1024 * 1024) return toast.error('Image must be under 2MB');
-                  
-                  const reader = new FileReader();
-                  reader.onload = async (ev) => {
-                    const base64 = ev.target?.result as string;
-                    try {
-                      const apiModule = await import('../lib/api');
-                      const updatedUser = await apiModule.api.updateMe({ avatarUrl: base64 });
-                      
-                      const storedStr = sessionStorage.getItem('enako_user');
-                      if (storedStr) {
-                        const parsed = JSON.parse(storedStr);
-                        sessionStorage.setItem('enako_user', JSON.stringify({ ...parsed, ...updatedUser }));
+        <div className="px-6 sm:px-8 pb-6 -mt-12 sm:-mt-14 relative">
+          <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
+            <div className="flex items-end gap-5">
+              <div 
+                className="relative group size-24 sm:size-28 rounded-lg bg-slate-100 border-4 border-white shadow-md flex items-center justify-center text-slate-800 text-3xl font-black overflow-hidden cursor-pointer shrink-0" 
+                onClick={() => document.getElementById('avatar-upload')?.click()}
+              >
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span>{userName.charAt(0)}</span>
+                )}
+                <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white">
+                  <span className="text-[9px] uppercase tracking-wider font-bold">Change</span>
+                </div>
+                <input 
+                  type="file" 
+                  id="avatar-upload" 
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 2 * 1024 * 1024) return toast.error('Image must be under 2MB');
+                    
+                    const reader = new FileReader();
+                    reader.onload = async (ev) => {
+                      const base64 = ev.target?.result as string;
+                      try {
+                        const apiModule = await import('../lib/api');
+                        const updatedUser = await apiModule.api.updateMe({ avatarUrl: base64 });
+                        
+                        const storedStr = sessionStorage.getItem('enako_user');
+                        if (storedStr) {
+                          const parsed = JSON.parse(storedStr);
+                          sessionStorage.setItem('enako_user', JSON.stringify({ ...parsed, ...updatedUser }));
+                        }
+
+                        toast.success('Profile picture updated!');
+                        setTimeout(() => window.location.reload(), 1500);
+                      } catch (err: any) {
+                        toast.error(err.message || 'Upload failed');
                       }
-
-                      toast.success('Profile picture updated!');
-                      setTimeout(() => window.location.reload(), 1500);
-                    } catch (err: any) {
-                      toast.error(err.message || 'Upload failed');
-                    }
-                  };
-                  reader.readAsDataURL(file);
-                }}
-              />
-            </div>
-            
-            <div className="flex-1 pb-4">
-               <div className="flex items-center gap-3">
-                  <h1 className="text-4xl font-display font-bold text-primary tracking-tight">{userName}</h1>
-                  <UserCheck className="w-6 h-6 text-green-500" />
-               </div>
-               <div className="flex items-center gap-4 mt-2 text-secondary">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.2em]">{data.title}</span>
-                  <span className="size-1 rounded-full bg-outline-variant"></span>
-                  <span className="text-[11px] font-bold uppercase tracking-[0.2em] flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5" />
-                    {user?.address || 'Headquarters'}
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                />
+              </div>
+              
+              <div className="pb-1">
+                <div className="flex items-center gap-2.5">
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">{userName}</h2>
+                  <span className="px-2.5 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold uppercase tracking-wider rounded-md">
+                    Verified
                   </span>
-               </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-slate-500">
+                  <span className="font-semibold text-slate-700">{data.title}</span>
+                  <span className="size-1 rounded-full bg-slate-300"></span>
+                  <span>{user?.department || 'Operations'} Department</span>
+                  <span className="size-1 rounded-full bg-slate-300"></span>
+                  <span>{user?.address || 'Headquarters • Yaoundé'}</span>
+                </div>
+              </div>
             </div>
 
-            <div className="flex gap-3 mb-4">
-               <button onClick={() => navigate('/app/settings')} className="px-6 py-3 border border-outline-variant/30 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-surface-container transition-all flex items-center gap-2">
-                  <SettingsIcon className="w-4 h-4" />
-                  Edit OS Preferences
-               </button>
-               <button onClick={handleLogout} className="px-6 py-3 bg-error text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:opacity-90 transition-all flex items-center gap-2">
-                  <LogOut className="w-4 h-4" />
-                  Deauthorize Session
-               </button>
+            <div className="flex gap-2 self-stretch md:self-auto">
+              <button 
+                onClick={() => navigate('/app/settings')} 
+                className="flex-1 md:flex-initial px-4 py-2 border border-slate-200/90 rounded-lg bg-white text-slate-700 hover:bg-slate-50 text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
+              >
+                OS Preferences
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Stats/Bio */}
-        <div className="lg:col-span-8 space-y-8">
-          <section className="bg-white border border-outline-variant/30 p-10 rounded-[2.5rem] shadow-sm">
-            <h3 className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-8">Professional Dossier</h3>
-            <p className="text-lg text-primary leading-relaxed font-medium">
-              {data.bio}
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
-              {data.stats.map((stat, i) => (
-                <div key={i} className="p-6 bg-surface-container-low/50 border border-outline-variant/10 rounded-3xl">
-                  <stat.icon className={cn("w-5 h-5 mb-4", stat.color)} />
-                  <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">{stat.label}</p>
-                  <p className="text-2xl font-mono font-bold text-primary mt-1">{stat.value}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="bg-white border border-outline-variant/30 p-10 rounded-[2.5rem] shadow-sm">
-             <div className="flex justify-between items-center mb-8">
-                <h3 className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Contact & Identity</h3>
-                <div className="flex gap-4">
-                  <button onClick={() => { 
-                    setEditName(userName); 
-                    setEditPhone(user?.phone || ''); 
-                    setEditTitle(user?.title || ''); 
-                    setEditAddress(user?.address || '');
-                    setEditPersonalEmail(user?.personalEmail || '');
-                    setEditEmergencyContact(user?.emergencyContact || '');
-                    setEditDateOfBirth(user?.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : '');
-                    setShowEditProfile(true); 
-                  }} className="text-[10px] font-bold text-primary hover:underline uppercase tracking-widest">Edit Profile</button>
-                  <button onClick={() => { setCurrentPassword(''); setNewPassword(''); setShowChangePassword(true); }} className="text-[10px] font-bold text-primary hover:underline uppercase tracking-widest">Change Password</button>
-                </div>
-             </div>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="size-10 rounded-xl bg-surface-container flex items-center justify-center">
-                      <Mail className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-bold text-secondary uppercase tracking-widest">Corporate Email</p>
-                      <p className="text-sm font-bold text-primary">{userEmail}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="size-10 rounded-xl bg-surface-container flex items-center justify-center">
-                      <Globe className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-bold text-secondary uppercase tracking-widest">Languages</p>
-                      <p className="text-sm font-bold text-primary">English, French</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="size-10 rounded-xl bg-surface-container flex items-center justify-center">
-                      <Briefcase className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-bold text-secondary uppercase tracking-widest">Department</p>
-                      <p className="text-sm font-bold text-primary">{user?.department || (role === 'ceo' ? 'Executive Board' : 'General Operations')}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="size-10 rounded-xl bg-surface-container flex items-center justify-center">
-                      <Zap className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-bold text-secondary uppercase tracking-widest">System Access</p>
-                      <p className="text-sm font-bold text-primary">Level {role === 'ceo' ? '1' : role.includes('manager') ? '2' : '3'} Authorization</p>
-                    </div>
-                  </div>
-                </div>
-             </div>
-          </section>
+      {/* ── TOP METRIC CARDS WITH COLORED BOTTOM ACCENT (Matching Main Dashboard, No Icons) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Red Accent */}
+        <div className="bg-white border border-slate-200/90 border-b-[3px] border-b-rose-500 rounded-lg p-4 shadow-2xs">
+          <p className="text-[11px] font-bold text-slate-600 tracking-wider uppercase">TASK COMPLETION</p>
+          <p className="text-2xl font-bold text-slate-900 leading-tight mt-1">{data.stats[0].value}</p>
         </div>
 
-        {/* Right Sidebar: Achievements/Timeline */}
-        <div className="lg:col-span-4 space-y-8">
-          <section className="bg-white border border-outline-variant/30 p-10 rounded-[2.5rem] shadow-sm">
-            <h3 className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em] mb-8">Node Achievements</h3>
-            <div className="space-y-4">
-              {data.badges.map((badge, i) => (
-                <div key={i} className="flex items-center gap-4 p-4 bg-primary/5 border border-primary/10 rounded-2xl group hover:bg-primary/10 transition-all">
-                  <div className="size-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                    <Award className="w-5 h-5" />
-                  </div>
-                  <span className="text-[11px] font-black text-primary uppercase tracking-wider">{badge}</span>
-                </div>
-              ))}
-            </div>
-            <button onClick={() => setShowCertModal(true)} className="w-full mt-8 py-4 border border-outline-variant/20 rounded-2xl text-[10px] font-bold text-secondary uppercase tracking-widest hover:border-primary/40 hover:text-primary transition-all">
-              View All Certifications
-            </button>
-          </section>
+        {/* Card 2: Green Accent */}
+        <div className="bg-white border border-slate-200/90 border-b-[3px] border-b-emerald-500 rounded-lg p-4 shadow-2xs">
+          <p className="text-[11px] font-bold text-slate-600 tracking-wider uppercase">SYSTEM UPTIME</p>
+          <p className="text-2xl font-bold text-slate-900 leading-tight mt-1">{data.stats[1].value}</p>
+        </div>
 
-          <section className="bg-primary text-white p-10 rounded-[2.5rem] shadow-xl relative overflow-hidden">
-             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
-             <h3 className="text-[10px] font-bold text-primary-fixed/60 uppercase tracking-[0.2em] mb-6">Current Work Stream</h3>
-              <div className="space-y-6">
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-primary-fixed/80">Active Task</p>
-                  <p className="text-xl font-bold mt-1">{stats?.activeTask?.title || 'General Operations'}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-primary-fixed/80">Time Logged</p>
-                  <p className="text-lg font-mono font-bold mt-1">
-                    {activeTimer}
-                  </p>
-                </div>
-              </div>
-          </section>
+        {/* Card 3: Oxford Navy #001f5b Accent */}
+        <div className="bg-white border border-slate-200/90 border-b-[3px] border-b-[#001f5b] rounded-lg p-4 shadow-2xs">
+          <p className="text-[11px] font-bold text-slate-600 tracking-wider uppercase">GOALS REACHED</p>
+          <p className="text-2xl font-bold text-slate-900 leading-tight mt-1">{data.stats[2].value}</p>
+        </div>
+
+        {/* Card 4: Amber Accent */}
+        <div className="bg-white border border-slate-200/90 border-b-[3px] border-b-amber-500 rounded-lg p-4 shadow-2xs">
+          <p className="text-[11px] font-bold text-slate-600 tracking-wider uppercase">TIME LOGGED</p>
+          <p className="text-2xl font-mono font-bold text-slate-900 leading-tight mt-1">{activeTimer}</p>
         </div>
       </div>
 
+      {/* Main Grid: Details & Achievements (No Icons) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Dossier & Identity */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Dossier */}
+          <div className="bg-white border border-slate-200/90 p-6 rounded-lg shadow-2xs">
+            <div className="mb-3 pb-3 border-b border-slate-100">
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                Professional Dossier
+              </h3>
+            </div>
+            <p className="text-sm text-slate-700 leading-relaxed font-normal">
+              {data.bio}
+            </p>
+          </div>
+
+          {/* Contact Particulars */}
+          <div className="bg-white border border-slate-200/90 p-6 rounded-lg shadow-2xs">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  Contact Particulars & Identity
+                </h3>
+              </div>
+              <button 
+                onClick={() => { 
+                  setEditName(userName); 
+                  setEditPhone(user?.phone || ''); 
+                  setEditTitle(user?.title || ''); 
+                  setEditAddress(user?.address || '');
+                  setEditPersonalEmail(user?.personalEmail || '');
+                  setEditEmergencyContact(user?.emergencyContact || '');
+                  setEditDateOfBirth(user?.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : '');
+                  setShowEditProfile(true); 
+                }} 
+                className="text-xs font-bold text-[#001f5b] hover:underline cursor-pointer"
+              >
+                Edit Details
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="p-3.5 bg-slate-50/70 border border-slate-200/70 rounded-lg">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Corporate Email</p>
+                <p className="text-sm font-semibold text-slate-900 mt-1">{userEmail || '—'}</p>
+              </div>
+
+              <div className="p-3.5 bg-slate-50/70 border border-slate-200/70 rounded-lg">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Department Assignment</p>
+                <p className="text-sm font-semibold text-slate-900 mt-1">{user?.department || (role === 'ceo' ? 'Executive Board' : 'General Operations')}</p>
+              </div>
+
+              <div className="p-3.5 bg-slate-50/70 border border-slate-200/70 rounded-lg">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Phone Contact</p>
+                <p className="text-sm font-semibold text-slate-900 mt-1">{user?.phone || '—'}</p>
+              </div>
+
+              <div className="p-3.5 bg-slate-50/70 border border-slate-200/70 rounded-lg">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">System Access Level</p>
+                <p className="text-sm font-semibold text-slate-900 mt-1">
+                  Level {role === 'ceo' ? '1 (Executive Direct)' : role.includes('manager') ? '2 (Department Oversight)' : '3 (Operative)'} Authorization
+                </p>
+              </div>
+
+              <div className="p-3.5 bg-slate-50/70 border border-slate-200/70 rounded-lg">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Personal Email</p>
+                <p className="text-sm font-semibold text-slate-900 mt-1">{user?.personalEmail || '—'}</p>
+              </div>
+
+              <div className="p-3.5 bg-slate-50/70 border border-slate-200/70 rounded-lg">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Emergency Contact</p>
+                <p className="text-sm font-semibold text-slate-900 mt-1">{user?.emergencyContact || '—'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Achievements & Active Work Stream */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Achievements */}
+          <div className="bg-white border border-slate-200/90 p-6 rounded-lg shadow-2xs">
+            <div className="mb-4 pb-3 border-b border-slate-100">
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                Node Achievements
+              </h3>
+            </div>
+            <div className="space-y-2.5">
+              {data.badges.map((badge, i) => (
+                <div key={i} className="flex items-center justify-between p-3 bg-slate-50/70 border border-slate-200/70 rounded-lg">
+                  <span className="text-xs font-semibold text-slate-800">{badge}</span>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                    Verified
+                  </span>
+                </div>
+              ))}
+            </div>
+            <button 
+              onClick={() => setShowCertModal(true)} 
+              className="w-full mt-4 py-2 border border-slate-200/90 rounded-lg bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
+            >
+              View All Certifications
+            </button>
+          </div>
+
+          {/* Current Work Stream */}
+          <div className="bg-white border border-slate-200/90 p-6 rounded-lg shadow-2xs">
+            <div className="mb-4 pb-3 border-b border-slate-100">
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                Current Work Stream
+              </h3>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Active Task Deliverable</p>
+                <p className="text-base font-bold mt-1 text-slate-900">{stats?.activeTask?.title || 'General Operations'}</p>
+              </div>
+              <div className="pt-3 border-t border-slate-100">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Continuous Time Logged</p>
+                <p className="text-lg font-mono font-bold mt-1 text-[#001f5b]">
+                  {activeTimer}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Edit Profile & Password Modals (No Icons) */}
       <AnimatePresence>
         {showEditProfile && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowEditProfile(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 z-10">
-              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
-                <h3 className="text-lg font-bold text-primary flex items-center gap-2"><User className="w-5 h-5 text-secondary" /> Edit Profile</h3>
-                <button onClick={() => setShowEditProfile(false)}><X className="w-5 h-5 text-secondary" /></button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowEditProfile(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs" />
+            <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="relative w-full max-w-lg bg-white rounded-lg shadow-xl overflow-hidden border border-slate-200 z-10 text-slate-900">
+              <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Edit Profile Particulars</h3>
+                  <p className="text-xs text-slate-500">Update personal and contact information.</p>
+                </div>
+                <button onClick={() => setShowEditProfile(false)} className="text-slate-400 hover:text-slate-700 text-xs font-bold cursor-pointer">Close</button>
               </div>
               <form onSubmit={async (e) => {
                 e.preventDefault();
@@ -342,40 +410,45 @@ export default function Profile() {
                 } finally {
                   setUpdatingProfile(false);
                 }
-              }} className="p-6 space-y-4">
+              }} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Full Name</label>
-                    <input required value={editName} onChange={e => setEditName(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                  <div className="col-span-2">
+                    <label className="block text-[10px] font-bold text-slate-600 mb-1 uppercase tracking-wider">Full Name *</label>
+                    <input required value={editName} onChange={e => setEditName(e.target.value)} className="w-full bg-slate-50/70 border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b]" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Phone Number</label>
-                    <input value={editPhone} onChange={e => setEditPhone(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                    <label className="block text-[10px] font-bold text-slate-600 mb-1 uppercase tracking-wider">Phone Number</label>
+                    <input value={editPhone} onChange={e => setEditPhone(e.target.value)} className="w-full bg-slate-50/70 border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b]" placeholder="+237 6XX XXX XXX" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Title</label>
-                    <input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                    <label className="block text-[10px] font-bold text-slate-600 mb-1 uppercase tracking-wider">Title / Position</label>
+                    <input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="w-full bg-slate-50/70 border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b]" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Date of Birth</label>
-                    <input type="date" value={editDateOfBirth} onChange={e => setEditDateOfBirth(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                    <label className="block text-[10px] font-bold text-slate-600 mb-1 uppercase tracking-wider">Date of Birth</label>
+                    <input type="date" value={editDateOfBirth} onChange={e => setEditDateOfBirth(e.target.value)} className="w-full bg-slate-50/70 border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b]" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Personal Email</label>
-                    <input type="email" value={editPersonalEmail} onChange={e => setEditPersonalEmail(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Emergency Contact</label>
-                    <input value={editEmergencyContact} onChange={e => setEditEmergencyContact(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                    <label className="block text-[10px] font-bold text-slate-600 mb-1 uppercase tracking-wider">Personal Email</label>
+                    <input type="email" value={editPersonalEmail} onChange={e => setEditPersonalEmail(e.target.value)} className="w-full bg-slate-50/70 border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b]" />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Address</label>
-                    <input value={editAddress} onChange={e => setEditAddress(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                    <label className="block text-[10px] font-bold text-slate-600 mb-1 uppercase tracking-wider">Emergency Contact</label>
+                    <input value={editEmergencyContact} onChange={e => setEditEmergencyContact(e.target.value)} className="w-full bg-slate-50/70 border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b]" placeholder="Name & contact phone number" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-[10px] font-bold text-slate-600 mb-1 uppercase tracking-wider">Home Address</label>
+                    <input value={editAddress} onChange={e => setEditAddress(e.target.value)} className="w-full bg-slate-50/70 border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b]" />
                   </div>
                 </div>
-                <button type="submit" disabled={updatingProfile} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 disabled:opacity-50">
-                  {updatingProfile ? 'Saving...' : 'Save Changes'}
-                </button>
+                <div className="flex gap-2 pt-3 border-t border-slate-100">
+                  <button type="button" onClick={() => setShowEditProfile(false)} className="flex-1 py-2.5 border border-slate-200/90 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={updatingProfile} className="flex-1 py-2.5 bg-[#001f5b] hover:bg-[#001744] text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50">
+                    {updatingProfile ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
               </form>
             </motion.div>
           </div>
@@ -383,11 +456,14 @@ export default function Profile() {
 
         {showChangePassword && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowChangePassword(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 z-10">
-              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
-                <h3 className="text-lg font-bold text-primary flex items-center gap-2"><Lock className="w-5 h-5 text-secondary" /> Change Password</h3>
-                <button onClick={() => setShowChangePassword(false)}><X className="w-5 h-5 text-secondary" /></button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowChangePassword(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs" />
+            <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="relative w-full max-w-md bg-white rounded-lg shadow-xl overflow-hidden border border-slate-200 z-10 text-slate-900">
+              <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Change Password</h3>
+                  <p className="text-xs text-slate-500">Update your account authentication credentials.</p>
+                </div>
+                <button onClick={() => setShowChangePassword(false)} className="text-slate-400 hover:text-slate-700 text-xs font-bold cursor-pointer">Close</button>
               </div>
               <form onSubmit={async (e) => {
                 e.preventDefault();
@@ -403,16 +479,21 @@ export default function Profile() {
                 }
               }} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Current Password</label>
-                  <input required type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                  <label className="block text-[10px] font-bold text-slate-600 mb-1 uppercase tracking-wider">Current Password *</label>
+                  <input required type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full bg-slate-50/70 border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b]" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">New Password</label>
-                  <input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" minLength={8} />
+                  <label className="block text-[10px] font-bold text-slate-600 mb-1 uppercase tracking-wider">New Password (min 8 chars) *</label>
+                  <input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-slate-50/70 border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b]" minLength={8} />
                 </div>
-                <button type="submit" disabled={updatingPassword} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 disabled:opacity-50">
-                  {updatingPassword ? 'Updating...' : 'Update Password'}
-                </button>
+                <div className="flex gap-2 pt-3 border-t border-slate-100">
+                  <button type="button" onClick={() => setShowChangePassword(false)} className="flex-1 py-2.5 border border-slate-200/90 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={updatingPassword} className="flex-1 py-2.5 bg-[#001f5b] hover:bg-[#001744] text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50">
+                    {updatingPassword ? 'Updating...' : 'Update Password'}
+                  </button>
+                </div>
               </form>
             </motion.div>
           </div>
@@ -420,33 +501,32 @@ export default function Profile() {
 
         {showCertModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCertModal(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 flex flex-col max-h-[80vh]">
-              <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
-                <h3 className="text-lg font-bold text-primary flex items-center gap-2"><Award className="w-5 h-5 text-secondary" /> Certifications & Badges</h3>
-                <button onClick={() => setShowCertModal(false)}><X className="w-5 h-5 text-secondary" /></button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCertModal(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs" />
+            <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="relative w-full max-w-lg bg-white rounded-lg shadow-xl overflow-hidden border border-slate-200 flex flex-col max-h-[80vh] text-slate-900">
+              <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Certifications & Badges</h3>
+                  <p className="text-xs text-slate-500">Verified credentials and professional badges.</p>
+                </div>
+                <button onClick={() => setShowCertModal(false)} className="text-slate-400 hover:text-slate-700 text-xs font-bold cursor-pointer">Close</button>
               </div>
-              <div className="p-6 overflow-y-auto space-y-4">
+              <div className="p-6 overflow-y-auto space-y-3">
                 {data.badges.map((badge: string, i: number) => (
-                  <div key={i} className="flex items-center gap-4 p-4 border border-outline-variant/30 rounded-2xl">
-                    <div className="size-12 rounded-xl bg-primary text-white flex items-center justify-center shadow-md shrink-0">
-                      <Award className="w-6 h-6" />
-                    </div>
+                  <div key={i} className="flex items-center justify-between p-3.5 border border-slate-200/80 rounded-lg bg-slate-50/70">
                     <div>
-                      <h4 className="text-sm font-bold text-primary">{badge}</h4>
-                      <p className="text-[10px] font-bold text-secondary uppercase tracking-widest mt-1">Issued {new Date().getFullYear()}</p>
+                      <h4 className="text-xs font-bold text-slate-900">{badge}</h4>
+                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">Issued {new Date().getFullYear()} • Verified by ENAKO</p>
                     </div>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md uppercase tracking-wider">Active</span>
                   </div>
                 ))}
                 {data.badges.length === 0 && (
-                  <p className="text-center text-secondary text-sm">No certifications awarded yet.</p>
+                  <p className="text-center text-slate-500 text-xs py-8">No certifications awarded yet.</p>
                 )}
               </div>
             </motion.div>
           </div>
         )}
-
-        {/* showPauseModal removed */}
       </AnimatePresence>
     </div>
   );

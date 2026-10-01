@@ -2,10 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { outreachAPI } from '../../../lib/api';
 import { supabase } from '../../../lib/supabase';
 import { toast } from 'sonner';
-import { 
-  Building2, Plus, MapPin, Target, Trash2, Image as ImageIcon, 
-  Film, X, Loader2, CheckCircle2, RefreshCw, Eye
-} from 'lucide-react';
 
 export default function OutreachProjects() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -294,17 +290,20 @@ export default function OutreachProjects() {
     { slug: 'foumban', name: 'Foumban (West)' },
   ];
 
+  const totalTargetFunding = projects.reduce((sum, p) => sum + (parseFloat(p.targetAmount) || 0), 0);
+  const totalRaisedFunding = projects.reduce((sum, p) => sum + (parseFloat(p.currentAmount) || 0), 0);
+  const activeProjectsCount = projects.filter(p => p.status === 'In Progress').length;
+
   return (
     <div className="space-y-6 pb-20 p-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-outline-variant/30 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider mb-1">
-            <Building2 className="w-4 h-4 text-primary" />
-            <span>Outreach Manager Portal</span>
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+            Outreach Manager Portal
           </div>
-          <h2 className="text-3xl font-bold font-display text-primary">Community Field Projects & State Initiatives</h2>
-          <p className="text-secondary text-sm mt-1">
+          <h2 className="text-3xl font-bold font-display text-slate-900">Community Field Projects & State Initiatives</h2>
+          <p className="text-slate-600 text-sm mt-1">
             Publish, edit, and manage custom community projects across all regional divisions in Cameroon.
           </p>
         </div>
@@ -312,31 +311,78 @@ export default function OutreachProjects() {
         <div className="flex items-center gap-3">
           <button 
             onClick={fetchProjects}
-            className="bg-surface-container border border-outline-variant/40 text-primary font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 hover:bg-surface-container-high transition-colors"
+            className="bg-white border border-slate-300 text-slate-700 font-bold px-4 py-2.5 rounded-lg text-xs hover:bg-slate-50 transition-colors"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
             Refresh
           </button>
 
           <button
             onClick={() => setIsModalOpen(true)}
-            className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-primary-dark transition-all shadow-sm shrink-0"
+            className="bg-slate-900 text-white px-5 py-2.5 rounded-lg font-bold text-xs hover:bg-slate-800 transition-all shadow-sm shrink-0"
           >
-            <Plus className="w-4 h-4" />
             Post New Community Project
           </button>
         </div>
       </div>
 
+      {/* Featured Main Card Layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="sm:col-span-2 lg:col-span-2 bg-white border-2 border-slate-300 rounded-lg p-6 shadow-md flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Featured Capital Program</span>
+              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+                {activeProjectsCount} In Progress
+              </span>
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-1">Regional Infrastructure & Water Deployments</h3>
+            <p className="text-sm text-slate-600 mb-4">Capital expenditures committed to schools, hospitals, boreholes, and community power.</p>
+            <div className="text-3xl font-extrabold text-slate-900 tracking-tight">
+              {totalRaisedFunding.toLocaleString()} XAF
+            </div>
+            <div className="text-xs text-slate-500 mt-1">
+              of {totalTargetFunding.toLocaleString()} XAF Regional Budget Target
+            </div>
+          </div>
+          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mt-4">
+            <div 
+              className="h-full bg-slate-900 rounded-full transition-all" 
+              style={{ width: `${totalTargetFunding > 0 ? Math.min(100, Math.round((totalRaisedFunding / totalTargetFunding) * 100)) : 0}%` }} 
+            />
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Active Field Works</span>
+            <div className="text-2xl font-extrabold text-slate-900 mt-1">{activeProjectsCount}</div>
+            <p className="text-xs text-slate-500 mt-1">Ground development active</p>
+          </div>
+          <div className="text-[11px] font-bold text-slate-700 bg-slate-50 px-2.5 py-1 rounded-md mt-3 inline-block self-start">
+            Ongoing Status
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Total Tracked Projects</span>
+            <div className="text-2xl font-extrabold text-slate-900 mt-1">{projects.length}</div>
+            <p className="text-xs text-slate-500 mt-1">Across 15 regional hubs</p>
+          </div>
+          <div className="text-[11px] font-bold text-slate-700 bg-slate-50 px-2.5 py-1 rounded-md mt-3 inline-block self-start">
+            National Footprint
+          </div>
+        </div>
+      </div>
+
       {/* Filter Bar */}
-      <div className="bg-white border border-outline-variant/30 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <MapPin className="w-4 h-4 text-primary" />
-          <span className="text-xs font-bold text-primary">Select Target State / City:</span>
+          <span className="text-xs font-bold text-slate-700">Select Target State / City:</span>
           <select
             value={selectedCommunityFilter}
             onChange={(e) => setSelectedCommunityFilter(e.target.value)}
-            className="bg-surface-container border border-outline-variant/40 rounded-lg px-3 py-1.5 text-xs font-bold text-primary focus:outline-none"
+            className="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
           >
             <option value="">All Regions & Cities</option>
             {communitiesList.map(c => (
@@ -345,22 +391,21 @@ export default function OutreachProjects() {
           </select>
         </div>
 
-        <span className="text-xs font-bold text-secondary">
-          Database Projects Count: <strong className="text-primary">{projects.length}</strong>
+        <span className="text-xs font-bold text-slate-500">
+          Database Projects Count: <strong className="text-slate-900">{projects.length}</strong>
         </span>
       </div>
 
       {/* Projects Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
-          <div className="col-span-full py-16 text-center text-secondary text-sm font-medium animate-pulse">
+          <div className="col-span-full py-16 text-center text-slate-500 text-sm font-medium animate-pulse">
             Loading field projects from database...
           </div>
         ) : projects.length === 0 ? (
-          <div className="col-span-full bg-white border border-outline-variant/30 rounded-2xl p-12 text-center text-secondary space-y-3">
-            <Building2 className="w-12 h-12 text-outline-variant mx-auto opacity-40" />
-            <h4 className="font-bold text-primary text-base">No Community Projects Published Yet</h4>
-            <p className="text-xs text-secondary max-w-sm mx-auto">
+          <div className="col-span-full bg-white border border-slate-200 rounded-lg p-12 text-center text-slate-500 space-y-3">
+            <h4 className="font-bold text-slate-900 text-base">No Community Projects Published Yet</h4>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
               Click <strong>"Post New Community Project"</strong> above to publish field projects for Kumba, Douala, Yaoundé, or any state.
             </p>
           </div>
@@ -371,11 +416,11 @@ export default function OutreachProjects() {
             const percent = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
 
             return (
-              <div key={p.id} className="bg-white border border-outline-variant/30 rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative group">
+              <div key={p.id} className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative group">
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="bg-primary/10 text-primary text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider">
-                      📍 {p.communitySlug.toUpperCase()}
+                    <span className="bg-slate-100 text-slate-800 text-[10px] font-bold px-2.5 py-1 rounded uppercase tracking-wider">
+                      Region: {p.communitySlug.toUpperCase()}
                     </span>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${p.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : p.status === 'In Progress' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>
                       {p.status}
@@ -388,26 +433,26 @@ export default function OutreachProjects() {
                     </div>
                   )}
 
-                  <h3 className="font-bold text-primary text-base mb-2">{p.title}</h3>
-                  <p className="text-xs text-secondary line-clamp-3 leading-relaxed mb-4">{p.description}</p>
+                  <h3 className="font-bold text-slate-900 text-base mb-2">{p.title}</h3>
+                  <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed mb-4">{p.description}</p>
                 </div>
 
-                <div className="pt-3 border-t border-outline-variant/30 space-y-2">
-                  <div className="flex justify-between text-xs font-bold text-primary">
+                <div className="pt-3 border-t border-slate-100 space-y-2">
+                  <div className="flex justify-between text-xs font-bold text-slate-900">
                     <span>Funding Raised: {current.toLocaleString()} XAF</span>
                     <span>{percent}%</span>
                   </div>
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${percent}%` }} />
+                    <div className="h-full bg-slate-900 rounded-full transition-all" style={{ width: `${percent}%` }} />
                   </div>
                   <div className="flex items-center justify-between pt-2">
-                    <span className="text-[11px] text-secondary">Target: <strong>{target.toLocaleString()} XAF</strong></span>
+                    <span className="text-[11px] text-slate-500">Target: <strong className="text-slate-900">{target.toLocaleString()} XAF</strong></span>
                     <button
                       onClick={() => handleDelete(p.id)}
-                      className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                      className="text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors"
                       title="Delete Project"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -419,33 +464,33 @@ export default function OutreachProjects() {
 
       {/* Modal: Create Community Project with Local Machine File & Video Selector */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-primary/20 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl border border-outline-variant/30 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-outline-variant/30 pb-3">
-              <h3 className="font-bold text-primary text-lg">Post Community / State Field Project</h3>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-sm">
+          <div className="bg-white rounded-lg max-w-xl w-full p-6 space-y-4 shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="font-bold text-slate-900 text-lg">Post Community / State Field Project</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-base">✕</button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 text-xs font-bold text-primary">
+            <form onSubmit={handleSubmit} className="space-y-4 text-xs font-bold text-slate-800">
               <div>
-                <label className="block mb-1 text-secondary uppercase tracking-wider">Project Title *</label>
+                <label className="block mb-1 text-slate-600 uppercase tracking-wider">Project Title *</label>
                 <input
                   required
                   type="text"
                   placeholder="e.g. Kumba Solar Water Borehole & Health Clinic"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                  className="w-full p-3 bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-slate-400 font-medium"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block mb-1 text-secondary uppercase tracking-wider">Target State / City *</label>
+                  <label className="block mb-1 text-slate-600 uppercase tracking-wider">Target State / City *</label>
                   <select
                     value={form.communitySlug}
                     onChange={(e) => setForm({ ...form, communitySlug: e.target.value })}
-                    className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                    className="w-full p-3 bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-slate-400 font-medium"
                   >
                     {communitiesList.map(c => (
                       <option key={c.slug} value={c.slug}>{c.name}</option>
@@ -454,11 +499,11 @@ export default function OutreachProjects() {
                 </div>
 
                 <div>
-                  <label className="block mb-1 text-secondary uppercase tracking-wider">Status</label>
+                  <label className="block mb-1 text-slate-600 uppercase tracking-wider">Status</label>
                   <select
                     value={form.status}
                     onChange={(e) => setForm({ ...form, status: e.target.value })}
-                    className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                    className="w-full p-3 bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-slate-400 font-medium"
                   >
                     <option value="In Progress">In Progress</option>
                     <option value="Planned">Planned</option>
@@ -469,63 +514,62 @@ export default function OutreachProjects() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block mb-1 text-secondary uppercase tracking-wider">Target Funding (XAF) *</label>
+                  <label className="block mb-1 text-slate-600 uppercase tracking-wider">Target Funding (XAF) *</label>
                   <input
                     required
                     type="number"
                     value={form.targetAmount}
                     onChange={(e) => setForm({ ...form, targetAmount: e.target.value })}
-                    className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                    className="w-full p-3 bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-slate-400 font-medium"
                   />
                 </div>
 
                 <div>
-                  <label className="block mb-1 text-secondary uppercase tracking-wider">Current Raised (XAF)</label>
+                  <label className="block mb-1 text-slate-600 uppercase tracking-wider">Current Raised (XAF)</label>
                   <input
                     type="number"
                     value={form.currentAmount}
                     onChange={(e) => setForm({ ...form, currentAmount: e.target.value })}
-                    className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                    className="w-full p-3 bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-slate-400 font-medium"
                   />
                 </div>
               </div>
 
               {/* Local File Pickers: Cover Photo, Gallery & Video */}
               <div className="space-y-3 pt-2">
-                <label className="block text-secondary uppercase tracking-wider">Project Media Uploads (Select from Machine)</label>
+                <label className="block text-slate-600 uppercase tracking-wider">Project Media Uploads</label>
                 
                 <div className="grid grid-cols-2 gap-3">
                   {/* Cover Photo Input */}
-                  <div className="relative border-2 border-dashed border-outline-variant/50 rounded-xl p-4 text-center hover:border-primary/40 transition-colors cursor-pointer bg-surface-container-low">
+                  <div className="relative border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-slate-400 transition-colors cursor-pointer bg-slate-50">
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handleCoverUpload}
                       className="absolute inset-0 opacity-0 cursor-pointer z-10"
                     />
-                    <ImageIcon className="w-6 h-6 text-secondary mx-auto mb-1" />
-                    <span className="text-[11px] font-bold text-primary block">Select Cover Image</span>
-                    <span className="text-[10px] text-slate-400 font-normal">JPG, PNG format</span>
+                    <span className="text-[11px] font-bold text-slate-900 block">Select Cover Image</span>
+                    <span className="text-[10px] text-slate-500 font-normal">JPG, PNG format</span>
                   </div>
 
                   {/* Video Input with compression progress */}
                   <div className="relative">
-                    <div className={`relative border-2 border-dashed rounded-xl p-4 text-center transition-all ${
-                      videoPhase === 'done' ? 'border-green-500/50 bg-green-50'
-                      : videoPhase === 'compressing' || videoPhase === 'uploading' ? 'border-primary/50 bg-primary/5 cursor-not-allowed'
-                      : 'border-outline-variant/50 hover:border-primary/40 bg-surface-container-low cursor-pointer'
+                    <div className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-all ${
+                      videoPhase === 'done' ? 'border-emerald-500/50 bg-emerald-50'
+                      : videoPhase === 'compressing' || videoPhase === 'uploading' ? 'border-slate-400 bg-slate-50 cursor-not-allowed'
+                      : 'border-slate-300 hover:border-slate-400 bg-slate-50 cursor-pointer'
                     }`}>
                       {(videoPhase === 'compressing' || videoPhase === 'uploading') ? (
                         <div className="space-y-1.5 py-1">
-                          <div className="flex justify-between text-[10px] font-bold text-primary">
-                            <span>{videoPhase === 'compressing' ? '🗜 Compressing…' : '⬆ Uploading…'}</span>
+                          <div className="flex justify-between text-[10px] font-bold text-slate-900">
+                            <span>{videoPhase === 'compressing' ? 'Compressing...' : 'Uploading...'}</span>
                             <span>{Math.round(videoProgress)}%</span>
                           </div>
-                          <div className="w-full h-2 bg-primary/10 rounded-full overflow-hidden">
-                            <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${videoProgress}%` }} />
+                          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div className="h-full bg-slate-900 rounded-full transition-all duration-300" style={{ width: `${videoProgress}%` }} />
                           </div>
-                          <div className="text-[10px] text-secondary">
-                            {videoPhase === 'compressing' ? 'Reducing file size…' : 'Uploading to Supabase…'}
+                          <div className="text-[10px] text-slate-500">
+                            {videoPhase === 'compressing' ? 'Reducing file size...' : 'Uploading to Supabase...'}
                           </div>
                         </div>
                       ) : (
@@ -537,12 +581,11 @@ export default function OutreachProjects() {
                             disabled={isCompressingMedia}
                             className="absolute inset-0 opacity-0 cursor-pointer z-10"
                           />
-                          <Film className={`w-6 h-6 mx-auto mb-1 ${videoPhase === 'done' ? 'text-green-600' : 'text-secondary'}`} />
-                          <span className={`text-[11px] font-bold block ${videoPhase === 'done' ? 'text-green-700' : 'text-primary'}`}>
-                            {videoPhase === 'done' ? '✓ Video Uploaded' : 'Select Video File'}
+                          <span className={`text-[11px] font-bold block ${videoPhase === 'done' ? 'text-emerald-700' : 'text-slate-900'}`}>
+                            {videoPhase === 'done' ? 'Video Uploaded' : 'Select Video File'}
                           </span>
-                          <span className="text-[10px] text-slate-400 font-normal">
-                            {videoPhase === 'done' ? 'Click to replace' : 'Max 500MB · Auto-compressed if >50MB'}
+                          <span className="text-[10px] text-slate-500 font-normal">
+                            {videoPhase === 'done' ? 'Click to replace' : 'Max 500MB · Auto-compressed'}
                           </span>
                         </>
                       )}
@@ -551,9 +594,9 @@ export default function OutreachProjects() {
                       <button
                         type="button"
                         onClick={() => { setVideoUrl(null); setVideoProgress(0); setVideoPhase('idle'); }}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow hover:bg-red-600 z-20"
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full px-2 py-0.5 text-xs shadow hover:bg-red-600 z-20"
                       >
-                        <X className="w-3 h-3" />
+                        Remove
                       </button>
                     )}
                   </div>
@@ -561,44 +604,37 @@ export default function OutreachProjects() {
 
                 {/* Previews */}
                 {coverImagePreview && (
-                  <div className="relative w-full h-36 rounded-xl overflow-hidden border border-outline-variant/30">
+                  <div className="relative w-full h-36 rounded-lg overflow-hidden border border-slate-200">
                     <img src={coverImagePreview} alt="Cover preview" className="w-full h-full object-cover" />
                     <button
                       type="button"
                       onClick={() => setCoverImagePreview(null)}
-                      className="absolute top-2 right-2 bg-black/60 text-white p-1 rounded-full hover:bg-black"
+                      className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black"
                     >
-                      <X className="w-4 h-4" />
+                      Remove
                     </button>
                   </div>
                 )}
               </div>
 
               <div>
-                <label className="block mb-1 text-secondary uppercase tracking-wider">Detailed Description *</label>
+                <label className="block mb-1 text-slate-600 uppercase tracking-wider">Detailed Description *</label>
                 <textarea
                   required
                   rows={4}
                   placeholder="Describe field objectives, local beneficiary impact, and resource needs..."
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full p-3 bg-surface border border-outline-variant/40 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 font-medium resize-none"
+                  className="w-full p-3 bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-slate-400 font-medium resize-none"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isSubmitting || isCompressingMedia}
-                className="w-full py-3.5 bg-primary text-white font-bold rounded-xl shadow hover:bg-primary-dark transition-all uppercase tracking-widest disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-3.5 bg-slate-900 text-white font-bold rounded-lg shadow hover:bg-slate-800 transition-all uppercase tracking-widest disabled:opacity-50"
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Publishing to Database...</span>
-                  </>
-                ) : (
-                  <span>Publish Community Project</span>
-                )}
+                {isSubmitting ? 'Publishing to Database...' : 'Publish Community Project'}
               </button>
             </form>
           </div>

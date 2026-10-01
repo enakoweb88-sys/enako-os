@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { PenTool, Plus, Image as ImageIcon, Send, X, Clock, CheckCircle2, Film, Edit2, Loader2 } from 'lucide-react';
 import { outreachAPI } from '../../../lib/api/outreach';
 import { supabase } from '../../../lib/supabase';
 import { toast } from 'sonner';
@@ -337,75 +336,141 @@ export default function OutreachCMS() {
     }
   };
 
+  const publishedCount = posts.filter(p => p.status === 'PUBLISHED').length;
+  const draftCount = posts.filter(p => p.status === 'DRAFT').length;
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 pb-20 p-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <h2 className="text-2xl font-display font-bold text-primary">Content Management System</h2>
-          <p className="text-secondary mt-1">Manage articles and updates for the main charity website</p>
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+            Outreach Publications
+          </div>
+          <h2 className="text-3xl font-display font-bold text-slate-900">Content Management & Dispatches</h2>
+          <p className="text-slate-600 text-sm mt-1">Manage articles, impact summaries, and media updates for the public portal.</p>
         </div>
-        <button 
-          onClick={() => {
-            closeModal();
-            setShowModal(true);
-          }}
-          className="bg-primary text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-primary/90 transition-all shadow-md"
-        >
-          <PenTool className="w-4 h-4" />
-          Write New Post
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={fetchPosts}
+            className="px-4 py-2.5 border border-slate-300 rounded-lg text-slate-700 font-bold text-xs hover:bg-slate-50 transition-colors"
+          >
+            Refresh
+          </button>
+          <button 
+            onClick={() => {
+              closeModal();
+              setShowModal(true);
+            }}
+            className="bg-slate-900 text-white px-5 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm"
+          >
+            Write New Post
+          </button>
+        </div>
       </div>
 
-      <div className="bg-white border border-outline-variant/30 rounded-[2rem] overflow-hidden shadow-sm p-8">
+      {/* Featured Main Card Layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="sm:col-span-2 lg:col-span-2 bg-white border-2 border-slate-300 rounded-lg p-6 shadow-md flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Featured Media Publication</span>
+              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+                {publishedCount} Live Published
+              </span>
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-1">Editorial & Field Dispatches</h3>
+            <p className="text-sm text-slate-600 mb-4">Official publication feed delivering community impact stories and scholarship announcements.</p>
+            <div className="text-3xl font-extrabold text-slate-900 tracking-tight">
+              {posts.length} Total Articles
+            </div>
+            <div className="text-xs text-slate-500 mt-1">
+              {publishedCount} live in portal · {draftCount} pending review
+            </div>
+          </div>
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+            <span>Public Website Blog & News</span>
+            <span className="font-bold text-slate-900">Synchronized</span>
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Live Articles</span>
+            <div className="text-2xl font-extrabold text-slate-900 mt-1">{publishedCount}</div>
+            <p className="text-xs text-slate-500 mt-1">Publicly visible online</p>
+          </div>
+          <div className="text-[11px] font-bold text-slate-700 bg-slate-50 px-2.5 py-1 rounded-md mt-3 inline-block self-start">
+            Active Feed
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Pending Drafts</span>
+            <div className="text-2xl font-extrabold text-slate-900 mt-1">{draftCount}</div>
+            <p className="text-xs text-slate-500 mt-1">In editing queue</p>
+          </div>
+          <div className="text-[11px] font-bold text-slate-700 bg-slate-50 px-2.5 py-1 rounded-md mt-3 inline-block self-start">
+            Review Queue
+          </div>
+        </div>
+      </div>
+
+      {/* Posts Section */}
+      <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6">
         {loading ? (
-          <div className="text-center py-20 text-secondary">Loading content...</div>
+          <div className="text-center py-20 text-slate-500">Loading content...</div>
         ) : posts.length === 0 ? (
           <div className="text-center py-20">
-            <PenTool className="w-16 h-16 text-outline-variant mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-primary mb-2">No Posts Yet</h3>
-            <p className="text-secondary max-w-sm mx-auto">Click "Write New Post" to publish your first article to the website.</p>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">No Posts Yet</h3>
+            <p className="text-slate-500 max-w-sm mx-auto">Click "Write New Post" to publish your first article to the website.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {posts.map(post => (
-              <div key={post.id} className="border border-outline-variant/30 rounded-2xl overflow-hidden group hover:shadow-lg transition-all">
-                <div className="h-48 bg-surface-container relative">
-                  {post.coverImage ? (
-                    <img src={post.coverImage} className="w-full h-full object-cover" alt={post.title} />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-outline-variant">
-                      <ImageIcon className="w-8 h-8 opacity-50" />
+              <div key={post.id} className="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                <div>
+                  <div className="h-44 bg-slate-100 relative">
+                    {post.coverImage ? (
+                      <img src={post.coverImage} className="w-full h-full object-cover" alt={post.title} />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-bold">
+                        No Cover Photo
+                      </div>
+                    )}
+                    <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end z-10">
+                      <span className="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-white/95 text-slate-900 shadow-sm border border-slate-200">
+                        {post.category || 'Blog'}
+                      </span>
+                      <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                        post.status === 'PUBLISHED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {post.status}
+                      </span>
                     </div>
-                  )}
-                  <div className="absolute top-4 right-4 flex flex-col gap-2 items-end z-10">
-                    <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-white/90 backdrop-blur text-primary shadow-sm border border-outline-variant/30">
-                      {post.category || 'Blog'}
-                    </span>
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                      post.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {post.status}
-                    </span>
-                  </div>
 
-                  {post.status === 'DRAFT' && (
-                    <button
-                      onClick={() => handleEdit(post)}
-                      className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur text-primary hover:bg-primary hover:text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all shadow-sm flex items-center gap-1"
-                    >
-                      <Edit2 className="w-3 h-3" /> Edit Draft
-                    </button>
-                  )}
+                    {post.status === 'DRAFT' && (
+                      <button
+                        onClick={() => handleEdit(post)}
+                        className="absolute top-3 left-3 z-10 bg-white text-slate-900 hover:bg-slate-100 px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-all shadow-sm border border-slate-200"
+                      >
+                        Edit Draft
+                      </button>
+                    )}
+                  </div>
+                  <div className="p-5">
+                    <h4 className="text-base font-bold text-slate-900 line-clamp-2 mb-2">{post.title}</h4>
+                    <p className="text-xs text-slate-600 line-clamp-3 mb-4 leading-relaxed">{post.content}</p>
+                  </div>
                 </div>
-                <div className="p-6">
-                  <h4 className="text-lg font-bold text-primary line-clamp-2 mb-2">{post.title}</h4>
-                  <p className="text-sm text-secondary line-clamp-3 mb-6">{post.content}</p>
-                  
-                  <div className="flex justify-between items-center pt-4 border-t border-outline-variant/20">
-                    <span className="text-xs font-bold text-secondary">{new Date(post.createdAt).toLocaleDateString()}</span>
+
+                <div className="px-5 pb-5">
+                  <div className="flex justify-between items-center pt-3 border-t border-slate-100">
+                    <span className="text-xs font-bold text-slate-500">{new Date(post.createdAt).toLocaleDateString()}</span>
                     <button 
                       onClick={() => handleStatusToggle(post.id, post.status)}
-                      className="text-xs font-bold text-primary hover:underline"
+                      className="text-xs font-bold text-slate-900 hover:underline"
                     >
                       {post.status === 'PUBLISHED' ? 'Unpublish to Draft' : 'Publish Now'}
                     </button>
@@ -419,35 +484,34 @@ export default function OutreachCMS() {
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={() => !saving && setShowModal(false)} />
-          <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 z-10 flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b border-outline-variant/30">
-              <h2 className="text-xl font-display font-bold text-primary flex items-center gap-2">
-                <PenTool className="text-secondary w-5 h-5" />
+          <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm" onClick={() => !saving && setShowModal(false)} />
+          <div className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-lg shadow-xl overflow-hidden border border-slate-200 z-10 flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50">
+              <h2 className="text-xl font-display font-bold text-slate-900">
                 {editingPostId ? 'Edit Draft' : 'Write New Article'}
               </h2>
-              <button onClick={closeModal} className="text-secondary hover:text-primary transition-colors">
-                <X className="w-6 h-6" />
+              <button onClick={closeModal} className="text-slate-400 hover:text-slate-600 font-bold text-base">
+                ✕
               </button>
             </div>
             
-            <div className="p-8 overflow-y-auto space-y-6 flex-1">
-              <div className="grid grid-cols-2 gap-6">
+            <div className="p-6 overflow-y-auto space-y-5 flex-1">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Article Title</label>
+                  <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">Article Title *</label>
                   <input 
                     value={title}
                     onChange={e => setTitle(e.target.value)}
                     placeholder="e.g. Impact Report: First Quarter Education Grants"
-                    className="w-full text-xl font-bold text-primary bg-surface border border-outline-variant/30 rounded-xl p-4 outline-none focus:ring-2 focus:ring-primary-container/20" 
+                    className="w-full text-base font-bold text-slate-900 bg-white border border-slate-300 rounded-lg p-3 outline-none focus:ring-1 focus:ring-slate-400" 
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Category</label>
+                  <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">Category</label>
                   <select 
                     value={category}
                     onChange={e => setCategory(e.target.value)}
-                    className="w-full text-xl font-bold text-primary bg-surface border border-outline-variant/30 rounded-xl p-4 outline-none focus:ring-2 focus:ring-primary-container/20 cursor-pointer" 
+                    className="w-full text-base font-bold text-slate-900 bg-white border border-slate-300 rounded-lg p-3 outline-none focus:ring-1 focus:ring-slate-400 cursor-pointer" 
                   >
                     <option value="Blog">Blog</option>
                     <option value="Latest News">Latest News</option>
@@ -466,54 +530,47 @@ export default function OutreachCMS() {
 
               {/* Research / Author Credit */}
               <div>
-                <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Published By (Research Credit)</label>
+                <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">Published By (Research Credit)</label>
                 <input
                   value={researchedBy}
                   onChange={e => setResearchedBy(e.target.value)}
                   placeholder="e.g. Dr. Amara Nwosu · ENAKO Field Research Team"
-                  className="w-full font-medium text-primary bg-surface border border-outline-variant/30 rounded-xl p-4 outline-none focus:ring-2 focus:ring-primary-container/20"
+                  className="w-full font-medium text-slate-900 bg-white border border-slate-300 rounded-lg p-3 outline-none focus:ring-1 focus:ring-slate-400"
                 />
-                <p className="text-[11px] text-secondary mt-1.5">This name will appear as the author credit on the published article.</p>
+                <p className="text-[11px] text-slate-500 mt-1">This name will appear as the author credit on the published article.</p>
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Cover Image</label>
+                <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">Cover Image</label>
                 <div 
-                  className={`w-full h-48 rounded-xl border-2 border-dashed flex flex-col items-center justify-center relative overflow-hidden transition-all ${coverImagePreview ? 'border-primary/20' : 'border-outline-variant bg-surface-container-low hover:bg-surface-container cursor-pointer'}`}
+                  className={`w-full h-44 rounded-lg border-2 border-dashed flex flex-col items-center justify-center relative overflow-hidden transition-all ${coverImagePreview ? 'border-slate-300' : 'border-slate-300 bg-slate-50 hover:bg-slate-100 cursor-pointer'}`}
                   onClick={() => !coverImagePreview && document.getElementById('cover-upload')?.click()}
                 >
                   {isUploadingMedia && !coverImagePreview ? (
                     <div className="flex flex-col items-center gap-2">
-                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                      <span className="text-sm font-bold text-secondary">Uploading cover image...</span>
+                      <span className="text-sm font-bold text-slate-600">Uploading cover image...</span>
                     </div>
                   ) : coverImagePreview ? (
                     <>
                       <img src={coverImagePreview} alt="Cover Preview" className="w-full h-full object-cover" />
-                      {isUploadingMedia && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          <Loader2 className="w-8 h-8 text-white animate-spin" />
-                        </div>
-                      )}
                       {!isUploadingMedia && (
                         <button 
                           onClick={(e) => { e.stopPropagation(); setCoverImagePreview(''); setCoverImageUrl(''); }}
-                          className="absolute top-2 right-2 bg-black/50 text-white p-2 rounded-lg hover:bg-black/70"
+                          className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black"
                         >
-                          <X className="w-4 h-4" />
+                          Remove
                         </button>
                       )}
                       {coverImageUrl && (
-                        <div className="absolute bottom-2 left-2 bg-green-600/90 text-white text-[10px] font-bold px-2 py-1 rounded">
-                          ✓ Uploaded to storage
+                        <div className="absolute bottom-2 left-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">
+                          Uploaded to storage
                         </div>
                       )}
                     </>
                   ) : (
                     <>
-                      <ImageIcon className="w-8 h-8 text-secondary mb-2" />
-                      <span className="text-sm font-bold text-secondary">Click to upload cover image</span>
-                      <span className="text-xs text-slate-400 mt-1">Auto-uploaded to Supabase storage</span>
+                      <span className="text-sm font-bold text-slate-700">Click to upload cover image</span>
+                      <span className="text-xs text-slate-400 mt-0.5">Auto-uploaded to Supabase storage</span>
                     </>
                   )}
                   <input type="file" id="cover-upload" className="hidden" accept="image/*" onChange={handleImageUpload} />
@@ -521,20 +578,20 @@ export default function OutreachCMS() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Article Content</label>
+                <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">Article Content *</label>
                 <textarea 
                   value={content}
                   onChange={e => setContent(e.target.value)}
                   placeholder="Write your article content here..."
-                  className="w-full min-h-[300px] text-primary bg-surface border border-outline-variant/30 rounded-xl p-4 outline-none focus:ring-2 focus:ring-primary-container/20 font-medium leading-relaxed resize-y" 
+                  className="w-full min-h-[220px] text-slate-900 bg-white border border-slate-300 rounded-lg p-4 outline-none focus:ring-1 focus:ring-slate-400 font-medium leading-relaxed resize-y text-sm" 
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Additional Media (Photos & Video)</label>
+                <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">Additional Media (Photos & Video)</label>
                 <div className="grid grid-cols-2 gap-4">
                   {/* Multiple Photos */}
-                  <div className="relative h-24 border-2 border-dashed border-outline-variant/50 rounded-xl hover:border-primary/30 transition-colors bg-white overflow-hidden flex flex-col items-center justify-center cursor-pointer group">
+                  <div className="relative h-24 border-2 border-dashed border-slate-300 rounded-lg hover:border-slate-400 transition-colors bg-slate-50 overflow-hidden flex flex-col items-center justify-center cursor-pointer group">
                     <input 
                       type="file" 
                       accept="image/*" 
@@ -543,38 +600,33 @@ export default function OutreachCMS() {
                       disabled={isUploadingMedia}
                       className="absolute inset-0 opacity-0 cursor-pointer z-10" 
                     />
-                    <div className="flex flex-col items-center justify-center p-4">
-                      {isUploadingMedia ? (
-                         <Loader2 className="w-6 h-6 text-primary mb-1 animate-spin" />
-                      ) : (
-                         <ImageIcon className="w-6 h-6 text-secondary mb-1 group-hover:text-primary transition-colors" />
-                      )}
-                      <span className="text-xs font-bold text-secondary">Upload Multiple Photos</span>
-                      <span className="text-[10px] text-slate-400 mt-1">Automatically compressed</span>
+                    <div className="flex flex-col items-center justify-center p-3 text-center">
+                      <span className="text-xs font-bold text-slate-800">Upload Multiple Photos</span>
+                      <span className="text-[10px] text-slate-400 mt-0.5">Automatically compressed</span>
                     </div>
                   </div>
 
                   {/* Video Upload */}
                   <div className="relative">
-                    <div className={`relative h-24 border-2 border-dashed rounded-xl overflow-hidden flex flex-col items-center justify-center cursor-pointer group transition-all ${
-                      videoPhase === 'done' ? 'border-green-500/50 bg-green-50'
-                      : videoPhase === 'compressing' || videoPhase === 'uploading' ? 'border-primary/50 bg-primary/5 cursor-not-allowed'
-                      : 'border-outline-variant/50 hover:border-primary/30 bg-white'
+                    <div className={`relative h-24 border-2 border-dashed rounded-lg overflow-hidden flex flex-col items-center justify-center cursor-pointer group transition-all ${
+                      videoPhase === 'done' ? 'border-emerald-500/50 bg-emerald-50'
+                      : videoPhase === 'compressing' || videoPhase === 'uploading' ? 'border-slate-400 bg-slate-50 cursor-not-allowed'
+                      : 'border-slate-300 hover:border-slate-400 bg-slate-50'
                     }`}>
                       {(videoPhase === 'compressing' || videoPhase === 'uploading') ? (
                         <div className="w-full px-4 space-y-1.5">
-                          <div className="flex justify-between text-[10px] font-bold text-primary">
-                            <span>{videoPhase === 'compressing' ? '🗜 Compressing video…' : '⬆ Uploading to storage…'}</span>
+                          <div className="flex justify-between text-[10px] font-bold text-slate-900">
+                            <span>{videoPhase === 'compressing' ? 'Compressing video...' : 'Uploading to storage...'}</span>
                             <span>{Math.round(videoProgress)}%</span>
                           </div>
-                          <div className="w-full h-2 bg-primary/10 rounded-full overflow-hidden">
+                          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-primary rounded-full transition-all duration-300"
+                              className="h-full bg-slate-900 rounded-full transition-all duration-300"
                               style={{ width: `${videoProgress}%` }}
                             />
                           </div>
-                          <div className="text-[10px] text-secondary text-center">
-                            {videoPhase === 'compressing' ? 'Reducing file size — this may take a moment' : 'Uploading compressed video…'}
+                          <div className="text-[10px] text-slate-500 text-center">
+                            {videoPhase === 'compressing' ? 'Reducing file size...' : 'Uploading compressed video...'}
                           </div>
                         </div>
                       ) : (
@@ -586,13 +638,12 @@ export default function OutreachCMS() {
                             disabled={isUploadingMedia || saving}
                             className="absolute inset-0 opacity-0 cursor-pointer z-10"
                           />
-                          <div className="flex flex-col items-center justify-center p-4">
-                            <Film className={`w-6 h-6 mb-1 transition-colors ${videoPhase === 'done' ? 'text-green-600' : 'text-secondary group-hover:text-primary'}`} />
-                            <span className={`text-xs font-bold ${videoPhase === 'done' ? 'text-green-700' : 'text-secondary'}`}>
-                              {videoPhase === 'done' ? '✓ Video Uploaded' : 'Upload Video File'}
+                          <div className="flex flex-col items-center justify-center p-3 text-center">
+                            <span className={`text-xs font-bold ${videoPhase === 'done' ? 'text-emerald-700' : 'text-slate-800'}`}>
+                              {videoPhase === 'done' ? 'Video Uploaded' : 'Upload Video File'}
                             </span>
-                            <span className="text-[10px] text-slate-400 mt-1">
-                              {videoPhase === 'done' ? 'Click to replace' : 'Max 500MB · Auto-compressed if >50MB'}
+                            <span className="text-[10px] text-slate-400 mt-0.5">
+                              {videoPhase === 'done' ? 'Click to replace' : 'Max 500MB · Auto-compressed'}
                             </span>
                           </div>
                         </>
@@ -606,10 +657,10 @@ export default function OutreachCMS() {
                           setVideoProgress(0);
                           setVideoPhase('idle');
                         }}
-                        className="absolute -top-2 -right-2 bg-error text-white rounded-full p-1.5 shadow-lg hover:bg-red-600 transition-colors z-20"
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full px-2 py-0.5 text-xs shadow hover:bg-red-600 transition-colors z-20"
                         title="Remove Video"
                       >
-                        <X className="w-4 h-4" />
+                        Remove
                       </button>
                     )}
                   </div>
@@ -618,17 +669,17 @@ export default function OutreachCMS() {
                 {images.length > 0 && (
                   <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
                     {images.map((img, idx) => (
-                      <div key={idx} className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border border-outline-variant/30">
+                      <div key={idx} className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border border-slate-200">
                         <img src={img} className="w-full h-full object-cover" alt="Uploaded preview" />
                         <button 
                           onClick={(e) => {
                             e.preventDefault();
                             setImages(images.filter((_, i) => i !== idx));
                           }}
-                          className="absolute -top-2 -right-2 bg-error text-white rounded-full p-1.5 shadow-md hover:bg-red-600 transition-colors z-20"
+                          className="absolute top-1 right-1 bg-black/60 text-white rounded px-1 text-[10px] hover:bg-black"
                           title="Remove Photo"
                         >
-                          <X className="w-4 h-4" />
+                          ✕
                         </button>
                       </div>
                     ))}
@@ -637,28 +688,26 @@ export default function OutreachCMS() {
               </div>
             </div>
             
-            <div className="p-6 border-t border-outline-variant/30 bg-slate-50 flex justify-end gap-3 rounded-b-2xl">
+            <div className="p-5 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
               <button 
                 onClick={closeModal}
-                className="px-6 py-2 rounded-xl text-sm font-bold text-secondary hover:bg-outline-variant/20 transition-colors"
+                className="px-5 py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition-colors"
               >
                 Cancel
               </button>
               <button 
                 disabled={saving || isUploadingMedia}
                 onClick={() => handleSave('DRAFT')}
-                className="px-6 py-2 rounded-xl text-sm font-bold text-primary bg-white border border-primary/20 hover:bg-primary/5 transition-colors flex items-center gap-2"
+                className="px-5 py-2 rounded-lg text-xs font-bold text-slate-800 bg-white border border-slate-300 hover:bg-slate-100 transition-colors"
               >
-                {saving || isUploadingMedia ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
-                Save as Draft
+                {saving || isUploadingMedia ? 'Saving...' : 'Save as Draft'}
               </button>
               <button 
                 disabled={saving || isUploadingMedia}
                 onClick={() => handleSave('PUBLISHED')}
-                className="px-6 py-2 rounded-xl text-sm font-bold text-white bg-primary hover:bg-primary/90 transition-colors shadow-md flex items-center gap-2 disabled:opacity-50"
+                className="px-6 py-2 rounded-lg text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-50"
               >
-                {saving || isUploadingMedia ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                Publish Now
+                {saving || isUploadingMedia ? 'Publishing...' : 'Publish Now'}
               </button>
             </div>
           </div>

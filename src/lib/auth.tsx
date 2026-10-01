@@ -30,6 +30,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.clearTimeout(inactivityTimer);
       // 15 minutes = 900,000 ms
       inactivityTimer = window.setTimeout(async () => {
+        const lastRole = user?.role || sessionStorage.getItem('enako_user_role');
+        if (lastRole) {
+          localStorage.setItem('enako_last_role', lastRole.toUpperCase());
+        }
+        if (user?.email) {
+          localStorage.setItem('enako_last_email', user.email);
+        }
         const sessionId = sessionStorage.getItem('enako_session_id');
         if (sessionId) await api.endSession(sessionId).catch(() => {});
         await api.logout().catch(() => {});
@@ -64,6 +71,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session.user);
     },
     async logout() {
+      const lastRole = user?.role || sessionStorage.getItem('enako_user_role');
+      if (lastRole) {
+        localStorage.setItem('enako_last_role', lastRole.toUpperCase());
+      }
+      if (user?.email) {
+        localStorage.setItem('enako_last_email', user.email);
+      }
       const sessionId = sessionStorage.getItem('enako_session_id');
       if (sessionId) await api.endSession(sessionId);
       await api.logout();

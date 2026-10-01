@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { outreachAPI } from '../../../lib/api/outreach';
 import { toast } from 'sonner';
-import { 
-  BookOpen, Plus, Target, CheckCircle2, Trash2, 
-  FileText, Sparkles, Filter, X, Calendar, Clock, Send,
-  Globe, AlertCircle, RefreshCw, Check, Layers, Award, PlayCircle
-} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const INITIAL_DEMO_SCHOLARSHIPS = [
@@ -239,16 +234,19 @@ export default function OutreachScholarships() {
   const scheduledItem = events.find(e => e.status === 'SCHEDULED' || (e.openDate && new Date(e.openDate) > new Date()));
   const activeLiveItem = events.find(e => e.status === 'OPEN' || e.status === 'ACTIVE');
 
+  const openProgramsCount = events.filter(e => e.status === 'OPEN' || e.status === 'ACTIVE').length;
+  const scheduledProgramsCount = events.filter(e => e.status === 'SCHEDULED' || (e.openDate && new Date(e.openDate) > new Date())).length;
+  const totalAppsCount = applications.length;
+
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 pb-24">
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 pb-24">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-outline-variant/30 pb-5">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-5">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider mb-1">
-            <BookOpen className="w-4 h-4 text-primary" />
-            <span>Outreach Portal</span>
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+            Outreach Portal
           </div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
             Scholarship & Grant Management
           </h1>
           <p className="text-slate-500 font-medium text-xs sm:text-sm mt-1">
@@ -259,68 +257,110 @@ export default function OutreachScholarships() {
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <button 
             onClick={fetchData}
-            className="p-2.5 border border-outline-variant/40 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
-            title="Refresh Data"
+            className="px-4 py-2.5 border border-slate-300 rounded-lg text-slate-700 font-bold text-xs hover:bg-slate-50 transition-colors"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
           </button>
           <button 
             onClick={() => {
               setForm({ title: '', description: '', publishOption: 'OPEN', openDate: '', closeDate: '', level: 'ALL' });
               setIsModalOpen(true);
             }}
-            className="flex-1 sm:flex-none bg-primary text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-md active:scale-[0.98]"
+            className="flex-1 sm:flex-none bg-slate-900 text-white px-5 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider hover:bg-slate-800 transition-all shadow-sm"
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>Publish New Scholarship</span>
+            Publish New Scholarship
           </button>
         </div>
       </div>
 
-      {/* Public Portal Announcement Banner */}
-      <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-950 text-xs sm:text-sm font-bold flex items-center gap-3 shadow-xs">
-        <Sparkles className="w-5 h-5 text-amber-600 shrink-0" />
-        <div>
-          <span className="uppercase text-[10px] tracking-wider block text-amber-700 font-extrabold">Public Portal Active Announcement</span>
-          {scheduledItem ? (
-            <span>
-              "Scholarship applications for <strong>{scheduledItem.title}</strong> are scheduled to open on{' '}
-              {new Date(scheduledItem.openDate).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}."
-            </span>
-          ) : activeLiveItem ? (
-            <span>"Scholarship applications for <strong>{activeLiveItem.title}</strong> are currently LIVE and open for submissions."</span>
-          ) : (
-            <span>"Scholarship applications will open soon. Check back for upcoming grants and fellowships."</span>
-          )}
+      {/* Featured Main Card Layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="sm:col-span-2 lg:col-span-2 bg-white border-2 border-slate-300 rounded-lg p-6 shadow-md flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Featured Educational Drive</span>
+              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+                {openProgramsCount} Active Programs
+              </span>
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-1">Tuition Grants & Academic Sponsorships</h3>
+            <p className="text-sm text-slate-600 mb-4">Total applicant intake across primary, secondary, and tertiary scholarship cohorts.</p>
+            <div className="text-3xl font-extrabold text-slate-900 tracking-tight">
+              {totalAppsCount} Registered Candidates
+            </div>
+            <div className="text-xs text-slate-500 mt-1">
+              Active intake across all Cameroonian regions
+            </div>
+          </div>
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+            <span>Primary, Secondary & University Grants</span>
+            <span className="font-bold text-slate-900">{events.length} Programs Total</span>
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Live Published</span>
+            <div className="text-2xl font-extrabold text-slate-900 mt-1">{openProgramsCount}</div>
+            <p className="text-xs text-slate-500 mt-1">Currently open for application</p>
+          </div>
+          <div className="text-[11px] font-bold text-slate-700 bg-slate-50 px-2.5 py-1 rounded-md mt-3 inline-block self-start">
+            Accepting Submissions
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Scheduled Cohorts</span>
+            <div className="text-2xl font-extrabold text-slate-900 mt-1">{scheduledProgramsCount}</div>
+            <p className="text-xs text-slate-500 mt-1">Opening at future timestamp</p>
+          </div>
+          <div className="text-[11px] font-bold text-slate-700 bg-slate-50 px-2.5 py-1 rounded-md mt-3 inline-block self-start">
+            Upcoming Launch
+          </div>
         </div>
       </div>
 
+      {/* Public Portal Announcement Banner */}
+      <div className="p-4 bg-white border border-slate-200 rounded-lg text-slate-800 text-xs sm:text-sm font-medium shadow-sm">
+        <span className="uppercase text-[10px] tracking-wider block text-slate-500 font-extrabold mb-0.5">Public Portal Active Announcement</span>
+        {scheduledItem ? (
+          <span>
+            Scholarship applications for <strong>{scheduledItem.title}</strong> are scheduled to open on{' '}
+            {new Date(scheduledItem.openDate).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}.
+          </span>
+        ) : activeLiveItem ? (
+          <span>Scholarship applications for <strong>{activeLiveItem.title}</strong> are currently live and open for submissions.</span>
+        ) : (
+          <span>Scholarship applications will open soon. Check back for upcoming grants and fellowships.</span>
+        )}
+      </div>
+
       {/* Main Grid Split */}
-      <div className="grid lg:grid-cols-3 gap-8">
+      <div className="grid lg:grid-cols-3 gap-6">
         {/* Left Column: Scholarship List */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white rounded-2xl border border-outline-variant/30 overflow-hidden shadow-xs">
-            <div className="p-4 border-b border-outline-variant/30 bg-slate-50 font-bold text-slate-700 flex justify-between items-center text-xs uppercase tracking-wider">
+          <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+            <div className="p-4 border-b border-slate-200 bg-slate-50 font-bold text-slate-700 flex justify-between items-center text-xs uppercase tracking-wider">
               <span>Scholarship Drives</span>
-              <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-xs font-mono">{events.length}</span>
+              <span className="bg-slate-200 text-slate-800 px-2.5 py-0.5 rounded text-xs font-mono">{events.length}</span>
             </div>
 
             <div className="p-4 space-y-4">
               {events.map((ev) => {
                 const isOpen = ev.status === 'OPEN' || ev.status === 'ACTIVE';
                 const isScheduled = ev.status === 'SCHEDULED' || (ev.openDate && new Date(ev.openDate) > new Date());
-                const isDraft = ev.status === 'DRAFT';
 
                 return (
-                  <div key={ev.id} className="p-4 rounded-xl border border-outline-variant/30 hover:border-primary/40 transition-all space-y-3 bg-white">
+                  <div key={ev.id} className="p-4 rounded-lg border border-slate-200 hover:border-slate-300 transition-all space-y-3 bg-white">
                     <div className="flex justify-between items-start gap-2">
                       <h3 className="font-bold text-slate-900 text-sm leading-snug">{ev.title}</h3>
                       <button
                         onClick={() => handleDeleteScholarship(ev.id)}
-                        className="text-slate-400 hover:text-red-600 p-1"
+                        className="text-slate-400 hover:text-red-600 text-xs font-bold px-1"
                         title="Delete scholarship"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        Delete
                       </button>
                     </div>
 
@@ -330,12 +370,10 @@ export default function OutreachScholarships() {
                     <div className="flex items-center justify-between pt-1">
                       {isOpen ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider rounded-md border border-emerald-200">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                           <span>LIVE PUBLISHED</span>
                         </span>
                       ) : isScheduled ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-800 text-[10px] font-bold uppercase tracking-wider rounded-md border border-amber-200">
-                          <Clock className="w-3 h-3 text-amber-600" />
                           <span>SCHEDULED</span>
                         </span>
                       ) : (
@@ -352,7 +390,6 @@ export default function OutreachScholarships() {
                     {/* Date Details */}
                     {ev.openDate && (
                       <div className="text-[11px] font-mono text-slate-500 flex items-center gap-1 pt-1">
-                        <Calendar className="w-3 h-3 text-primary" />
                         <span>Opens: {new Date(ev.openDate).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
                       </div>
                     )}
@@ -362,10 +399,9 @@ export default function OutreachScholarships() {
                       {!isOpen && (
                         <button
                           onClick={() => handlePublishNow(ev.id)}
-                          className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-all active:scale-[0.98]"
+                          className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all"
                         >
-                          <Send className="w-3 h-3" />
-                          <span>Publish Now</span>
+                          Publish Now
                         </button>
                       )}
 
@@ -374,11 +410,10 @@ export default function OutreachScholarships() {
                           setScheduleModalItem(ev);
                           setScheduledDateTime(ev.openDate ? new Date(ev.openDate).toISOString().slice(0, 16) : '');
                         }}
-                        className="py-1.5 px-2.5 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all"
+                        className="py-1.5 px-2.5 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-lg text-[11px] font-bold transition-all"
                         title="Set or update scheduled publish time"
                       >
-                        <Clock className="w-3.5 h-3.5 text-primary" />
-                        <span>Schedule</span>
+                        Schedule
                       </button>
 
                       {isOpen && (
@@ -406,15 +441,14 @@ export default function OutreachScholarships() {
 
         {/* Right Column: Applicants Directory Table */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl border border-outline-variant/30 overflow-hidden shadow-xs">
-            <div className="p-4 border-b border-outline-variant/30 bg-slate-50 flex justify-between items-center gap-4">
-              <h2 className="font-bold text-slate-700 text-xs uppercase tracking-wider flex items-center gap-2">
-                <FileText className="w-4 h-4 text-primary" />
-                <span>Scholarship Applicants Registry</span>
+          <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+            <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center gap-4">
+              <h2 className="font-bold text-slate-700 text-xs uppercase tracking-wider">
+                Scholarship Applicants Registry
               </h2>
               
               <select 
-                className="bg-white border border-outline-variant/50 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
+                className="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 outline-none cursor-pointer"
                 value={selectedLevelFilter}
                 onChange={e => setSelectedLevelFilter(e.target.value)}
               >
@@ -428,14 +462,14 @@ export default function OutreachScholarships() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse font-sans text-xs">
                 <thead>
-                  <tr className="bg-slate-50 text-slate-500 text-[10px] font-bold uppercase tracking-wider border-b border-outline-variant/30">
+                  <tr className="bg-slate-50 text-slate-500 text-[10px] font-bold uppercase tracking-wider border-b border-slate-200">
                     <th className="p-4">Applicant Name</th>
                     <th className="p-4">Academic Level</th>
                     <th className="p-4">Application Status</th>
                     <th className="p-4 text-right">Submitted Date</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-outline-variant/20">
+                <tbody className="divide-y divide-slate-100">
                   {loading ? (
                     <tr>
                       <td colSpan={4} className="p-8 text-center text-slate-400 font-medium animate-pulse">Loading applicants...</td>
@@ -452,7 +486,7 @@ export default function OutreachScholarships() {
                           <p className="text-[11px] text-slate-500 font-mono">{app.email}</p>
                         </td>
                         <td className="p-4 font-mono font-bold">
-                          <span className="inline-block px-2.5 py-1 bg-blue-50 text-blue-700 text-[10px] uppercase rounded-md border border-blue-200">
+                          <span className="inline-block px-2.5 py-1 bg-slate-100 text-slate-700 text-[10px] uppercase rounded-md border border-slate-200">
                             {app.level || 'PRIMARY'}
                           </span>
                         </td>
@@ -493,16 +527,14 @@ export default function OutreachScholarships() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 20 }} 
-              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] border border-slate-200"
             >
-              <div className="p-6 border-b border-outline-variant/30 flex justify-between items-center bg-slate-50">
+              <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
                 <div>
                   <h2 className="text-xl font-black text-slate-900">Publish or Schedule Scholarship</h2>
                   <p className="text-xs text-slate-500 font-medium">Configure publication state, target dates & application requirements.</p>
                 </div>
-                <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
-                  <X className="w-5 h-5 text-slate-500" />
-                </button>
+                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-base">✕</button>
               </div>
 
               <div className="p-6 overflow-y-auto space-y-6">
@@ -517,7 +549,7 @@ export default function OutreachScholarships() {
                       required
                       value={form.title} 
                       onChange={e => setForm({...form, title: e.target.value})}
-                      className="w-full px-4 py-3 rounded-xl border border-outline-variant/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all font-medium text-sm"
+                      className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-1 focus:ring-slate-400 outline-none transition-all font-medium text-sm"
                       placeholder="e.g. 2026 Primary Excellence Scholarship"
                     />
                   </div>
@@ -531,13 +563,13 @@ export default function OutreachScholarships() {
                       rows={3}
                       value={form.description} 
                       onChange={e => setForm({...form, description: e.target.value})}
-                      className="w-full px-4 py-3 rounded-xl border border-outline-variant/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all font-medium text-sm resize-none"
+                      className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-1 focus:ring-slate-400 outline-none transition-all font-medium text-sm resize-none"
                       placeholder="Specify requirements, eligible regions, grant coverage, etc..."
                     />
                   </div>
 
                   {/* Publication Action Selector */}
-                  <div className="p-4 bg-slate-50 border border-outline-variant/40 rounded-2xl space-y-3">
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
                     <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider">
                       Publication Mode *
                     </label>
@@ -546,39 +578,36 @@ export default function OutreachScholarships() {
                       <button
                         type="button"
                         onClick={() => setForm({ ...form, publishOption: 'OPEN' })}
-                        className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
+                        className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
                           form.publishOption === 'OPEN'
                             ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                             : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
-                        <Send className="w-4 h-4" />
                         <span>Publish Live Now</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => setForm({ ...form, publishOption: 'SCHEDULED' })}
-                        className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
+                        className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
                           form.publishOption === 'SCHEDULED'
                             ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
                             : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
-                        <Clock className="w-4 h-4" />
                         <span>Schedule Date/Time</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => setForm({ ...form, publishOption: 'DRAFT' })}
-                        className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
+                        className={`p-3 rounded-lg border text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
                           form.publishOption === 'DRAFT'
-                            ? 'bg-slate-700 text-white border-slate-700 shadow-sm'
+                            ? 'bg-slate-800 text-white border-slate-800 shadow-sm'
                             : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
-                        <FileText className="w-4 h-4" />
                         <span>Save as Draft</span>
                       </button>
                     </div>
@@ -595,7 +624,7 @@ export default function OutreachScholarships() {
                         required={form.publishOption === 'SCHEDULED'}
                         value={form.openDate} 
                         onChange={e => setForm({...form, openDate: e.target.value})}
-                        className="w-full px-4 py-3 rounded-xl border border-outline-variant/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all font-mono text-xs font-bold text-slate-900"
+                        className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-1 focus:ring-slate-400 outline-none transition-all font-mono text-xs font-bold text-slate-900"
                       />
                     </div>
 
@@ -607,40 +636,40 @@ export default function OutreachScholarships() {
                         type="datetime-local" 
                         value={form.closeDate} 
                         onChange={e => setForm({...form, closeDate: e.target.value})}
-                        className="w-full px-4 py-3 rounded-xl border border-outline-variant/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all font-mono text-xs font-bold text-slate-900"
+                        className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-1 focus:ring-slate-400 outline-none transition-all font-mono text-xs font-bold text-slate-900"
                       />
                     </div>
                   </div>
 
                   {/* Custom Application Required Fields */}
-                  <div className="border-t border-outline-variant/30 pt-6">
+                  <div className="border-t border-slate-200 pt-6">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="font-bold text-slate-700 text-xs uppercase tracking-wider">Custom Required Documents & Fields</h3>
-                      <button type="button" onClick={addCustomField} className="text-primary font-bold text-xs hover:underline flex items-center gap-1">
-                        <Plus className="w-4 h-4" /> Add Field
+                      <button type="button" onClick={addCustomField} className="text-slate-900 font-bold text-xs hover:underline">
+                        + Add Field
                       </button>
                     </div>
                     
                     <div className="space-y-3">
                       {customFields.map((field, idx) => (
-                        <div key={idx} className="flex gap-3 items-start bg-slate-50 p-3 rounded-xl border border-outline-variant/30">
+                        <div key={idx} className="flex gap-3 items-start bg-slate-50 p-3 rounded-lg border border-slate-200">
                           <div className="flex-1 space-y-3">
                             <div className="grid grid-cols-2 gap-3">
                               <input 
                                 type="text" placeholder="Field Identifier (e.g. waec_cert)" 
                                 value={field.name} onChange={e => updateCustomField(idx, 'name', e.target.value)}
-                                className="w-full px-3 py-2 text-xs rounded-lg border border-outline-variant/50 outline-none font-mono" required
+                                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 outline-none font-mono" required
                               />
                               <input 
                                 type="text" placeholder="Label (e.g. Official WAEC Certificate)" 
                                 value={field.label} onChange={e => updateCustomField(idx, 'label', e.target.value)}
-                                className="w-full px-3 py-2 text-xs rounded-lg border border-outline-variant/50 outline-none font-medium" required
+                                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 outline-none font-medium" required
                               />
                             </div>
                             <div className="flex gap-4 items-center">
                               <select 
                                 value={field.type} onChange={e => updateCustomField(idx, 'type', e.target.value)}
-                                className="px-3 py-1.5 text-xs rounded-lg border border-outline-variant/50 outline-none font-bold"
+                                className="px-3 py-1.5 text-xs rounded-lg border border-slate-300 outline-none font-bold"
                               >
                                 <option value="file">File Upload Attachment</option>
                                 <option value="text">Short Text Response</option>
@@ -650,13 +679,13 @@ export default function OutreachScholarships() {
                                   type="checkbox" 
                                   checked={field.required} 
                                   onChange={e => updateCustomField(idx, 'required', e.target.checked)}
-                                  className="rounded text-primary focus:ring-primary"
+                                  className="rounded text-slate-900"
                                 /> Required Field
                               </label>
                             </div>
                           </div>
-                          <button type="button" onClick={() => removeCustomField(idx)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
-                            <Trash2 className="w-4 h-4" />
+                          <button type="button" onClick={() => removeCustomField(idx)} className="px-2 py-1 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg">
+                            Delete
                           </button>
                         </div>
                       ))}
@@ -668,15 +697,15 @@ export default function OutreachScholarships() {
                 </form>
               </div>
 
-              <div className="p-6 border-t border-outline-variant/30 bg-slate-50 flex justify-end gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-2.5 rounded-xl font-bold text-xs text-slate-600 hover:bg-slate-200 transition-colors uppercase tracking-wider">
+              <div className="p-6 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-2.5 rounded-lg font-bold text-xs text-slate-600 hover:bg-slate-200 transition-colors uppercase tracking-wider">
                   Cancel
                 </button>
                 <button 
                   type="submit" 
                   form="scholarship-form" 
                   disabled={isSubmitting} 
-                  className="px-8 py-3 rounded-xl font-bold text-xs uppercase tracking-wider bg-primary text-white hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center gap-2 shadow-md active:scale-[0.98]"
+                  className="px-8 py-3 rounded-lg font-bold text-xs uppercase tracking-wider bg-slate-900 text-white hover:bg-slate-800 transition-all disabled:opacity-50 shadow-sm"
                 >
                   {isSubmitting ? 'Processing...' : (form.publishOption === 'OPEN' ? 'Publish Live Now' : form.publishOption === 'SCHEDULED' ? 'Schedule Publication' : 'Save as Draft')}
                 </button>
@@ -690,15 +719,12 @@ export default function OutreachScholarships() {
       <AnimatePresence>
         {scheduleModalItem && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-3xl shadow-2xl p-6 max-w-md w-full space-y-4 border border-outline-variant/30">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full space-y-4 border border-slate-200">
               <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-primary" />
+                <h3 className="font-bold text-slate-900 text-base">
                   Schedule Publication
                 </h3>
-                <button onClick={() => setScheduleModalItem(null)} className="text-slate-400 hover:text-slate-600">
-                  <X className="w-5 h-5" />
-                </button>
+                <button onClick={() => setScheduleModalItem(null)} className="text-slate-400 hover:text-slate-600 font-bold text-base">✕</button>
               </div>
 
               <p className="text-xs text-slate-500">
@@ -715,7 +741,7 @@ export default function OutreachScholarships() {
                     required
                     value={scheduledDateTime}
                     onChange={(e) => setScheduledDateTime(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-outline-variant/50 focus:ring-2 focus:ring-primary/20 outline-none text-xs font-mono font-bold text-slate-900"
+                    className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-1 focus:ring-slate-400 outline-none text-xs font-mono font-bold text-slate-900"
                   />
                 </div>
 
@@ -723,13 +749,13 @@ export default function OutreachScholarships() {
                   <button
                     type="button"
                     onClick={() => setScheduleModalItem(null)}
-                    className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold"
+                    className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm hover:bg-primary/90"
+                    className="px-5 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold uppercase tracking-wider shadow-sm hover:bg-slate-800"
                   >
                     Save Scheduled Time
                   </button>

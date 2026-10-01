@@ -1,52 +1,52 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 interface RoleCard {
   role: 'CEO' | 'MANAGER' | 'EMPLOYEE' | 'OUTREACH_MANAGER';
-  emoji: string;
   title: string;
   subtitle: string;
   description: string;
   color: string;
-  bg: string;
+  badgeBg: string;
+  borderHover: string;
 }
 
 const ROLES: RoleCard[] = [
   {
     role: 'CEO',
-    emoji: '👔',
-    title: 'CEO',
+    title: 'CEO Workspace',
     subtitle: 'Chief Executive Officer',
-    description: 'Full access to enterprise command center, financial analytics, and strategic operations.',
-    color: '#2563EB',
-    bg: 'rgba(37,99,235,0.06)',
+    description: 'Full strategic control over enterprise command center, financial analytics, employee rosters, and system performance.',
+    color: 'text-[#0066FF]',
+    badgeBg: 'bg-blue-50 text-[#0066FF] border-blue-200/60',
+    borderHover: 'hover:border-blue-300 hover:shadow-blue-500/10',
   },
   {
     role: 'MANAGER',
-    emoji: '📊',
-    title: 'Manager',
-    subtitle: 'Department Manager',
-    description: 'Oversee department operations, approve requests, and manage team performance.',
-    color: '#0891b2',
-    bg: 'rgba(8,145,178,0.06)',
+    title: 'Manager Portal',
+    subtitle: 'Department Operations',
+    description: 'Oversee department workflows, approve requests, monitor employee activities, and manage team productivity.',
+    color: 'text-cyan-600',
+    badgeBg: 'bg-cyan-50 text-cyan-700 border-cyan-200/60',
+    borderHover: 'hover:border-cyan-300 hover:shadow-cyan-500/10',
   },
   {
     role: 'EMPLOYEE',
-    emoji: '👤',
-    title: 'Employee',
-    subtitle: 'Staff Member',
-    description: 'Access your personal workspace, tasks, expenses, and daily operations.',
-    color: '#059669',
-    bg: 'rgba(5,150,105,0.06)',
+    title: 'Employee Portal',
+    subtitle: 'Staff Workspace',
+    description: 'Access personal workspace, submit expense reports, request staff meals, view announcements, and track assigned tasks.',
+    color: 'text-emerald-600',
+    badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
+    borderHover: 'hover:border-emerald-300 hover:shadow-emerald-500/10',
   },
   {
     role: 'OUTREACH_MANAGER',
-    emoji: '🌍',
     title: 'Outreach Manager',
     subtitle: 'Community Impact',
-    description: 'Manage outreach programs, verify applications, publish blogs, and send newsletters.',
-    color: '#8B5CF6',
-    bg: 'rgba(139,92,246,0.06)',
+    description: 'Manage outreach programs, review applications, publish blogs, handle newsletter subscriptions, and track web analytics.',
+    color: 'text-purple-600',
+    badgeBg: 'bg-purple-50 text-purple-700 border-purple-200/60',
+    borderHover: 'hover:border-purple-300 hover:shadow-purple-500/10',
   },
 ];
 
@@ -59,106 +59,95 @@ export default function RoleSelect() {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans flex flex-col">
-      {/* Minimal Nav */}
-      <nav className="border-b border-gray-100 px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center gap-2.5">
-          <img src="/logo.png" alt="ENAKO OS" className="w-8 h-8 rounded-lg object-contain" />
-          <div>
-            <span className="font-bold text-[14px] text-[#0f172a] tracking-tight leading-none block">ENAKO OS</span>
-            <span className="text-[9px] text-gray-400 tracking-widest uppercase font-semibold leading-none block">Enterprise Operating System</span>
-          </div>
-        </div>
-      </nav>
-
-      {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-16">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border mb-5 text-[11px] font-bold tracking-widest uppercase"
-            style={{ borderColor: 'rgba(37,99,235,0.3)', color: '#2563EB', background: 'rgba(37,99,235,0.05)' }}
+    <div className="min-h-screen font-sans bg-[#F4F8FF] text-[#1E293B] antialiased flex flex-col justify-between selection:bg-blue-500 selection:text-white">
+      
+      {/* ── HEADER NAVIGATION ── */}
+      <header className="bg-white/95 backdrop-blur-md border-b border-blue-100/60 px-4 sm:px-6 lg:px-12 py-3.5 sm:py-4 transition-all sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          
+          {/* Back to Homepage Link */}
+          <Link
+            to="/"
+            className="text-xs sm:text-sm font-bold text-[#475569] hover:text-[#0066FF] transition-colors"
           >
-            Secure Access Portal
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-[#0f172a] mb-3 tracking-tight">
-            Who are you logging in as?
+            Back to Homepage
+          </Link>
+
+          {/* Real Company Logo & Title */}
+          <Link to="/" className="flex items-center gap-2.5 sm:gap-3 group">
+            <img
+              src="/logo.png"
+              alt="ENAKO Logo"
+              className="h-8 sm:h-10 w-auto object-contain group-hover:scale-105 transition-transform"
+            />
+            <div className="flex flex-col">
+              <span className="font-extrabold text-lg sm:text-xl tracking-tight text-[#0F172A] leading-none">
+                ENAKO
+              </span>
+              <span className="text-[9px] sm:text-[10px] font-bold tracking-widest text-[#0066FF] uppercase mt-0.5">
+                CLOUD SYSTEM
+              </span>
+            </div>
+          </Link>
+
+        </div>
+      </header>
+
+      {/* ── MAIN CONTENT ── */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-8 sm:py-12 flex-1 flex flex-col justify-center items-center w-full">
+        
+        {/* Title & Subtitle */}
+        <div className="text-center mb-8 sm:mb-12 flex flex-col items-center">
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-[#0F172A] tracking-tight mb-3 sm:mb-4">
+            Select Your Role Workspace
           </h1>
-          <p className="text-gray-400 text-[15px] max-w-sm mx-auto leading-relaxed">
-            Select your role to access your personalised workspace.
+          <p className="text-[#475569] text-sm sm:text-base max-w-md mx-auto leading-relaxed font-normal">
+            Choose your designated enterprise authority to enter your customized dashboard interface.
           </p>
         </div>
 
-        {/* Role Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 w-full max-w-5xl">
+        {/* Role Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl">
           {ROLES.map((card) => (
             <button
               key={card.role}
+              type="button"
               onClick={() => handleSelect(card.role)}
-              className="group flex flex-col items-center text-center p-8 rounded-2xl border-2 transition-all duration-200 cursor-pointer"
-              style={{
-                borderColor: 'rgba(0,0,0,0.08)',
-                background: '#fff',
-              }}
-              onMouseEnter={(e) => {
-                const el = e.currentTarget;
-                el.style.borderColor = card.color;
-                el.style.background = card.bg;
-                el.style.transform = 'translateY(-4px)';
-                el.style.boxShadow = `0 12px 32px ${card.color}22`;
-              }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget;
-                el.style.borderColor = 'rgba(0,0,0,0.08)';
-                el.style.background = '#fff';
-                el.style.transform = 'translateY(0)';
-                el.style.boxShadow = 'none';
-              }}
+              className={`group flex flex-col justify-between text-left p-7 rounded-3xl bg-white border border-slate-100 shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1.5 ${card.borderHover}`}
             >
-              {/* Logo Icon */}
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 transition-all duration-200 p-3"
-                style={{ background: card.bg }}
-              >
-                <img src="/logo.png" alt="ENAKO OS" className="w-full h-full object-contain" />
+              <div>
+                {/* Subtitle Badge */}
+                <span className={`inline-block text-[11px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full border mb-4 ${card.badgeBg}`}>
+                  {card.subtitle}
+                </span>
+
+                {/* Title */}
+                <h2 className="font-extrabold text-xl text-[#0F172A] mb-2 tracking-tight group-hover:text-[#0066FF] transition-colors">
+                  {card.title}
+                </h2>
+
+                {/* Description */}
+                <p className="text-[#64748B] text-xs leading-relaxed font-normal">
+                  {card.description}
+                </p>
               </div>
 
-              {/* Title */}
-              <h2
-                className="font-black text-xl mb-1 tracking-tight transition-colors duration-200"
-                style={{ color: '#0f172a' }}
-              >
-                {card.title}
-              </h2>
-
-              {/* Subtitle */}
-              <p className="text-[11px] font-bold uppercase tracking-widest mb-3" style={{ color: card.color }}>
-                {card.subtitle}
-              </p>
-
-              {/* Description */}
-              <p className="text-gray-400 text-[13px] leading-relaxed">
-                {card.description}
-              </p>
-
-              {/* Arrow */}
-              <div
-                className="mt-6 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wider transition-all duration-200"
-                style={{ color: card.color }}
-              >
-                Select Role
-                <span className="transition-transform duration-200 group-hover:translate-x-1">→</span>
+              {/* Action Link */}
+              <div className={`mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold ${card.color}`}>
+                <span>Authenticate Session</span>
+                <span className="transform group-hover:translate-x-1 transition-transform">→</span>
               </div>
             </button>
           ))}
         </div>
 
-        {/* Security note */}
-        <p className="mt-10 text-[12px] text-gray-400 text-center max-w-sm">
-          🔒 Access is restricted to authorised ENAKO personnel only.
-          All login attempts are logged and monitored.
-        </p>
-      </div>
+      </main>
+
+      {/* ── FOOTER ── */}
+      <footer className="w-full bg-white border-t border-blue-100/60 py-6 px-6 text-center text-[#64748B] text-xs font-medium">
+        <p>&copy; {new Date().getFullYear()} ENAKO Cloud System. Encrypted Role Access Portal.</p>
+      </footer>
+
     </div>
   );
 }

@@ -40,6 +40,8 @@ export function storeSession(session: { accessToken: string; refreshToken: strin
   sessionStorage.setItem('enako_user_name', session.user.fullName);
   sessionStorage.setItem('enako_user_email', session.user.email);
   if (session.sessionId) sessionStorage.setItem('enako_session_id', session.sessionId);
+  if (session.user.role) localStorage.setItem('enako_last_role', session.user.role.toUpperCase());
+  if (session.user.email) localStorage.setItem('enako_last_email', session.user.email);
 }
 
 export function clearSession() {

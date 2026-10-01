@@ -2,31 +2,6 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { 
-  User, 
-  Lock, 
-  Bell, 
-  Shield, 
-  Database, 
-  Globe, 
-  Cloud,
-  Settings as SettingsIcon,
-  ChevronRight,
-  LogOut,
-  AppWindow,
-  Monitor,
-  Key,
-  Smartphone,
-  Mail,
-  MessageSquare,
-  AlertTriangle,
-  Download,
-  Trash2,
-  CheckCircle2,
-  Github,
-  Slack,
-  X
-} from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
@@ -100,21 +75,8 @@ export default function Settings() {
       else toast.info(`${title} disabled`);
     } catch (err) {
       toast.error('Failed to update preference');
-      setToggles((prev) => ({ ...prev, [key]: !newState })); // revert
+      setToggles((prev) => ({ ...prev, [key]: !newState }));
     }
-  };
-
-  const handleSave = () => {
-    // Toggles are auto-saved now.
-    toast.success('System profile updated successfully');
-  };
-
-  const handleDiscard = () => {
-    toast.info('Changes discarded');
-  };
-
-  const handleUpdateIdentity = () => {
-    toast.info('Identity update request initiated. Please check your email.');
   };
 
   const handleChangePassword = () => {
@@ -159,91 +121,120 @@ export default function Settings() {
 
   if (!['ceo', 'admin', 'manager'].includes(role)) {
     return (
-      <div className="h-[60vh] flex flex-col items-center justify-center text-center space-y-4">
-        <SettingsIcon className="w-16 h-16 text-outline-variant" />
-        <h2 className="text-2xl font-display font-bold text-primary">System Configuration Locked</h2>
-        <p className="text-secondary max-w-sm">Only administrative nodes can modify global system parameters and security protocols.</p>
+      <div className="h-[60vh] flex flex-col items-center justify-center text-center space-y-3 p-8">
+        <h2 className="text-xl font-bold text-slate-900">System Configuration Locked</h2>
+        <p className="text-slate-500 text-xs max-w-sm">Only administrative nodes can modify global system parameters and security protocols.</p>
       </div>
     );
   }
 
   const tabs = [
-    { name: 'Profile Account', icon: User },
-    { name: 'Security & Auth', icon: Shield },
-    { name: 'Notifications', icon: Bell },
-    { name: 'Data & Privacy', icon: Database },
-    { name: 'Integrations', icon: Cloud },
+    'Profile Account',
+    'Security & Auth',
+    'Notifications',
+    'Data & Privacy',
+    'Integrations',
   ];
 
   const privacyToggles = [
     { key: 'analytics' as const, title: 'Enable Analytics Tracking', desc: 'Allow Enako Labs to collect anonymized performance data to improve OS speed.' },
-    { key: 'mfa' as const, title: 'Two-Factor Authentication', desc: 'Require a biometric scan or hardware key for all transaction approvals.' },
+    { key: 'mfa' as const, title: 'Two-Factor Authentication', desc: 'Require authentication verification for all transaction approvals.' },
     { key: 'aiWorkspace' as const, title: 'AI Workspace Optimization', desc: 'Automatically organize your dashboard based on your current deep work state.' },
   ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-12">
-      <div>
-        <h1 className="font-display text-4xl font-bold text-primary tracking-tight">System Preferences</h1>
-        <p className="text-secondary text-base">Manage your personal profile, security tiers, and global OS configurations.</p>
+    <div className="space-y-6 font-sans pb-24">
+      {/* Clean Top Header & Breadcrumb (No heavy card) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            <span>System</span>
+            <span>/</span>
+            <span className="text-[#001f5b] font-bold">Preferences</span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            System Preferences & Information
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Personal account parameters, operational communication channels, and security settings.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={handleExportData}
+            className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+          >
+            Export Archive
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-        <aside className="lg:col-span-4 h-fit sticky top-8">
-           <nav className="space-y-2">
-             {tabs.map((item) => (
-               <button 
-                 key={item.name}
-                 onClick={() => setActiveTab(item.name)}
-                 className={cn(
-                   "w-full flex items-center justify-between px-6 py-4 rounded-2xl text-[11px] font-bold uppercase tracking-widest transition-all group",
-                   activeTab === item.name ? "bg-primary text-white shadow-xl" : "text-secondary hover:bg-surface-container"
-                 )}
-               >
-                 <div className="flex items-center gap-4">
-                   <item.icon className="w-5 h-5" />
-                   <span>{item.name}</span>
-                 </div>
-                 {activeTab !== item.name && <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all" />}
-               </button>
-             ))}
-           </nav>
-
-           <div className="mt-12 p-8 bg-surface-container rounded-3xl border border-outline-variant/10">
-              <div className="flex items-center gap-4 mb-4">
-                <AppWindow className="w-5 h-5 text-primary-container" />
-                <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">ENAKO OS V1.0.0</span>
-              </div>
-              <p className="text-[10px] font-bold text-secondary uppercase tracking-widest leading-relaxed">Enterprise Edition • Licensed to Enako Fintech Ltd.</p>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Navigation Tabs (Clean vertical list, no outer cards) */}
+        <aside className="lg:col-span-3 space-y-4">
+          <nav className="space-y-1">
+            {tabs.map((tabName) => (
               <button 
-                onClick={handleLogout}
-                className="mt-8 text-[11px] font-bold text-error uppercase tracking-widest flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+                key={tabName}
+                onClick={() => setActiveTab(tabName)}
+                className={cn(
+                  "w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors",
+                  activeTab === tabName
+                    ? "bg-[#001f5b] text-white shadow-2xs"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                )}
               >
-                <LogOut className="w-4 h-4" />
-                Sign Out from All Devices
+                {tabName}
               </button>
-           </div>
+            ))}
+          </nav>
+
+          <div className="pt-4 border-t border-slate-200/80 space-y-2 text-xs">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Session Node</p>
+            <p className="text-slate-600 font-medium">Logged in as <strong className="text-slate-900">{userName}</strong></p>
+            <p className="text-slate-400 text-[11px]">Role clearance: {role.toUpperCase()}</p>
+            <button 
+              onClick={handleLogout}
+              className="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline uppercase tracking-wider block pt-2 cursor-pointer"
+            >
+              Sign Out from All Devices
+            </button>
+          </div>
         </aside>
 
-        <main className="lg:col-span-8 space-y-12">
+        {/* Tab Content (Informational messages & clean dividers, no nested cards) */}
+        <main className="lg:col-span-9 space-y-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="space-y-12"
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="space-y-8"
             >
-              {/* ── PROFILE ACCOUNT ── */}
+              {/* Profile Account */}
               {activeTab === 'Profile Account' && (
-                <>
-                  <section className="bg-white border border-outline-variant/30 p-10 rounded-[2.5rem] shadow-sm">
-                    <h3 className="text-xl font-bold text-primary mb-10 flex items-center gap-3">
-                      <User className="w-6 h-6 text-primary-container" />
-                      Account Information
-                    </h3>
-                    <form className="space-y-8" onSubmit={async (e) => {
+                <div className="space-y-8">
+                  {/* Account Information Section */}
+                  <div className="space-y-4 border-b border-slate-200/80 pb-8">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 uppercase tracking-wider">Account Information</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">Your official enterprise profile credentials recorded on the personnel directory.</p>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 flex items-center gap-4 text-xs">
+                      <div className="size-12 rounded-lg bg-[#001f5b] text-white flex items-center justify-center font-bold text-lg">
+                        {userName.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">{userName}</p>
+                        <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wider mt-0.5">{role} Authority Node • {userEmail}</p>
+                      </div>
+                    </div>
+
+                    <form className="space-y-4 pt-2" onSubmit={async (e) => {
                       e.preventDefault();
                       try {
                         const form = e.target as HTMLFormElement;
@@ -260,252 +251,225 @@ export default function Settings() {
                           sessionStorage.setItem('enako_user', JSON.stringify({ ...JSON.parse(storedStr), ...updated }));
                         }
                         toast.success('System profile updated successfully');
-                        setTimeout(() => window.location.reload(), 1000);
                       } catch (err: any) {
                         toast.error(err.message || 'Failed to update profile');
                       }
                     }}>
-                      <div className="flex items-center gap-8">
-                          <div className="relative group cursor-pointer">
-                            <div className="size-24 rounded-3xl bg-primary/10 flex items-center justify-center shadow-lg group-hover:opacity-80 transition-all">
-                              <span className="text-4xl font-bold text-primary">{userName.charAt(0)}</span>
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-xl font-bold text-primary">{userName}</p>
-                            <p className="text-[11px] font-bold text-secondary uppercase tracking-widest mt-1">Global {role} Node</p>
-                          </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Full Name</label>
+                          <input name="fullName" defaultValue={userName} required className="w-full bg-white border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b] font-medium" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Corporate Email</label>
+                          <input name="email" defaultValue={userEmail} required type="email" className="w-full bg-white border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b] font-medium" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Title / Position</label>
+                          <input name="title" defaultValue={user?.title || ''} className="w-full bg-white border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b] font-medium" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Phone Number</label>
+                          <input name="phone" defaultValue={user?.phone || ''} className="w-full bg-white border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b] font-medium" />
+                        </div>
+                        <div className="col-span-1 md:col-span-2">
+                          <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Office Address</label>
+                          <input name="address" defaultValue={user?.address || ''} className="w-full bg-white border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b] font-medium" />
+                        </div>
                       </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                          <div className="space-y-2">
-                              <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Full Name</label>
-                              <input name="fullName" defaultValue={userName} required className="w-full bg-surface-container-low border border-outline-variant/10 rounded-2xl px-6 py-4 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container/20" />
-                          </div>
-                          <div className="space-y-2">
-                              <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Corporate Email (Login)</label>
-                              <input name="email" defaultValue={userEmail} required type="email" className="w-full bg-surface-container-low border border-outline-variant/10 rounded-2xl px-6 py-4 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container/20" />
-                          </div>
-                          <div className="space-y-2">
-                              <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Title</label>
-                              <input name="title" defaultValue={user?.title || ''} className="w-full bg-surface-container-low border border-outline-variant/10 rounded-2xl px-6 py-4 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container/20" />
-                          </div>
-                          <div className="space-y-2">
-                              <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Phone Number</label>
-                              <input name="phone" defaultValue={user?.phone || ''} className="w-full bg-surface-container-low border border-outline-variant/10 rounded-2xl px-6 py-4 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container/20" />
-                          </div>
-                          <div className="col-span-1 md:col-span-2 space-y-2">
-                              <label className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Address</label>
-                              <input name="address" defaultValue={user?.address || ''} className="w-full bg-surface-container-low border border-outline-variant/10 rounded-2xl px-6 py-4 text-sm font-medium text-primary outline-none focus:ring-2 focus:ring-primary-container/20" />
-                          </div>
-                      </div>
-                      <div className="flex justify-end pt-4">
-                        <button type="submit" className="px-8 py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest hover:opacity-90 transition-all shadow-lg hover:shadow-xl">
-                          Update Identity
+                      <div className="flex justify-end pt-2">
+                        <button type="submit" className="px-5 py-2.5 bg-[#001f5b] hover:bg-[#001744] text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors shadow-2xs cursor-pointer">
+                          Save Identity Changes
                         </button>
                       </div>
                     </form>
-                  </section>
+                  </div>
 
-                  <section className="bg-white border border-outline-variant/30 p-10 rounded-[2.5rem] shadow-sm">
-                    <h3 className="text-xl font-bold text-primary mb-10 flex items-center gap-3">
-                      <Lock className="w-6 h-6 text-primary-container" />
-                      Privacy & Platform OS
-                    </h3>
-                    <div className="space-y-6">
+                  {/* Privacy & Platform Preferences */}
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 uppercase tracking-wider">Privacy & Telemetry Policies</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">Control automated telemetry tracking and background workspace optimizations.</p>
+                    </div>
+
+                    <div className="space-y-3">
                       {privacyToggles.map((toggle) => {
-                          const isActive = toggles[toggle.key as keyof typeof toggles];
-                          return (
-                            <div key={toggle.key} className="flex items-center justify-between p-6 bg-surface-container-low/50 rounded-3xl border border-outline-variant/5">
-                              <div className="max-w-md">
-                                  <p className="text-sm font-bold text-primary">{toggle.title}</p>
-                                  <p className="text-xs text-secondary mt-1">{toggle.desc}</p>
-                              </div>
-                              <button 
-                                onClick={() => handleToggle(toggle.key as keyof typeof toggles, toggle.title)}
-                                className={cn(
-                                  "w-12 h-6 rounded-full relative transition-all duration-300 cursor-pointer",
-                                  isActive ? "bg-primary" : "bg-outline-variant"
-                                )}
-                              >
-                                  <div className={cn(
-                                    "absolute top-1 size-4 bg-white rounded-full transition-all duration-300 shadow-sm",
-                                    isActive ? "left-7" : "left-1"
-                                  )}></div>
-                              </button>
+                        const isActive = toggles[toggle.key as keyof typeof toggles];
+                        return (
+                          <div key={toggle.key} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200">
+                            <div className="max-w-md">
+                              <p className="text-xs font-bold text-slate-900">{toggle.title}</p>
+                              <p className="text-[11px] text-slate-500 mt-0.5">{toggle.desc}</p>
                             </div>
-                          );
+                            <button 
+                              onClick={() => handleToggle(toggle.key as keyof typeof toggles, toggle.title)}
+                              className={cn(
+                                "w-11 h-6 rounded-full relative transition-colors cursor-pointer shrink-0",
+                                isActive ? "bg-[#001f5b]" : "bg-slate-300"
+                              )}
+                            >
+                              <div className={cn(
+                                "absolute top-1 size-4 bg-white rounded-full transition-all shadow-sm",
+                                isActive ? "left-6" : "left-1"
+                              )}></div>
+                            </button>
+                          </div>
+                        );
                       })}
                     </div>
-                  </section>
-                </>
+                  </div>
+                </div>
               )}
 
-              {/* ── SECURITY & AUTH ── */}
+              {/* Security & Auth */}
               {activeTab === 'Security & Auth' && (
-                <>
-                  <section className="bg-white border border-outline-variant/30 p-10 rounded-[2.5rem] shadow-sm">
-                    <h3 className="text-xl font-bold text-primary mb-10 flex items-center gap-3">
-                      <Key className="w-6 h-6 text-primary-container" />
-                      Password Management
-                    </h3>
-                    <div className="space-y-6">
-                      <p className="text-sm text-secondary">Ensure your account is using a long, random password to stay secure.</p>
-                      <button 
-                        onClick={handleChangePassword}
-                        className="px-6 py-3 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
-                      >
-                        Change Password
-                      </button>
-                    </div>
-                  </section>
+                <div className="space-y-8">
+                  <div className="space-y-3 border-b border-slate-200/80 pb-6">
+                    <h3 className="text-base font-bold text-slate-900 uppercase tracking-wider">Access Credentials</h3>
+                    <p className="text-xs text-slate-500">Regularly update your login passphrase to protect corporate financial ledger records.</p>
+                    <button 
+                      onClick={handleChangePassword}
+                      className="px-4 py-2 bg-[#001f5b] hover:bg-[#001744] text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors shadow-2xs cursor-pointer"
+                    >
+                      Update Passphrase
+                    </button>
+                  </div>
 
-                  <section className="bg-white border border-outline-variant/30 p-10 rounded-[2.5rem] shadow-sm">
-                    <h3 className="text-xl font-bold text-primary mb-10 flex items-center gap-3">
-                      <Smartphone className="w-6 h-6 text-primary-container" />
-                      Active Sessions
-                    </h3>
-                    <div className="space-y-4">
-                      {sessions.length === 0 && <p className="text-sm text-secondary">No active sessions found.</p>}
+                  <div className="space-y-4">
+                    <h3 className="text-base font-bold text-slate-900 uppercase tracking-wider">Active Device Sessions</h3>
+                    <p className="text-xs text-slate-500">Authorized browsers and devices currently authenticated with your identity token.</p>
+                    
+                    <div className="space-y-2.5">
+                      {sessions.length === 0 && <p className="text-xs text-slate-500">No active remote sessions found.</p>}
                       {sessions.map((session, i) => (
-                        <div key={session.id} className="flex items-center justify-between p-6 border border-outline-variant/20 rounded-2xl">
+                        <div key={session.id} className="flex items-center justify-between p-3.5 border border-slate-200 rounded-lg bg-slate-50">
                           <div>
-                            <p className="text-sm font-bold text-primary">
+                            <p className="text-xs font-bold text-slate-900">
                               {session.device || 'Unknown Device'} 
-                              {i === 0 && <span className="ml-2 text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full uppercase">Current</span>}
+                              {i === 0 && <span className="ml-2 text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded uppercase font-bold">Current</span>}
                             </p>
-                            <p className="text-xs text-secondary mt-1">{session.location || 'Unknown Location'} • {session.ipAddress}</p>
-                            <p className="text-[10px] text-secondary mt-1">Started: {new Date(session.createdAt).toLocaleString()}</p>
+                            <p className="text-[11px] text-slate-500 mt-0.5 font-mono">{session.location || 'Douala'} • {session.ipAddress}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5 font-mono">Started: {new Date(session.createdAt).toLocaleString()}</p>
                           </div>
                           {i !== 0 && (
-                            <button onClick={() => handleRevokeSession(session.id)} className="text-[10px] font-bold text-error uppercase hover:underline">Revoke</button>
+                            <button onClick={() => handleRevokeSession(session.id)} className="text-xs font-semibold text-rose-600 uppercase hover:underline">Revoke</button>
                           )}
                         </div>
                       ))}
                     </div>
-                  </section>
-                </>
+                  </div>
+                </div>
               )}
 
-              {/* ── NOTIFICATIONS ── */}
+              {/* Notifications */}
               {activeTab === 'Notifications' && (
-                <section className="bg-white border border-outline-variant/30 p-10 rounded-[2.5rem] shadow-sm">
-                  <h3 className="text-xl font-bold text-primary mb-10 flex items-center gap-3">
-                    <Bell className="w-6 h-6 text-primary-container" />
-                    Notification Channels
-                  </h3>
-                  <div className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 uppercase tracking-wider">Alert & Message Channels</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Configure operational notifications delivered via email, in-app badges, and SMS.</p>
+                  </div>
+
+                  <div className="space-y-3">
                     {[
-                      { key: 'emailNotif', icon: Mail, title: 'Email Notifications', desc: 'Receive daily summaries and critical security alerts.' },
-                      { key: 'pushNotif', icon: Monitor, title: 'In-App Push Alerts', desc: 'Real-time notifications within the ENAKO OS dashboard.' },
-                      { key: 'smsNotif', icon: MessageSquare, title: 'SMS Alerts', desc: 'Get text messages for high-priority transaction approvals.' },
+                      { key: 'emailNotif', title: 'Corporate Email Notifications', desc: 'Receive daily audit reports, settlement summaries, and urgent executive alerts.' },
+                      { key: 'pushNotif', title: 'In-App Live Telemetry Alerts', desc: 'Real-time toaster notifications when transactions and KYC submissions arrive.' },
+                      { key: 'smsNotif', title: 'Critical SMS Alerts', desc: 'Direct mobile phone text alerts for emergency cash collections and vault clearances.' },
                     ].map((channel) => {
                       const isActive = toggles[channel.key as keyof typeof toggles];
                       return (
-                        <div key={channel.key} className="flex items-center justify-between p-6 bg-surface-container-low/50 rounded-3xl border border-outline-variant/5">
-                           <div className="flex items-start gap-4">
-                             <div className="p-3 bg-white rounded-xl shadow-sm border border-outline-variant/10">
-                               <channel.icon className="w-5 h-5 text-primary" />
-                             </div>
-                             <div>
-                                <p className="text-sm font-bold text-primary">{channel.title}</p>
-                                <p className="text-xs text-secondary mt-1">{channel.desc}</p>
-                             </div>
-                           </div>
-                           <button 
-                             onClick={() => handleToggle(channel.key as keyof typeof toggles, channel.title)}
-                             className={cn(
-                               "w-12 h-6 rounded-full relative transition-all duration-300 cursor-pointer",
-                               isActive ? "bg-primary" : "bg-outline-variant"
-                             )}
-                           >
-                              <div className={cn(
-                                "absolute top-1 size-4 bg-white rounded-full transition-all duration-300 shadow-sm",
-                                isActive ? "left-7" : "left-1"
-                              )}></div>
-                           </button>
+                        <div key={channel.key} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200">
+                          <div>
+                            <p className="text-xs font-bold text-slate-900">{channel.title}</p>
+                            <p className="text-[11px] text-slate-500 mt-0.5">{channel.desc}</p>
+                          </div>
+                          <button 
+                            onClick={() => handleToggle(channel.key as keyof typeof toggles, channel.title)}
+                            className={cn(
+                              "w-11 h-6 rounded-full relative transition-colors cursor-pointer shrink-0",
+                              isActive ? "bg-[#001f5b]" : "bg-slate-300"
+                            )}
+                          >
+                            <div className={cn(
+                              "absolute top-1 size-4 bg-white rounded-full transition-all shadow-sm",
+                              isActive ? "left-6" : "left-1"
+                            )}></div>
+                          </button>
                         </div>
                       );
                     })}
                   </div>
-                </section>
+                </div>
               )}
 
-              {/* ── DATA & PRIVACY ── */}
+              {/* Data & Privacy */}
               {activeTab === 'Data & Privacy' && (
-                <>
-                  <section className="bg-white border border-outline-variant/30 p-10 rounded-[2.5rem] shadow-sm">
-                    <h3 className="text-xl font-bold text-primary mb-10 flex items-center gap-3">
-                      <Download className="w-6 h-6 text-primary-container" />
-                      Data Export
-                    </h3>
-                    <p className="text-sm text-secondary mb-6">Request a complete archive of your personal activity logs, transactions, and profile data in JSON or CSV format.</p>
-                    <button onClick={handleExportData} className="px-6 py-3 border border-outline-variant text-primary rounded-xl text-[11px] font-bold uppercase tracking-widest hover:bg-surface-container transition-colors">
-                      Request Archive
+                <div className="space-y-8">
+                  <div className="space-y-3 border-b border-slate-200/80 pb-6">
+                    <h3 className="text-base font-bold text-slate-900 uppercase tracking-wider">Compliance Data Export</h3>
+                    <p className="text-xs text-slate-500">Request a complete cryptographic archive of your personal activity logs, transactions, and profile data in JSON format.</p>
+                    <button onClick={handleExportData} className="px-4 py-2 border border-slate-300 bg-white text-slate-700 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-slate-50 transition-colors shadow-2xs">
+                      Export Data Archive
                     </button>
-                  </section>
+                  </div>
 
-                  <section className="bg-error/5 border border-error/20 p-10 rounded-[2.5rem] shadow-sm mt-8">
-                    <h3 className="text-xl font-bold text-error mb-4 flex items-center gap-3">
-                      <AlertTriangle className="w-6 h-6" />
-                      Danger Zone
-                    </h3>
-                    <p className="text-sm text-error/80 mb-6">Irreversibly delete your ENAKO OS account and all associated personal records. This action cannot be undone.</p>
-                    <button onClick={handleDeleteAccount} className="px-6 py-3 bg-error text-white rounded-xl text-[11px] font-bold uppercase tracking-widest hover:opacity-90 transition-opacity">
-                      Delete Account
+                  <div className="space-y-3">
+                    <h3 className="text-base font-bold text-rose-700 uppercase tracking-wider">Account Deletion Zone</h3>
+                    <p className="text-xs text-slate-500">Permanently de-provision your account credentials and revoke cryptographic certificates.</p>
+                    <button onClick={handleDeleteAccount} className="px-4 py-2 bg-rose-600 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-rose-700 transition-colors shadow-2xs">
+                      De-provision Account
                     </button>
-                  </section>
-                </>
+                  </div>
+                </div>
               )}
 
-              {/* ── INTEGRATIONS ── */}
+              {/* Integrations */}
               {activeTab === 'Integrations' && (
-                <section className="bg-white border border-outline-variant/30 p-10 rounded-[2.5rem] shadow-sm">
-                  <h3 className="text-xl font-bold text-primary mb-10 flex items-center gap-3">
-                    <Cloud className="w-6 h-6 text-primary-container" />
-                    Connected Applications
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 uppercase tracking-wider">Connected Infrastructure Applications</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Manage external webhook endpoints and enterprise communication bridges.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
-                      { key: 'slackConnected', name: 'Slack', icon: Slack, desc: 'Send alerts to #operations channel' },
-                      { key: 'awsConnected', name: 'AWS Services', icon: Database, desc: 'Connect to external S3 buckets' },
+                      { key: 'slackConnected', name: 'Slack Messaging Webhooks', desc: 'Post instant notifications to corporate audit channels' },
+                      { key: 'awsConnected', name: 'AWS Cloud Services', desc: 'Secure document storage bucket integration' },
                     ].map((app) => {
                       const isActive = toggles[app.key as keyof typeof toggles];
                       return (
-                        <div key={app.key} className="p-6 border border-outline-variant/20 rounded-3xl flex flex-col items-start gap-4">
-                          <app.icon className="w-8 h-8 text-primary" />
+                        <div key={app.key} className="p-4 border border-slate-200 rounded-lg bg-slate-50 flex flex-col justify-between">
                           <div>
-                            <p className="text-sm font-bold text-primary">{app.name}</p>
-                            <p className="text-[11px] text-secondary mt-1">{app.desc}</p>
+                            <p className="text-xs font-bold text-slate-900 uppercase tracking-wider">{app.name}</p>
+                            <p className="text-[11px] text-slate-500 mt-1">{app.desc}</p>
                           </div>
-                          <div className="mt-auto pt-4 w-full flex items-center justify-between border-t border-outline-variant/10">
-                            <span className={cn("text-[10px] font-bold uppercase tracking-widest", isActive ? "text-green-600" : "text-secondary")}>
+                          <div className="mt-4 pt-3 flex items-center justify-between border-t border-slate-200">
+                            <span className={cn("text-[10px] font-bold uppercase tracking-wider", isActive ? "text-emerald-700" : "text-slate-500")}>
                               {isActive ? 'Connected' : 'Not Connected'}
                             </span>
                             <button 
                               onClick={() => handleToggle(app.key as keyof typeof toggles, app.name)}
-                              className="text-[10px] font-bold text-primary uppercase hover:underline"
+                              className="text-xs font-semibold text-slate-900 uppercase hover:underline cursor-pointer"
                             >
                               {isActive ? 'Disconnect' : 'Connect'}
                             </button>
                           </div>
                         </div>
-                      )
+                      );
                     })}
                   </div>
-                </section>
+                </div>
               )}
-
             </motion.div>
           </AnimatePresence>
 
+          {/* Change Password Modal */}
           {showChangePassword && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowChangePassword(false)} className="absolute inset-0 bg-primary/20 backdrop-blur-sm" />
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-outline-variant/30 z-10">
-                <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-low">
-                  <h3 className="text-lg font-bold text-primary flex items-center gap-2"><Lock className="w-5 h-5 text-secondary" /> Change Password</h3>
-                  <button onClick={() => setShowChangePassword(false)}><X className="w-5 h-5 text-secondary" /></button>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowChangePassword(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs" />
+              <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="relative w-full max-w-md bg-white rounded-lg shadow-xl overflow-hidden border border-slate-200 z-10">
+                <div className="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                  <h3 className="text-base font-bold text-slate-900">Change Password</h3>
+                  <button onClick={() => setShowChangePassword(false)} className="text-slate-400 hover:text-slate-600 text-lg leading-none font-bold cursor-pointer">✕</button>
                 </div>
                 <form onSubmit={async (e) => {
                   e.preventDefault();
@@ -523,35 +487,18 @@ export default function Settings() {
                   }
                 }} className="p-6 space-y-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">Current Password</label>
-                    <input required type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" />
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Current Password</label>
+                    <input required type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-[#001f5b] text-slate-900" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-secondary mb-2 uppercase tracking-widest">New Password</label>
-                    <input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-surface border border-outline-variant/30 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-primary-container/20" minLength={8} />
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">New Password</label>
+                    <input required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-[#001f5b] text-slate-900" minLength={8} />
                   </div>
-                  <button type="submit" disabled={updatingPassword} className="w-full py-4 bg-primary text-white rounded-xl text-[11px] font-bold uppercase tracking-widest mt-4 disabled:opacity-50">
+                  <button type="submit" disabled={updatingPassword} className="w-full py-2.5 bg-[#001f5b] hover:bg-[#001744] text-white rounded-lg text-xs font-bold uppercase tracking-wider mt-4 transition-colors disabled:opacity-50 shadow-2xs cursor-pointer">
                     {updatingPassword ? 'Updating...' : 'Update Password'}
                   </button>
                 </form>
               </motion.div>
-            </div>
-          )}
-
-          {(activeTab === 'Profile Account' || activeTab === 'Notifications') && (
-            <div className="flex justify-end gap-4 mt-8">
-              <button 
-                onClick={handleDiscard}
-                className="px-10 py-4 bg-surface-container-high text-secondary rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-surface-container transition-all cursor-pointer"
-              >
-                Discard Changes
-              </button>
-              <button 
-                onClick={handleSave}
-                className="px-10 py-4 bg-primary text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest shadow-xl hover:shadow-2xl transition-all cursor-pointer"
-              >
-                Save System Profile
-              </button>
             </div>
           )}
         </main>

@@ -1,11 +1,12 @@
 import { apiRequest } from './core';
 
 export const employeesApi = {
-  employees: (params?: { search?: string; page?: number; limit?: number }) => {
+  employees: (params?: { search?: string; page?: number; limit?: number; department?: string }) => {
     const q = new URLSearchParams();
     if (params?.search) q.set('search', params.search);
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.department) q.set('department', params.department);
     return apiRequest<{ items: any[]; total: number; page: number; limit: number }>(`/employees?${q}`);
   },
   createEmployee: (body: unknown) =>

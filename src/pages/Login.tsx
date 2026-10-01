@@ -20,18 +20,28 @@ const ROLE_EMOJIS: Record<Role, string> = {
   OUTREACH_MANAGER: '🌍'
 };
 
+const ROLE_OPTIONS: { role: Role; label: string; short: string; emoji: string }[] = [
+  { role: 'EMPLOYEE', label: 'Staff Member', short: 'Staff', emoji: '👤' },
+  { role: 'MANAGER', label: 'Department Manager', short: 'Manager', emoji: '📊' },
+  { role: 'OUTREACH_MANAGER', label: 'Outreach Manager', short: 'Outreach', emoji: '🌍' },
+  { role: 'CEO', label: 'Chief Executive Officer', short: 'CEO', emoji: '👔' },
+];
+
 function isValidRole(r: string | null): r is Role {
   return r === 'CEO' || r === 'MANAGER' || r === 'EMPLOYEE' || r === 'OUTREACH_MANAGER';
 }
 
 export default function Login() {
-  const [searchParams] = useSearchParams();
-  const queryRole = searchParams.get('role');
-  const sessionRole = sessionStorage.getItem('enako_selected_role');
-  const rawRole = queryRole || sessionRole;
-  const selectedRole: Role = isValidRole(rawRole) ? rawRole : 'CEO';
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryRole = searchParams.get('role')?.toUpperCase();
+  const sessionRole = sessionStorage.getItem('enako_selected_role')?.toUpperCase();
+  const localRole = localStorage.getItem('enako_last_role')?.toUpperCase();
 
-  const [email, setEmail] = useState('');
+  // Pick previous active role: query > session > local storage > fallback to EMPLOYEE
+  const initialRole = [queryRole, sessionRole, localRole].find(isValidRole);
+  const [selectedRole, setSelectedRole] = useState<Role>(initialRole || 'EMPLOYEE');
+
+  const [email, setEmail] = useState(() => localStorage.getItem('enako_last_email') || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -39,13 +49,22 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
+  const handleRoleChange = (role: Role) => {
+    setSelectedRole(role);
+    sessionStorage.setItem('enako_selected_role', role);
+    localStorage.setItem('enako_last_role', role);
+    setSearchParams({ role });
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
-      await login(email, password, selectedRole);
+      localStorage.setItem('enako_last_role', selectedRole);
+      localStorage.setItem('enako_last_email', email.trim());
+      await login(email.trim(), password, selectedRole);
       navigate('/app/dashboard');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Login failed. Please try again.';
@@ -105,36 +124,67 @@ export default function Login() {
       </section>
 
       {/* ── Right Panel: Login Form ── */}
-      <section className="w-full lg:w-1/2 bg-surface flex flex-col justify-center items-center p-8 lg:p-24">
+      <section className="w-full lg:w-1/2 bg-surface flex flex-col justify-center items-center p-6 sm:p-12 lg:p-24">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          {/* Mobile logo */}
-          <div className="lg:hidden flex items-center justify-center gap-3 mb-12">
-            <img src="/logo.png" alt="ENAKO OS" className="w-8 h-8 rounded-lg shadow-sm object-contain" />
-            <h2 className="text-primary text-xl font-bold font-display uppercase">ENAKO OS</h2>
+          {/* Mobile & Tablet Real Logo */}
+          <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
+            <img src="/logo.png" alt="ENAKO OS Logo" className="h-10 w-auto object-contain" />
+            <div className="flex flex-col text-left">
+              <span className="font-extrabold text-xl tracking-tight text-[#0F172A] leading-none">ENAKO</span>
+              <span className="text-[10px] font-bold tracking-widest text-[#0066FF] uppercase mt-0.5">CLOUD SYSTEM</span>
+            </div>
           </div>
 
-          {/* Back to role selection */}
-          <Link
-            to="/select-role"
-            className="inline-flex items-center gap-1.5 text-[11px] font-bold text-secondary uppercase tracking-wider hover:text-primary transition-colors mb-8"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-            Change Role
-          </Link>
+          {/* Interactive Role Switcher Tabs */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-[11px] font-bold text-on-surface uppercase tracking-wider text-slate-500">
+                Select Workspace / Role
+              </label>
+              <Link
+                to="/select-role"
+                className="text-[11px] font-semibold text-[#001f5b] hover:underline"
+              >
+                All Portals
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {ROLE_OPTIONS.map((r) => {
+                const isSelected = selectedRole === r.role;
+                return (
+                  <button
+                    key={r.role}
+                    type="button"
+                    onClick={() => handleRoleChange(r.role)}
+                    className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#001f5b] text-white border-[#001f5b] shadow-2xs ring-2 ring-[#001f5b]/20 scale-[1.02]'
+                        : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="text-base mb-1">{r.emoji}</span>
+                    <span className="truncate max-w-full font-semibold">{r.short}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           {/* Role badge */}
           <div
-            className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border mb-8"
-            style={{ borderColor: 'rgba(37,99,235,0.2)', background: 'rgba(37,99,235,0.05)' }}
+            className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border mb-6"
+            style={{ borderColor: 'rgba(0,31,91,0.15)', background: 'rgba(0,31,91,0.03)' }}
           >
-            <img src="/logo.png" alt="ENAKO OS" className="w-6 h-6 rounded object-contain" />
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Logging in as</p>
-              <p className="font-bold text-[14px] text-[#2563EB] leading-tight">{selectedRole} — {ROLE_LABELS[selectedRole]}</p>
+            <img src="/logo.png" alt="ENAKO OS" className="w-5 h-5 rounded object-contain shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Authenticating into</p>
+              <p className="font-bold text-[13px] text-[#001f5b] leading-tight truncate">
+                {ROLE_LABELS[selectedRole]} ({selectedRole})
+              </p>
             </div>
           </div>
 

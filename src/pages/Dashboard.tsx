@@ -36,34 +36,8 @@ export default function Dashboard() {
 
   const currentDept = activeDepartment();
 
-  const getDashboardTitle = () => {
-    switch(currentDept) {
-      case 'ceo': return 'Enterprise Command Center';
-      case 'manager': return 'Management Strategy & Operations Hub';
-      case 'engineering': return 'Engineering & Software Architecture Center';
-      case 'finance': return 'Financial Overview & Accounting Workspace';
-      case 'bd': return 'Business Development & Sales Hub';
-      case 'digital': return 'Digital Marketing & Social Media Command Center';
-      case 'admin': return 'HR & Administrative Hub';
-      case 'support': return 'Customer Support & Help Desk Center';
-      case 'outreach': return 'Outreach & Community Impact Hub';
-      default: return 'My Workspace';
-    }
-  };
-
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="font-display text-4xl font-bold text-primary">
-            {getDashboardTitle()}
-          </h2>
-          <p className="text-secondary text-base">
-            Welcome back, <span className="text-primary font-bold">{user?.fullName}</span>. System status is nominal.
-          </p>
-        </div>
-      </div>
-
+    <div className="space-y-6">
       {currentDept === 'ceo' && <CEODashboard />}
       {currentDept === 'manager' && <ManagerDashboard />}
       {currentDept === 'engineering' && <EngineeringDashboard />}
