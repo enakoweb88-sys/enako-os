@@ -330,14 +330,13 @@ export default function DashboardLayout() {
       id: 'finance',
       label: 'Finance',
       icon: CreditCard,
-      landingPath: '/app/transactions',
-      actionButton: { label: '+ New Transaction', path: '/app/transactions' },
+      landingPath: '/app/expenses',
+      actionButton: { label: '+ New Expense', path: '/app/expenses/new' },
       roles: ['ceo', 'manager', 'finance', 'admin', 'employee', 'outreach_manager'],
       sections: [
         {
           title: 'FINANCE & ACCOUNTS',
           items: [
-            { label: 'Transactions', path: '/app/transactions', icon: CreditCard, roles: ['ceo', 'manager', 'finance'] },
             { label: 'Expenses', path: '/app/expenses', icon: Wallet, roles: ['ceo', 'manager', 'finance', 'employee'] },
             { label: 'Cash Collections', path: '/app/cash-collections', icon: DollarSign, roles: ['ceo', 'manager', 'finance', 'admin', 'outreach_manager'] },
             { label: 'Subscriptions', path: '/app/subscriptions', icon: CreditCard, roles: ['ceo', 'manager', 'finance', 'admin', 'employee', 'outreach_manager'] },
@@ -362,8 +361,7 @@ export default function DashboardLayout() {
               icon: Plus
             }
           ]
-        : location.pathname.startsWith('/app/expenses')
-        ? [
+        : [
             {
               label: 'New Expense',
               subtitle: 'Submit reimbursement claim',
@@ -377,160 +375,6 @@ export default function DashboardLayout() {
               icon: Clock
             }
           ]
-        : [
-            {
-              label: 'Create New Transaction',
-              subtitle: 'Initiate deposit, receive or payout',
-              path: '/app/transactions/new',
-              icon: Plus
-            },
-            {
-              label: 'Update Rates',
-              subtitle: 'Live buying & selling forex matrix',
-              path: '/app/transactions/rates',
-              icon: TrendingUp
-            },
-            {
-              label: 'All Transactions',
-              subtitle: 'Global searchable ledger & records',
-              path: '/app/transactions/all',
-              icon: CreditCard
-            }
-          ]
-    },
-    {
-      id: 'operations',
-      label: 'Operations',
-      icon: CheckSquare,
-      landingPath: '/app/tasks',
-      actionButton: { label: '+ New Task', path: '/app/tasks/new' },
-      roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'],
-      sections: [
-        {
-          title: 'OPERATIONS & WORKFLOWS',
-          items: [
-            { label: 'Tasks', path: '/app/tasks', icon: ClipboardList, roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
-            { label: 'Staff Meals', path: '/app/meals', icon: UtensilsCrossed, roles: ['ceo', 'manager', 'admin', 'employee'] },
-            { label: 'Goals & KPIs', path: '/app/goals', icon: Target, roles: ['ceo', 'manager', 'bd', 'digital', 'employee'] },
-          ]
-        }
-      ],
-      views: location.pathname.startsWith('/app/tasks')
-        ? [
-            {
-              label: 'Create Task',
-              subtitle: 'Assign workflow deliverable',
-              path: '/app/tasks/new',
-              icon: Plus
-            }
-          ]
-        : location.pathname.startsWith('/app/meals')
-        ? [
-            {
-              label: 'Log Meal Entry',
-              subtitle: 'Record daily catering check-in',
-              path: '/app/meals/new',
-              icon: Plus
-            }
-          ]
-        : location.pathname.startsWith('/app/goals')
-        ? [
-            {
-              label: 'Set New Objective',
-              subtitle: 'Define strategic OKR or target',
-              path: '/app/goals/new',
-              icon: Plus
-            },
-            {
-              label: 'Track Goals',
-              subtitle: 'Monitor progress & active deliverables',
-              path: '/app/goals/track',
-              icon: Target
-            }
-          ]
-        : [
-            {
-              label: 'Create Task',
-              subtitle: 'Assign workflow deliverable',
-              path: '/app/tasks/new',
-              icon: Plus
-            },
-            {
-              label: 'Log Meal Entry',
-              subtitle: 'Record daily catering check-in',
-              path: '/app/meals/new',
-              icon: Plus
-            },
-            {
-              label: 'Set New Objective',
-              subtitle: 'Define strategic OKR or target',
-              path: '/app/goals/new',
-              icon: Plus
-            },
-            {
-              label: 'Track Goals',
-              subtitle: 'Monitor progress & active deliverables',
-              path: '/app/goals/track',
-              icon: Target
-            }
-          ]
-    },
-    {
-      id: 'team',
-      label: 'Human Resources',
-      icon: Users,
-      landingPath: '/app/employees',
-      actionButton: { label: '+ New Employee', path: '/app/employees' },
-      roles: ['ceo', 'manager', 'admin', 'employee', 'finance', 'bd', 'digital', 'support', 'outreach_manager'],
-      sections: [
-        {
-          title: 'HUMAN RESOURCES',
-          items: [
-            { label: 'Employees', path: '/app/employees', icon: Users, roles: ['ceo', 'manager', 'admin'] },
-            { label: 'Leaves', path: '/app/leaves', icon: Calendar, roles: ['ceo', 'manager', 'admin', 'employee'] },
-            { label: 'Profile', path: '/app/profile', icon: User, roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
-          ]
-        }
-      ],
-      views: location.pathname.startsWith('/app/employees')
-        ? [
-            {
-              label: 'Add New Employee',
-              subtitle: 'Configure and deploy a new employee profile',
-              path: '/app/employees/new',
-              icon: Plus
-            },
-            {
-              label: 'Departments',
-              subtitle: 'View employees by active department',
-              path: '/app/employees/departments',
-              icon: Building2,
-              hasDropdown: true,
-              dropdownType: 'departments'
-            }
-          ]
-        : []
-    },
-    {
-      id: 'compliance',
-      label: 'Compliance',
-      icon: ShieldCheck,
-      landingPath: '/app/kyc',
-      actionButton: { label: '+ Verify KYC', path: '/app/kyc' },
-      roles: ['ceo', 'manager', 'bd', 'support'],
-      sections: [
-        {
-          title: 'COMPLIANCE & VAULT',
-          items: [
-            { label: 'KYC Compliance', path: '/app/kyc', icon: ShieldCheck, roles: ['ceo', 'manager', 'bd', 'support'] },
-          ]
-        }
-      ],
-      views: [
-        { label: 'Pending Submissions', path: '/app/kyc/pending' },
-        { label: 'Approved', path: '/app/kyc/approved' },
-        { label: 'Rejected', path: '/app/kyc/rejected' }
-      ]
     },
     {
       id: 'comms',

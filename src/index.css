@@ -5,11 +5,11 @@
 @theme {
 
 
-  --color-primary: #0A0F2C;
+  --color-primary: #001F5B;
   --color-on-primary: #ffffff;
-  --color-primary-container: #1B2A4A;
-  --color-on-primary-container: #6f88ad;
-  --color-secondary: #3B3E45;
+  --color-primary-container: #00C2C7;
+  --color-on-primary-container: #001F5B;
+  --color-secondary: #0A0F2C;
   --color-on-secondary: #ffffff;
   --color-secondary-container: #e0e3e5;
   --color-on-secondary-container: #626567;

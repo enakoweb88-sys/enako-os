@@ -168,46 +168,11 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="transactions"
-              element={
-                <ProtectedRoute roles={['CEO', 'MANAGER', 'FINANCE']}>
-                  <Transactions />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="transactions/new"
-              element={
-                <ProtectedRoute roles={['CEO', 'MANAGER', 'FINANCE']}>
-                  <CreateTransactionPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="transactions/rates"
-              element={
-                <ProtectedRoute roles={['CEO', 'MANAGER', 'FINANCE']}>
-                  <UpdateRatesPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="transactions/all"
-              element={
-                <ProtectedRoute roles={['CEO', 'MANAGER', 'FINANCE']}>
-                  <AllTransactionsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="kyc"
-              element={
-                <ProtectedRoute roles={['CEO', 'MANAGER']}>
-                  <KYC />
-                </ProtectedRoute>
-              }
-            />
+            {/* Transactions and KYC routes have been transferred to the Cash Dashboard */}
+            <Route path="transactions" element={<Navigate to="/app/dashboard" replace />} />
+            <Route path="transactions/*" element={<Navigate to="/app/dashboard" replace />} />
+            <Route path="kyc" element={<Navigate to="/app/dashboard" replace />} />
+            <Route path="kyc/*" element={<Navigate to="/app/dashboard" replace />} />
             <Route path="expenses" element={<Expenses />} />
             <Route path="expenses/new" element={<CreateExpensePage />} />
             <Route path="expenses/pending" element={<PendingExpensesPage />} />
