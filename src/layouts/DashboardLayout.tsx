@@ -105,7 +105,6 @@ export default function DashboardLayout() {
     if (
       path.startsWith('/app/transactions') ||
       path.startsWith('/app/expenses') ||
-      path.startsWith('/app/cash-collections') ||
       path.startsWith('/app/subscriptions')
     ) {
       return 'finance';
@@ -113,7 +112,8 @@ export default function DashboardLayout() {
     if (
       path.startsWith('/app/tasks') ||
       path.startsWith('/app/goals') ||
-      path.startsWith('/app/meals')
+      path.startsWith('/app/meals') ||
+      path.startsWith('/app/staff-meals')
     ) {
       return 'operations';
     }
@@ -201,7 +201,6 @@ export default function DashboardLayout() {
         { label: 'Main Website', path: '/app/websites/main', icon: Globe, roles: ['outreach_manager', 'ceo', 'manager', 'digital', 'admin', 'finance', 'bd', 'support', 'employee'] },
         { label: 'Outreach Website', path: '/app/websites/outreach', icon: HeartHandshake, roles: ['outreach_manager', 'ceo', 'manager', 'digital', 'admin', 'finance', 'bd', 'support', 'employee'] },
         { label: 'KYC Vault Website', path: '/app/websites/kyc', icon: ShieldCheck, roles: ['outreach_manager', 'ceo', 'manager', 'digital', 'admin', 'finance', 'bd', 'support', 'employee'] },
-        { label: 'Cash Collection Website', path: '/app/websites/cash', icon: Coins, roles: ['outreach_manager', 'ceo', 'manager', 'digital', 'admin', 'finance', 'bd', 'support', 'employee'] },
         { label: 'System API Website', path: '/app/websites/apis', icon: Code2, roles: ['outreach_manager', 'ceo', 'manager', 'digital', 'admin', 'finance', 'bd', 'support', 'employee'] },
       ]
     };
@@ -256,20 +255,6 @@ export default function DashboardLayout() {
       ];
     }
 
-    if (pathname.startsWith('/app/websites/cash')) {
-      return [
-        baseSection,
-        {
-          title: 'TELEMETRY & INITIATIVES',
-          items: [
-            { label: 'Web Insights & SEO', path: '/app/websites/cash/insights', icon: TrendingUp, roles: ['outreach_manager', 'ceo', 'manager', 'digital', 'admin', 'finance', 'bd', 'support', 'employee'] },
-            { label: 'Projects & Initiatives', path: '/app/websites/cash/projects', icon: Building2, roles: ['outreach_manager', 'ceo', 'manager', 'digital', 'admin', 'finance', 'bd', 'support', 'employee'] },
-            { label: 'Beneficiary Applications', path: '/app/websites/cash/applications', icon: FileText, roles: ['outreach_manager', 'ceo', 'manager', 'digital', 'admin', 'finance', 'bd', 'support', 'employee'] },
-          ]
-        }
-      ];
-    }
-
     if (pathname.startsWith('/app/websites/apis')) {
       return [
         baseSection,
@@ -313,16 +298,16 @@ export default function DashboardLayout() {
           icon: CreditCard
         },
         {
-          label: 'Live Field Cash Collections Stream',
-          subtitle: 'Real-time field cash flow stream',
-          path: '/app/dashboard#cash-collections',
-          icon: Wallet
+          label: 'Real-Time Platform Metrics',
+          subtitle: 'Live telemetry across all business units',
+          path: '/app/metrics',
+          icon: TrendingUp
         },
         {
-          label: 'Market Command & Rate Matrix',
-          subtitle: 'Live buying & selling exchange rates',
-          path: '/app/dashboard#exchange-rates',
-          icon: TrendingUp
+          label: 'Executive Reports & Summaries',
+          subtitle: 'Audit ledger and operational digest',
+          path: '/app/reports/summaries',
+          icon: FileText
         }
       ]
     },
@@ -338,7 +323,6 @@ export default function DashboardLayout() {
           title: 'FINANCE & ACCOUNTS',
           items: [
             { label: 'Expenses', path: '/app/expenses', icon: Wallet, roles: ['ceo', 'manager', 'finance', 'employee'] },
-            { label: 'Cash Collections', path: '/app/cash-collections', icon: DollarSign, roles: ['ceo', 'manager', 'finance', 'admin', 'outreach_manager'] },
             { label: 'Subscriptions', path: '/app/subscriptions', icon: CreditCard, roles: ['ceo', 'manager', 'finance', 'admin', 'employee', 'outreach_manager'] },
           ]
         }
@@ -349,15 +333,6 @@ export default function DashboardLayout() {
               label: 'Add Subscription',
               subtitle: 'Log enterprise software contract',
               path: '/app/subscriptions/new',
-              icon: Plus
-            }
-          ]
-        : location.pathname.startsWith('/app/cash-collections')
-        ? [
-            {
-              label: 'Create Cash Task',
-              subtitle: 'Assign field collection pickup',
-              path: '/app/cash-collections/new',
               icon: Plus
             }
           ]
@@ -375,6 +350,135 @@ export default function DashboardLayout() {
               icon: Clock
             }
           ]
+    },
+    {
+      id: 'operations',
+      label: 'Operations',
+      icon: CheckSquare,
+      landingPath: '/app/tasks',
+      actionButton: { label: '+ Log Meal', path: '/app/meals/new' },
+      roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'],
+      sections: [
+        {
+          title: 'OPERATIONS & WORKFLOWS',
+          items: [
+            { label: 'Tasks', path: '/app/tasks', icon: ClipboardList, roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
+            { label: 'Staff Meals', path: '/app/meals', icon: UtensilsCrossed, roles: ['ceo', 'manager', 'admin', 'employee', 'finance'] },
+            { label: 'Goals & KPIs', path: '/app/goals', icon: Target, roles: ['ceo', 'manager', 'bd', 'digital', 'employee'] },
+          ]
+        }
+      ],
+      views: location.pathname.startsWith('/app/meals')
+        ? [
+            {
+              label: 'Log Meal Entry',
+              subtitle: 'Record daily catering check-in',
+              path: '/app/meals/new',
+              icon: Plus
+            },
+            {
+              label: "Today's Orders",
+              subtitle: 'Catering orders logged today',
+              path: '/app/meals/today',
+              icon: UtensilsCrossed
+            }
+          ]
+        : location.pathname.startsWith('/app/goals')
+        ? [
+            {
+              label: 'Set New Objective',
+              subtitle: 'Define strategic OKR or target',
+              path: '/app/goals/new',
+              icon: Plus
+            },
+            {
+              label: 'Track Goals',
+              subtitle: 'Monitor progress & active deliverables',
+              path: '/app/goals/track',
+              icon: Target
+            }
+          ]
+        : [
+            {
+              label: 'Create Task',
+              subtitle: 'Assign workflow deliverable',
+              path: '/app/tasks/new',
+              icon: Plus
+            },
+            {
+              label: 'Log Meal Entry',
+              subtitle: 'Record daily catering check-in',
+              path: '/app/meals/new',
+              icon: UtensilsCrossed
+            },
+            {
+              label: 'Track Goals',
+              subtitle: 'Monitor strategic OKRs',
+              path: '/app/goals/track',
+              icon: Target
+            }
+          ]
+    },
+    {
+      id: 'team',
+      label: 'Human Resources',
+      icon: Users,
+      landingPath: '/app/employees',
+      actionButton: { label: '+ New Employee', path: '/app/employees/new' },
+      roles: ['ceo', 'manager', 'admin', 'employee', 'finance', 'bd', 'digital', 'support', 'outreach_manager'],
+      sections: [
+        {
+          title: 'HUMAN RESOURCES',
+          items: [
+            { label: 'Employees', path: '/app/employees', icon: Users, roles: ['ceo', 'manager', 'admin', 'finance'] },
+            { label: 'Leaves', path: '/app/leaves', icon: Calendar, roles: ['ceo', 'manager', 'admin', 'employee'] },
+            { label: 'Profile', path: '/app/profile', icon: User, roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
+          ]
+        }
+      ],
+      views: [
+        {
+          label: 'Add New Employee',
+          subtitle: 'Deploy and register employee profile',
+          path: '/app/employees/new',
+          icon: Plus
+        },
+        {
+          label: 'Active Personnel',
+          subtitle: 'Currently active corporate roster',
+          path: '/app/employees/active',
+          icon: Users
+        },
+        {
+          label: 'Departments',
+          subtitle: 'View employees by active department',
+          path: '/app/employees/departments',
+          icon: Building2,
+          hasDropdown: true,
+          dropdownType: 'departments'
+        }
+      ]
+    },
+    {
+      id: 'compliance',
+      label: 'Compliance',
+      icon: ShieldCheck,
+      landingPath: '/app/kyc',
+      actionButton: { label: '+ Verify KYC', path: '/app/kyc' },
+      roles: ['ceo', 'manager', 'bd', 'support', 'admin'],
+      sections: [
+        {
+          title: 'COMPLIANCE & VAULT',
+          items: [
+            { label: 'KYC Compliance', path: '/app/kyc', icon: ShieldCheck, roles: ['ceo', 'manager', 'bd', 'support', 'admin'] },
+          ]
+        }
+      ],
+      views: [
+        { label: 'Pending Submissions', subtitle: 'Awaiting compliance review', path: '/app/kyc/pending', icon: Clock },
+        { label: 'Approved Clients', subtitle: 'Verified identity records', path: '/app/kyc/approved', icon: ShieldCheck },
+        { label: 'Rejected Filings', subtitle: 'Flagged or non-compliant', path: '/app/kyc/rejected', icon: X }
+      ]
     },
     {
       id: 'comms',
@@ -481,7 +585,6 @@ export default function DashboardLayout() {
             { label: 'Transactions API', subtitle: 'Ledger, rates & exchange ops', path: '/app/apis#transactions' },
             { label: 'KYC & Verification API', subtitle: 'Submissions & compliance audit', path: '/app/apis#kyc' },
             { label: 'Employees & Roster API', subtitle: 'Operative profiles & clearance', path: '/app/apis#employees' },
-            { label: 'Cash Collections API', subtitle: 'Vault drops & audited envelopes', path: '/app/apis#cash' },
             { label: 'System & Health API', subtitle: 'Gateway uptime & latency telemetry', path: '/app/apis#system' },
           ]
     },

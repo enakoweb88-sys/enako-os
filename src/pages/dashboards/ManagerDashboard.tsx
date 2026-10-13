@@ -9,8 +9,6 @@ import {
 import { cn } from '../../lib/utils';
 import { api, outreachAPI } from '../../lib/api';
 import { TasksWidget } from '../../components/TasksWidget';
-import { CashCollectionsWidget } from '../../components/CashCollectionsWidget';
-import { ExchangeRatesWidget } from '../../components/ExchangeRatesWidget';
 
 export function ManagerDashboard() {
   const navigate = useNavigate();
@@ -137,8 +135,6 @@ export function ManagerDashboard() {
       {/* ── 3. OPERATIONAL WORKFLOW WIDGETS ── */}
       <div className="space-y-6">
         <TasksWidget />
-        <ExchangeRatesWidget canEdit={true} />
-        <CashCollectionsWidget canManage={true} />
       </div>
     </div>
   );

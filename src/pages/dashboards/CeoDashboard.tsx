@@ -9,8 +9,6 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { api, outreachAPI } from '../../lib/api';
-import { CashCollectionsWidget } from '../../components/CashCollectionsWidget';
-import { ExchangeRatesWidget } from '../../components/ExchangeRatesWidget';
 import { getDashboardData, subscribeToDashboard, fetchDashboardData } from '../../lib/dashboardStore';
 
 function fmt(val: string | number | null | undefined, currency = true) {
@@ -296,15 +294,6 @@ export function CEODashboard() {
         </div>
       </div>
 
-      {/* ── 5. OPERATIONAL LEDGERS: EXCHANGE RATES & CASH COLLECTIONS ── */}
-      <div className="space-y-6">
-        <div id="exchange-rates" className="scroll-mt-6">
-          <ExchangeRatesWidget canEdit={true} />
-        </div>
-        <div id="cash-collections" className="scroll-mt-6">
-          <CashCollectionsWidget canManage={true} />
-        </div>
-      </div>
 
       {/* ── 6. RECENT TRANSACTIONS LEDGER ── */}
       <div id="recent-transactions" className="scroll-mt-6 bg-white border border-slate-200/90 rounded-lg p-5 shadow-2xs">
