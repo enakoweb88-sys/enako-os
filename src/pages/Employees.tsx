@@ -108,7 +108,7 @@ export default function Employees() {
     role: 'EMPLOYEE', department: 'Engineering', password: '',
     dateOfBirth: '', address: '', personalEmail: '', employmentType: 'Full-Time',
     salary: '', emergencyContact: '', hireDate: '',
-    position: 'Backend Engineer', responsibilities: '', goals: '', permissions: 'Standard Operations Access',
+    position: 'Backend Engineer', responsibilities: '', goals: '', permissions: 'Standard Operations Access', kpiTarget: '', initialKpiScore: '',
   });
 
   const [viewEmployee, setViewEmployee] = useState<any>(null);
@@ -121,6 +121,9 @@ export default function Employees() {
   // Edit Mode State
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
+  const [kpiData, setKpiData] = useState<any>(null);
+  const [kpiForm, setKpiForm] = useState({ score: '', notes: '', period: new Date().toISOString().slice(0, 7) });
+  const [savingKpi, setSavingKpi] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -164,6 +167,8 @@ export default function Employees() {
         hireDate: form.hireDate,
         responsibilities: form.responsibilities,
         goals: form.goals,
+        kpiTarget: form.kpiTarget ? Number(form.kpiTarget) : undefined,
+        initialKpiScore: form.initialKpiScore ? Number(form.initialKpiScore) : undefined,
       };
       await api.createEmployee(payload);
       setShowModal(false);
@@ -172,7 +177,7 @@ export default function Employees() {
         role: 'EMPLOYEE', department: 'Engineering', password: '',
         dateOfBirth: '', address: '', personalEmail: '', employmentType: 'Full-Time',
         salary: '', emergencyContact: '', hireDate: '',
-        position: '', responsibilities: '', goals: '', permissions: 'Standard Operations Access',
+        position: '', responsibilities: '', goals: '', permissions: 'Standard Operations Access', kpiTarget: '', initialKpiScore: '',
       });
       load();
     } catch (e: any) {
@@ -235,6 +240,7 @@ export default function Employees() {
         dateOfBirth: editForm.dateOfBirth ? new Date(editForm.dateOfBirth).toISOString() : undefined,
         responsibilities: editForm.responsibilities,
         goals: editForm.goals,
+        kpiTarget: editForm.kpiTarget === '' || editForm.kpiTarget === null ? undefined : Number(editForm.kpiTarget),
       };
       if (viewEmployee.id === user?.id && role !== 'ceo' && role !== 'manager') {
         await api.updateMe(payload);
@@ -252,6 +258,40 @@ export default function Employees() {
       toast.error(e.message || 'Failed to save changes. Please try again.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!viewEmployee || (role !== 'ceo' && role !== 'manager')) {
+      setKpiData(null);
+      return;
+    }
+    api.employeeKpiScores(viewEmployee.id)
+      .then((data: any) => {
+        setKpiData(data);
+        const current = data.scores?.[0];
+        if (current) setKpiForm({ score: String(current.score), notes: current.notes || '', period: current.period });
+      })
+      .catch((error: any) => toast.error(error.message || 'Could not load KPI history.'));
+  }, [viewEmployee?.id, role]);
+
+  const saveEmployeeKpi = async () => {
+    if (!viewEmployee) return;
+    const score = Number(kpiForm.score);
+    if (!Number.isFinite(score) || score < 0 || score > 100) {
+      toast.error('KPI score must be between 0 and 100.');
+      return;
+    }
+    setSavingKpi(true);
+    try {
+      await api.updateEmployeeKpiScore(viewEmployee.id, { score, notes: kpiForm.notes || undefined, period: kpiForm.period });
+      const data = await api.employeeKpiScores(viewEmployee.id);
+      setKpiData(data);
+      toast.success('Monthly KPI score saved.');
+    } catch (error: any) {
+      toast.error(error.message || 'Could not save KPI score.');
+    } finally {
+      setSavingKpi(false);
     }
   };
 
@@ -467,6 +507,56 @@ export default function Employees() {
                   )}
                 </div>
               </div>
+            </section>
+
+            <section className="bg-slate-50 rounded-lg p-5 border border-slate-200">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Monthly KPI Performance</h4>
+                {kpiData?.employee?.kpiTarget !== null && kpiData?.employee?.kpiTarget !== undefined && (
+                  <span className="text-[10px] font-bold text-[#001f5b] bg-blue-50 border border-blue-100 px-2 py-1 rounded">Target {kpiData.employee.kpiTarget}%</span>
+                )}
+              </div>
+              {editMode ? (
+                <label className="block mb-4">
+                  <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Monthly KPI Target (%)</span>
+                  <input type="number" min="0" max="100" step="0.01" value={data.kpiTarget ?? ''} onChange={e => setEditForm({ ...data, kpiTarget: e.target.value })} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs outline-none" placeholder="Set target" />
+                </label>
+              ) : (
+                <p className="text-xs text-slate-600 mb-4">Managers can review or correct a monthly KPI score without changing the employee's KPI history.</p>
+              )}
+              {(role === 'ceo' || role === 'manager') && !editMode ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label>
+                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Month</span>
+                      <input type="month" value={kpiForm.period} onChange={e => setKpiForm({ ...kpiForm, period: e.target.value })} className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs outline-none" />
+                    </label>
+                    <label>
+                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Score (%)</span>
+                      <input type="number" min="0" max="100" step="0.01" value={kpiForm.score} onChange={e => setKpiForm({ ...kpiForm, score: e.target.value })} className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs outline-none" placeholder="0–100" />
+                    </label>
+                  </div>
+                  <label className="block">
+                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Review note</span>
+                    <input value={kpiForm.notes} onChange={e => setKpiForm({ ...kpiForm, notes: e.target.value })} className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs outline-none" placeholder="Optional performance note" />
+                  </label>
+                  <button onClick={saveEmployeeKpi} disabled={savingKpi || !kpiForm.score} className="w-full bg-[#001f5b] text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-[#001744] disabled:opacity-50">
+                    {savingKpi ? 'Saving…' : 'Save KPI score'}
+                  </button>
+                  {kpiData?.scores?.length > 0 && (
+                    <div className="pt-3 border-t border-slate-200 space-y-2">
+                      {kpiData.scores.slice(0, 4).map((score: any) => (
+                        <div key={score.id} className="flex justify-between gap-3 text-xs">
+                          <span className="font-semibold text-slate-700">{score.period}</span>
+                          <span className="font-bold text-slate-900">{score.score}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : !editMode && (
+                <p className="text-sm font-medium text-slate-900">Target: {data.kpiTarget ?? 'Not set'}{data.kpiTarget !== null && data.kpiTarget !== undefined ? '%' : ''}</p>
+              )}
             </section>
 
             {/* HR & Payroll */}

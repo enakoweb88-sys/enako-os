@@ -22,6 +22,7 @@ import { performanceApi } from './performance';
 import { dashboardApi } from './dashboard';
 import { auditLogsApi } from './auditLogs';
 import { investmentsApi } from './investments';
+import { kpisApi } from './kpis';
 
 import { subscriptionsApi } from './subscriptions';
 import { reportsApi } from './reports';
@@ -61,5 +62,6 @@ export const api = {
   ...dashboardApi,
   ...auditLogsApi,
   ...investmentsApi,
+  ...kpisApi,
   settings: settingsApi,
 };

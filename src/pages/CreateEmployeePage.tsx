@@ -91,6 +91,8 @@ export default function CreateEmployeePage() {
     position: 'Backend Engineer',
     responsibilities: '',
     goals: '',
+    kpiTarget: '',
+    initialKpiScore: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -119,6 +121,8 @@ export default function CreateEmployeePage() {
         hireDate: form.hireDate || undefined,
         responsibilities: form.responsibilities || undefined,
         goals: form.goals || undefined,
+        kpiTarget: form.kpiTarget ? Number(form.kpiTarget) : undefined,
+        initialKpiScore: form.initialKpiScore ? Number(form.initialKpiScore) : undefined,
       };
 
       await api.createEmployee(payload);
@@ -449,6 +453,48 @@ export default function CreateEmployeePage() {
                   value={form.goals}
                   onChange={e => setForm({ ...form, goals: e.target.value })}
                   placeholder="Specify performance benchmarks, KPIs, and deliverables..."
+                  className="w-full bg-slate-50/70 border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b] font-medium"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 6: KPI setup */}
+          <div className="space-y-4">
+            <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100">
+              6. KPI Score Setup
+            </h2>
+            <p className="text-xs text-slate-500 -mt-2">
+              Set the employee's expected monthly KPI target. An initial score is optional and is recorded for the current month only.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1 uppercase tracking-wider">
+                  Monthly KPI Target (%)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={form.kpiTarget}
+                  onChange={e => setForm({ ...form, kpiTarget: e.target.value })}
+                  placeholder="e.g. 85"
+                  className="w-full bg-slate-50/70 border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b] font-medium"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1 uppercase tracking-wider">
+                  Initial KPI Score for This Month (%)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={form.initialKpiScore}
+                  onChange={e => setForm({ ...form, initialKpiScore: e.target.value })}
+                  placeholder="Optional"
                   className="w-full bg-slate-50/70 border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b] font-medium"
                 />
               </div>
