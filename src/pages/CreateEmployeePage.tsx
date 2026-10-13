@@ -91,9 +91,8 @@ export default function CreateEmployeePage() {
     position: 'Backend Engineer',
     responsibilities: '',
     goals: '',
-    kpiTarget: '',
-    initialKpiScore: '',
   });
+  const [kpis, setKpis] = useState([{ title: '', description: '', targetValue: '', unit: '', dueDate: '' }]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,8 +120,7 @@ export default function CreateEmployeePage() {
         hireDate: form.hireDate || undefined,
         responsibilities: form.responsibilities || undefined,
         goals: form.goals || undefined,
-        kpiTarget: form.kpiTarget ? Number(form.kpiTarget) : undefined,
-        initialKpiScore: form.initialKpiScore ? Number(form.initialKpiScore) : undefined,
+        kpis: kpis.filter(kpi => kpi.title.trim()).map(kpi => ({ ...kpi, targetValue: kpi.targetValue ? Number(kpi.targetValue) : undefined, dueDate: kpi.dueDate || undefined })),
       };
 
       await api.createEmployee(payload);
@@ -459,46 +457,23 @@ export default function CreateEmployeePage() {
             </div>
           </div>
 
-          {/* Section 6: KPI setup */}
+          {/* Section 6: Assigned KPIs */}
           <div className="space-y-4">
             <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100">
-              6. KPI Score Setup
+              6. Assigned KPIs & Monthly Objectives
             </h2>
             <p className="text-xs text-slate-500 -mt-2">
-              Set the employee's expected monthly KPI target. An initial score is optional and is recorded for the current month only.
+              Add each measurable responsibility separately. The employee will update progress against these targets during the month.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1 uppercase tracking-wider">
-                  Monthly KPI Target (%)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  value={form.kpiTarget}
-                  onChange={e => setForm({ ...form, kpiTarget: e.target.value })}
-                  placeholder="e.g. 85"
-                  className="w-full bg-slate-50/70 border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b] font-medium"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1 uppercase tracking-wider">
-                  Initial KPI Score for This Month (%)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  value={form.initialKpiScore}
-                  onChange={e => setForm({ ...form, initialKpiScore: e.target.value })}
-                  placeholder="Optional"
-                  className="w-full bg-slate-50/70 border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b] font-medium"
-                />
-              </div>
-            </div>
+            {kpis.map((kpi, index) => <div key={index} className="grid grid-cols-1 sm:grid-cols-5 gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+              <input value={kpi.title} onChange={e => setKpis(kpis.map((item, i) => i === index ? { ...item, title: e.target.value } : item))} placeholder="KPI e.g. New followers" className="sm:col-span-2 bg-white border border-slate-200 rounded-lg p-2.5 text-xs" />
+              <input type="number" value={kpi.targetValue} onChange={e => setKpis(kpis.map((item, i) => i === index ? { ...item, targetValue: e.target.value } : item))} placeholder="Target" className="bg-white border border-slate-200 rounded-lg p-2.5 text-xs" />
+              <input value={kpi.unit} onChange={e => setKpis(kpis.map((item, i) => i === index ? { ...item, unit: e.target.value } : item))} placeholder="followers, enquiries" className="bg-white border border-slate-200 rounded-lg p-2.5 text-xs" />
+              <input type="date" value={kpi.dueDate} onChange={e => setKpis(kpis.map((item, i) => i === index ? { ...item, dueDate: e.target.value } : item))} className="bg-white border border-slate-200 rounded-lg p-2.5 text-xs" />
+              <textarea value={kpi.description} onChange={e => setKpis(kpis.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} placeholder="What good performance looks like / evidence required" className="sm:col-span-4 bg-white border border-slate-200 rounded-lg p-2.5 text-xs" rows={2} />
+              <button type="button" disabled={kpis.length === 1} onClick={() => setKpis(kpis.filter((_, i) => i !== index))} className="text-xs font-bold text-rose-600 disabled:opacity-30">Remove</button>
+            </div>)}
+            <button type="button" onClick={() => setKpis([...kpis, { title: '', description: '', targetValue: '', unit: '', dueDate: '' }])} className="text-xs font-bold text-[#001f5b]">+ Add another KPI</button>
           </div>
 
           {/* Form Actions */}

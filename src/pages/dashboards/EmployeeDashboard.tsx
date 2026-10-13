@@ -25,14 +25,13 @@ export function EmployeeDashboard({ targetUser }: EmployeeDashboardProps) {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [goals, setGoals] = useState<any[]>([]);
   const [meals, setMeals] = useState<any[]>([]);
-  const [kpi, setKpi] = useState<any>(null);
-  const [kpiScore, setKpiScore] = useState('');
-  const [kpiNotes, setKpiNotes] = useState('');
-  const [savingKpi, setSavingKpi] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
 
     Promise.all([
@@ -40,9 +39,8 @@ export function EmployeeDashboard({ targetUser }: EmployeeDashboardProps) {
       api.expenses().catch(() => ({ items: [], totals: [] })),
       api.goals().catch(() => []),
       api.staffMeals().catch(() => []),
-      targetUser ? Promise.resolve(null) : api.myKpiScore().catch(() => null),
     ])
-      .then(([allTasks, allExpenses, allGoals, allMeals, myKpi]) => {
+      .then(([allTasks, allExpenses, allGoals, allMeals]) => {
         const myTasks = Array.isArray(allTasks) ? allTasks.filter((t: any) => t.assignedToId === user.id || t.assignedTo?.id === user.id) : [];
         const expItems = allExpenses?.items || (Array.isArray(allExpenses) ? allExpenses : []);
         const myExpenses = expItems.filter((e: any) => e.submittedById === user.id || e.submittedBy?.id === user.id);
@@ -53,11 +51,6 @@ export function EmployeeDashboard({ targetUser }: EmployeeDashboardProps) {
         setExpenses(myExpenses);
         setGoals(myGoals);
         setMeals(myMeals);
-        setKpi(myKpi);
-        if (myKpi?.score) {
-          setKpiScore(String(myKpi.score.score));
-          setKpiNotes(myKpi.score.notes || '');
-        }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -74,20 +67,6 @@ export function EmployeeDashboard({ targetUser }: EmployeeDashboardProps) {
   const activeGoalsCount = goals.filter(g => g.status !== 'COMPLETED').length;
   const eatenMealsCount = meals.filter(m => m.status === 'ATE').length;
   const mealCostTotal = eatenMealsCount * 1500;
-
-  const saveKpi = async () => {
-    const score = Number(kpiScore);
-    if (!Number.isFinite(score) || score < 0 || score > 100) return;
-    setSavingKpi(true);
-    try {
-      const result = await api.submitMyKpiScore({ score, notes: kpiNotes || undefined });
-      setKpi((current: any) => ({ ...current, ...result, score: result.score }));
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setSavingKpi(false);
-    }
-  };
 
   return (
     <div className="space-y-6 font-sans">
@@ -106,34 +85,6 @@ export function EmployeeDashboard({ targetUser }: EmployeeDashboardProps) {
         licensesCount={eatenMealsCount}
       />
 
-      {!targetUser && (
-        <section className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-slate-100 pb-4 mb-4">
-            <div>
-              <h3 className="font-display text-base font-bold text-slate-900 uppercase tracking-wider">Monthly KPI Score</h3>
-              <p className="text-xs text-slate-500 mt-1">Submit or update your score for {kpi?.period || 'the current month'}.</p>
-            </div>
-            <div className="text-left sm:text-right">
-              <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Assigned target</p>
-              <p className="text-xl font-bold text-slate-900">{kpi?.target ?? '—'}{kpi?.target !== null && kpi?.target !== undefined ? '%' : ''}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-[140px_1fr_auto] gap-3 items-end">
-            <label className="block">
-              <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Score (%)</span>
-              <input type="number" min="0" max="100" step="0.01" value={kpiScore} onChange={e => setKpiScore(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm font-bold text-slate-900 outline-none focus:ring-1 focus:ring-slate-900" placeholder="0–100" />
-            </label>
-            <label className="block">
-              <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Month-end note</span>
-              <input value={kpiNotes} onChange={e => setKpiNotes(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-slate-900" placeholder="Brief summary of your monthly result" />
-            </label>
-            <button onClick={saveKpi} disabled={savingKpi || !kpiScore} className="px-4 py-2.5 bg-[#001f5b] text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-[#001744] disabled:opacity-50">
-              {savingKpi ? 'Saving…' : kpi?.score ? 'Update score' : 'Submit score'}
-            </button>
-          </div>
-          {kpi?.score?.reviewedBy && <p className="mt-3 text-[11px] text-slate-500">Last reviewed by {kpi.score.reviewedBy.fullName}.</p>}
-        </section>
-      )}
 
       {/* Main Grid: Tasks & Expense Claims */}
       <div className="grid grid-cols-12 gap-6">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Plus, 
@@ -92,6 +92,8 @@ const DEPARTMENT_POSITIONS: Record<string, string[]> = {
 
 export default function Employees() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { employeeId } = useParams<{ employeeId: string }>();
   const { user } = useAuth();
   const role = user?.role?.toLowerCase() ?? 'employee';
 
@@ -108,11 +110,11 @@ export default function Employees() {
     role: 'EMPLOYEE', department: 'Engineering', password: '',
     dateOfBirth: '', address: '', personalEmail: '', employmentType: 'Full-Time',
     salary: '', emergencyContact: '', hireDate: '',
-    position: 'Backend Engineer', responsibilities: '', goals: '', permissions: 'Standard Operations Access', kpiTarget: '', initialKpiScore: '',
+    position: 'Backend Engineer', responsibilities: '', goals: '', permissions: 'Standard Operations Access',
   });
 
   const [viewEmployee, setViewEmployee] = useState<any>(null);
-  const [showEmployeeDashboardModal, setShowEmployeeDashboardModal] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [showFormPassword, setShowFormPassword] = useState(false);
@@ -121,9 +123,6 @@ export default function Employees() {
   // Edit Mode State
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
-  const [kpiData, setKpiData] = useState<any>(null);
-  const [kpiForm, setKpiForm] = useState({ score: '', notes: '', period: new Date().toISOString().slice(0, 7) });
-  const [savingKpi, setSavingKpi] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -146,6 +145,23 @@ export default function Employees() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (!employeeId) {
+      setViewEmployee(null);
+      return;
+    }
+    if (viewEmployee?.id === employeeId) return;
+
+    setProfileLoading(true);
+    api.employee(employeeId)
+      .then(setViewEmployee)
+      .catch((error: any) => {
+        toast.error(error.message || 'Employee profile could not be loaded.');
+        navigate('/app/employees', { replace: true });
+      })
+      .finally(() => setProfileLoading(false));
+  }, [employeeId, navigate, viewEmployee?.id]);
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -167,8 +183,6 @@ export default function Employees() {
         hireDate: form.hireDate,
         responsibilities: form.responsibilities,
         goals: form.goals,
-        kpiTarget: form.kpiTarget ? Number(form.kpiTarget) : undefined,
-        initialKpiScore: form.initialKpiScore ? Number(form.initialKpiScore) : undefined,
       };
       await api.createEmployee(payload);
       setShowModal(false);
@@ -177,7 +191,7 @@ export default function Employees() {
         role: 'EMPLOYEE', department: 'Engineering', password: '',
         dateOfBirth: '', address: '', personalEmail: '', employmentType: 'Full-Time',
         salary: '', emergencyContact: '', hireDate: '',
-        position: '', responsibilities: '', goals: '', permissions: 'Standard Operations Access', kpiTarget: '', initialKpiScore: '',
+        position: '', responsibilities: '', goals: '', permissions: 'Standard Operations Access',
       });
       load();
     } catch (e: any) {
@@ -240,7 +254,6 @@ export default function Employees() {
         dateOfBirth: editForm.dateOfBirth ? new Date(editForm.dateOfBirth).toISOString() : undefined,
         responsibilities: editForm.responsibilities,
         goals: editForm.goals,
-        kpiTarget: editForm.kpiTarget === '' || editForm.kpiTarget === null ? undefined : Number(editForm.kpiTarget),
       };
       if (viewEmployee.id === user?.id && role !== 'ceo' && role !== 'manager') {
         await api.updateMe(payload);
@@ -261,39 +274,10 @@ export default function Employees() {
     }
   };
 
-  useEffect(() => {
-    if (!viewEmployee || (role !== 'ceo' && role !== 'manager')) {
-      setKpiData(null);
-      return;
-    }
-    api.employeeKpiScores(viewEmployee.id)
-      .then((data: any) => {
-        setKpiData(data);
-        const current = data.scores?.[0];
-        if (current) setKpiForm({ score: String(current.score), notes: current.notes || '', period: current.period });
-      })
-      .catch((error: any) => toast.error(error.message || 'Could not load KPI history.'));
-  }, [viewEmployee?.id, role]);
 
-  const saveEmployeeKpi = async () => {
-    if (!viewEmployee) return;
-    const score = Number(kpiForm.score);
-    if (!Number.isFinite(score) || score < 0 || score > 100) {
-      toast.error('KPI score must be between 0 and 100.');
-      return;
-    }
-    setSavingKpi(true);
-    try {
-      await api.updateEmployeeKpiScore(viewEmployee.id, { score, notes: kpiForm.notes || undefined, period: kpiForm.period });
-      const data = await api.employeeKpiScores(viewEmployee.id);
-      setKpiData(data);
-      toast.success('Monthly KPI score saved.');
-    } catch (error: any) {
-      toast.error(error.message || 'Could not save KPI score.');
-    } finally {
-      setSavingKpi(false);
-    }
-  };
+  if (employeeId && !viewEmployee) {
+    return <div className="py-10 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">Loading employee profile…</div>;
+  }
 
   if (viewEmployee) {
     const data = editMode ? editForm : viewEmployee;
@@ -308,7 +292,7 @@ export default function Employees() {
               <span>Human Resources</span>
               <span>/</span>
               <button 
-                onClick={() => { setViewEmployee(null); setEditMode(false); }}
+                onClick={() => { setViewEmployee(null); setEditMode(false); navigate('/app/employees'); }}
                 className="hover:underline text-slate-500 cursor-pointer"
               >
                 Employees
@@ -318,7 +302,7 @@ export default function Employees() {
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => { setViewEmployee(null); setEditMode(false); }}
+                onClick={() => { setViewEmployee(null); setEditMode(false); navigate('/app/employees'); }}
                 className="px-3 py-1.5 rounded-lg border border-slate-200/90 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
               >
                 Back to Directory
@@ -335,7 +319,7 @@ export default function Employees() {
           </div>
 
           <button
-            onClick={() => setShowEmployeeDashboardModal(true)}
+            onClick={() => navigate(`/app/employees/${viewEmployee.id}?workspace=1`)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-[#001f5b] rounded-lg hover:bg-[#001744] transition-colors shadow-2xs self-start sm:self-auto cursor-pointer"
           >
             Live Workspace Dashboard
@@ -510,53 +494,9 @@ export default function Employees() {
             </section>
 
             <section className="bg-slate-50 rounded-lg p-5 border border-slate-200">
-              <div className="flex items-center justify-between gap-3 mb-4">
-                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Monthly KPI Performance</h4>
-                {kpiData?.employee?.kpiTarget !== null && kpiData?.employee?.kpiTarget !== undefined && (
-                  <span className="text-[10px] font-bold text-[#001f5b] bg-blue-50 border border-blue-100 px-2 py-1 rounded">Target {kpiData.employee.kpiTarget}%</span>
-                )}
-              </div>
-              {editMode ? (
-                <label className="block mb-4">
-                  <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Monthly KPI Target (%)</span>
-                  <input type="number" min="0" max="100" step="0.01" value={data.kpiTarget ?? ''} onChange={e => setEditForm({ ...data, kpiTarget: e.target.value })} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs outline-none" placeholder="Set target" />
-                </label>
-              ) : (
-                <p className="text-xs text-slate-600 mb-4">Managers can review or correct a monthly KPI score without changing the employee's KPI history.</p>
-              )}
-              {(role === 'ceo' || role === 'manager') && !editMode ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <label>
-                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Month</span>
-                      <input type="month" value={kpiForm.period} onChange={e => setKpiForm({ ...kpiForm, period: e.target.value })} className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs outline-none" />
-                    </label>
-                    <label>
-                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Score (%)</span>
-                      <input type="number" min="0" max="100" step="0.01" value={kpiForm.score} onChange={e => setKpiForm({ ...kpiForm, score: e.target.value })} className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs outline-none" placeholder="0–100" />
-                    </label>
-                  </div>
-                  <label className="block">
-                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Review note</span>
-                    <input value={kpiForm.notes} onChange={e => setKpiForm({ ...kpiForm, notes: e.target.value })} className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs outline-none" placeholder="Optional performance note" />
-                  </label>
-                  <button onClick={saveEmployeeKpi} disabled={savingKpi || !kpiForm.score} className="w-full bg-[#001f5b] text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-[#001744] disabled:opacity-50">
-                    {savingKpi ? 'Saving…' : 'Save KPI score'}
-                  </button>
-                  {kpiData?.scores?.length > 0 && (
-                    <div className="pt-3 border-t border-slate-200 space-y-2">
-                      {kpiData.scores.slice(0, 4).map((score: any) => (
-                        <div key={score.id} className="flex justify-between gap-3 text-xs">
-                          <span className="font-semibold text-slate-700">{score.period}</span>
-                          <span className="font-bold text-slate-900">{score.score}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : !editMode && (
-                <p className="text-sm font-medium text-slate-900">Target: {data.kpiTarget ?? 'Not set'}{data.kpiTarget !== null && data.kpiTarget !== undefined ? '%' : ''}</p>
-              )}
+              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Assigned KPIs & Objectives</h4>
+              <p className="text-xs text-slate-600 leading-relaxed">KPIs are measurable objectives, not one overall score. Set and edit multiple employee KPIs from the Goals & KPIs workspace, then assign them to this employee.</p>
+              {(role === 'ceo' || role === 'manager') && <Link to="/app/goals/new" className="inline-block mt-4 text-xs font-bold text-[#001f5b] hover:underline">Set employee KPI objective →</Link>}
             </section>
 
             {/* HR & Payroll */}
@@ -692,7 +632,7 @@ export default function Employees() {
         </div>
 
         <AnimatePresence>
-          {showEmployeeDashboardModal && viewEmployee && (
+          {new URLSearchParams(location.search).get('workspace') === '1' && viewEmployee && (
             <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 md:p-8">
               <motion.div 
                 initial={{ opacity: 0, scale: 0.98 }}
@@ -710,7 +650,7 @@ export default function Employees() {
                     </p>
                   </div>
                   <button 
-                    onClick={() => setShowEmployeeDashboardModal(false)}
+                    onClick={() => navigate(`/app/employees/${viewEmployee.id}`)}
                     className="text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-slate-700 px-3 py-1.5 border border-slate-200 rounded-lg"
                   >
                     Close
@@ -888,7 +828,7 @@ export default function Employees() {
                     <div className="flex items-center justify-end gap-2">
                       {(role === 'ceo' || role === 'manager') && (
                         <button
-                          onClick={(e) => { e.stopPropagation(); setViewEmployee(emp); }}
+                          onClick={(e) => { e.stopPropagation(); setViewEmployee(emp); navigate(`/app/employees/${emp.id}`); }}
                           className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-slate-200/90 bg-white text-slate-700 hover:bg-slate-50 transition-all cursor-pointer shadow-2xs"
                         >
                           View Profile

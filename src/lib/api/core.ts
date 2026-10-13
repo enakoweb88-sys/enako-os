@@ -15,13 +15,9 @@ export type AuthUser = {
 };
 
 const envApiUrl = import.meta.env.VITE_API_URL as string | undefined;
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const defaultHost = window.location.hostname.replace(/^(www\.|app\.|os\.|client\.|dashboard\.)/, '');
 export const API_BASE_URL = (envApiUrl && envApiUrl !== 'undefined')
   ? envApiUrl
-  : (isLocal 
-      ? 'https://api.enakoos.com/api/v1' 
-      : `https://api.${defaultHost}/api/v1`);
+  : 'https://api.enakoos.com/api/v1';
 
 export function getAccessToken() {
   return sessionStorage.getItem('enako_access_token');
@@ -58,7 +54,17 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   const token = getAccessToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 15_000);
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers, signal: options.signal ?? controller.signal });
+  } catch (error: any) {
+    if (error?.name === 'AbortError') throw new Error('The server took too long to respond. Please try again.');
+    throw new Error('Network request failed. Please check your connection and try again.');
+  } finally {
+    window.clearTimeout(timeout);
+  }
 
   if (response.status === 401 && !path.includes('/auth/login')) {
     const refreshToken = sessionStorage.getItem('enako_refresh_token');

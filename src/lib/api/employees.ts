@@ -9,6 +9,7 @@ export const employeesApi = {
     if (params?.department) q.set('department', params.department);
     return apiRequest<{ items: any[]; total: number; page: number; limit: number }>(`/employees?${q}`);
   },
+  employee: (id: string) => apiRequest<any>(`/employees/${id}`),
   createEmployee: (body: unknown) =>
     apiRequest<any>('/employees', { method: 'POST', body: JSON.stringify(body) }),
   updateEmployee: (id: string, body: unknown) =>

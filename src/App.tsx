@@ -15,7 +15,6 @@ import Transactions from './pages/Transactions';
 import CreateTransactionPage from './pages/CreateTransactionPage';
 import UpdateRatesPage from './pages/UpdateRatesPage';
 import AllTransactionsPage from './pages/AllTransactionsPage';
-import KYC from './pages/KYC';
 import Goals from './pages/Goals';
 import Reports from './pages/Reports';
 import Subscriptions from './pages/Subscriptions';
@@ -70,9 +69,6 @@ import TeamObjectivesPage from './pages/quick-views/TeamObjectivesPage';
 import ActivePersonnelPage from './pages/quick-views/ActivePersonnelPage';
 import PendingLeaveRequestsPage from './pages/quick-views/PendingLeaveRequestsPage';
 import SecurityProfilePage from './pages/quick-views/SecurityProfilePage';
-import KycPendingPage from './pages/quick-views/KycPendingPage';
-import KycApprovedPage from './pages/quick-views/KycApprovedPage';
-import KycRejectedPage from './pages/quick-views/KycRejectedPage';
 import UnreadMessagesPage from './pages/quick-views/UnreadMessagesPage';
 import OpenTicketsPage from './pages/quick-views/OpenTicketsPage';
 import CompanyBulletinsPage from './pages/quick-views/CompanyBulletinsPage';
@@ -115,9 +111,6 @@ export default function App() {
             <Route path="employees/active" element={<ActivePersonnelPage />} />
             <Route path="leaves/pending" element={<PendingLeaveRequestsPage />} />
             <Route path="profile/security" element={<SecurityProfilePage />} />
-            <Route path="kyc/pending" element={<KycPendingPage />} />
-            <Route path="kyc/approved" element={<KycApprovedPage />} />
-            <Route path="kyc/rejected" element={<KycRejectedPage />} />
             <Route path="chat/unread" element={<UnreadMessagesPage />} />
             <Route path="tickets/open" element={<OpenTicketsPage />} />
             <Route path="announcements/bulletins" element={<CompanyBulletinsPage />} />
@@ -138,6 +131,14 @@ export default function App() {
 
             <Route
               path="employees"
+              element={
+                <ProtectedRoute roles={['CEO', 'MANAGER']}>
+                  <Employees />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="employees/:employeeId"
               element={
                 <ProtectedRoute roles={['CEO', 'MANAGER']}>
                   <Employees />

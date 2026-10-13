@@ -124,9 +124,6 @@ export default function DashboardLayout() {
     ) {
       return 'team';
     }
-    if (path.startsWith('/app/kyc')) {
-      return 'compliance';
-    }
     if (
       path.startsWith('/app/chat') ||
       path.startsWith('/app/tickets') ||
@@ -290,26 +287,6 @@ export default function DashboardLayout() {
           ]
         }
       ],
-      views: [
-        {
-          label: 'Recent Financial Transactions',
-          subtitle: 'Live transaction activity across all business units',
-          path: '/app/dashboard#recent-transactions',
-          icon: CreditCard
-        },
-        {
-          label: 'Real-Time Platform Metrics',
-          subtitle: 'Live telemetry across all business units',
-          path: '/app/metrics',
-          icon: TrendingUp
-        },
-        {
-          label: 'Executive Reports & Summaries',
-          subtitle: 'Audit ledger and operational digest',
-          path: '/app/reports/summaries',
-          icon: FileText
-        }
-      ]
     },
     {
       id: 'finance',
@@ -457,27 +434,6 @@ export default function DashboardLayout() {
           hasDropdown: true,
           dropdownType: 'departments'
         }
-      ]
-    },
-    {
-      id: 'compliance',
-      label: 'Compliance',
-      icon: ShieldCheck,
-      landingPath: '/app/kyc',
-      actionButton: { label: '+ Verify KYC', path: '/app/kyc' },
-      roles: ['ceo', 'manager', 'bd', 'support', 'admin'],
-      sections: [
-        {
-          title: 'COMPLIANCE & VAULT',
-          items: [
-            { label: 'KYC Compliance', path: '/app/kyc', icon: ShieldCheck, roles: ['ceo', 'manager', 'bd', 'support', 'admin'] },
-          ]
-        }
-      ],
-      views: [
-        { label: 'Pending Submissions', subtitle: 'Awaiting compliance review', path: '/app/kyc/pending', icon: Clock },
-        { label: 'Approved Clients', subtitle: 'Verified identity records', path: '/app/kyc/approved', icon: ShieldCheck },
-        { label: 'Rejected Filings', subtitle: 'Flagged or non-compliant', path: '/app/kyc/rejected', icon: X }
       ]
     },
     {
@@ -1493,9 +1449,6 @@ export default function DashboardLayout() {
           <div className="flex items-center gap-5">
             <Link to="/app/docs" className="text-[11px] font-semibold text-slate-500 hover:text-[#001f5b] transition-colors">
               Documentation
-            </Link>
-            <Link to="/app/kyc" className="text-[11px] font-semibold text-slate-500 hover:text-[#001f5b] transition-colors">
-              Compliance Vault
             </Link>
             <Link to="/app/help" className="text-[11px] font-semibold text-slate-500 hover:text-[#001f5b] transition-colors">
               System Support

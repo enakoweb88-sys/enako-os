@@ -1,28 +1,19 @@
-import { useEffect, useState, useSyncExternalStore, useCallback } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import {
   Globe, Users, CreditCard, ShieldCheck, Mail, ChevronDown,
   Layers, Edit3, ArrowUpRight, TrendingUp, AlertCircle, CheckCircle2,
   ExternalLink, BarChart3, Clock, DollarSign
 } from 'lucide-react';
-import { cn } from '../../lib/utils';
 import { api, outreachAPI } from '../../lib/api';
 import { getDashboardData, subscribeToDashboard, fetchDashboardData } from '../../lib/dashboardStore';
-
-function fmt(val: string | number | null | undefined, currency = true) {
-  const n = Number(val ?? 0);
-  if (currency) return `${n.toLocaleString('en-US', { maximumFractionDigits: 0 })} FCFA`;
-  return n.toLocaleString();
-}
 
 export function CEODashboard() {
   // Subscribe to the shared dashboard store instead of local state
   const dashData = useSyncExternalStore(subscribeToDashboard, getDashboardData);
 
   const overview = dashData.overview;
-  const transactions = dashData.transactions;
   const healthScore = dashData.healthScore;
   const outreachStats = dashData.outreachStats;
   const loading = dashData.isInitialLoad;
@@ -32,22 +23,9 @@ export function CEODashboard() {
     fetchDashboardData({
       overview: () => api.overview(),
       healthScore: () => api.healthScore(),
-      transactions: (params: any) => api.transactions(params),
       outreachStats: () => outreachAPI.getStats(),
     });
   }, []);
-
-  // Handle anchor link scrolling from Quick Views
-  useEffect(() => {
-    if (!loading && window.location.hash) {
-      const el = document.querySelector(window.location.hash);
-      if (el) {
-        setTimeout(() => {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
-      }
-    }
-  }, [loading]);
 
   if (loading) {
     return (
@@ -294,65 +272,6 @@ export function CEODashboard() {
         </div>
       </div>
 
-
-      {/* ── 6. RECENT TRANSACTIONS LEDGER ── */}
-      <div id="recent-transactions" className="scroll-mt-6 bg-white border border-slate-200/90 rounded-lg p-5 shadow-2xs">
-        <div className="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900">Recent Financial Transactions</h3>
-            <p className="text-xs text-slate-500 font-medium">Live transaction activity across all business units</p>
-          </div>
-          <Link to="/app/transactions" className="text-xs text-[#001f5b] hover:underline font-semibold">
-            View All
-          </Link>
-        </div>
-
-        {transactions.length === 0 ? (
-          <div className="py-8 text-center text-xs text-slate-400 font-medium">
-            No transactions found
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50/70 border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider">
-                <tr>
-                  <th className="py-2.5 px-3">Date</th>
-                  <th className="py-2.5 px-3">Description</th>
-                  <th className="py-2.5 px-3">Type</th>
-                  <th className="py-2.5 px-3">Status</th>
-                  <th className="py-2.5 px-3 text-right">Amount</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {transactions.map((tx: any) => (
-                  <tr key={tx.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-2.5 px-3 text-slate-500">
-                      {new Date(tx.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="py-2.5 px-3 font-semibold text-slate-800">
-                      {tx.description || tx.reference || 'Transaction'}
-                    </td>
-                    <td className="py-2.5 px-3 text-slate-600 uppercase font-medium">
-                      {tx.type}
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <span className={cn(
-                        "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
-                        tx.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                      )}>
-                        {tx.status}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-bold text-slate-900">
-                      {fmt(tx.amount)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
