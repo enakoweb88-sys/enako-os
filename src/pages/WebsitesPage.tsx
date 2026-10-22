@@ -252,23 +252,23 @@ export default function WebsitesPage() {
         const total = realPageviews > 0 ? realPageviews : 100;
         const pct = Math.min(100, Math.round((cnt / total) * 100));
         return {
-          path: p.path || `/${idx}`,
+        path: p.path || `/${idx}`,
           views: cnt.toLocaleString(),
-          pct: pct || 1
-        };
+        pct: pct || 1
+};
       })
     : [
         { path: selectedSlug === 'main' ? '/login' : selectedSlug === 'kyc' ? '/verify/cni' : selectedSlug === 'cash' ? '/agent/intake' : selectedSlug === 'apis' ? '/v1/transactions' : '/campaigns/scholarship-2026', views: '24,180', pct: 42 },
         { path: selectedSlug === 'main' ? '/enterprise' : selectedSlug === 'kyc' ? '/biometrics' : selectedSlug === 'cash' ? '/vault/deposit' : selectedSlug === 'apis' ? '/v1/auth/tokens' : '/donate', views: '18,450', pct: 31 },
         { path: selectedSlug === 'main' ? '/rates' : selectedSlug === 'kyc' ? '/audit-log' : selectedSlug === 'cash' ? '/pos/summary' : selectedSlug === 'apis' ? '/v1/webhooks' : '/about', views: '11,200', pct: 19 },
         { path: selectedSlug === 'main' ? '/contact' : selectedSlug === 'kyc' ? '/compliance' : selectedSlug === 'cash' ? '/receipts' : selectedSlug === 'apis' ? '/health' : '/impact-report', views: '4,800', pct: 8 }
-      ];
+    ];
 
   // Real recent events
   const recentEventsList: { time: string; event: string; status: string; latency: string }[] = Array.isArray(webInsights?.recentEvents) && webInsights.recentEvents.length > 0
     ? webInsights.recentEvents.slice(0, 5).map((evt: any) => ({
         time: evt.createdAt ? new Date(evt.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now',
-        event: `${evt.eventType?.toUpperCase() || 'HTTP'} ${evt.path || '/'} (Origin: ${evt.country || 'CM'})`,
+      event: `${evt.eventType?.toUpperCase() || 'HTTP'} ${evt.path || '/'} (Origin: ${evt.country || 'CM'})`,
         status: '200 OK',
         latency: `${measuredLatency} ms`
       }))
@@ -277,7 +277,7 @@ export default function WebsitesPage() {
         { time: '1 min ago', event: 'POST /v1/telemetry/beacon • Session keep-alive ping', status: '200 OK', latency: `${measuredLatency + 4} ms` },
         { time: '3 mins ago', event: 'GET /static/assets/app.min.js • Edge cache hit 100%', status: '304 Not Modified', latency: '12 ms' },
         { time: '6 mins ago', event: 'GET /api/health • Cryptographic TLS handshake valid', status: '200 OK', latency: `${measuredLatency} ms` }
-      ];
+    ];
 
   // Real 7-day trend
   const trafficChartData = [
@@ -359,67 +359,67 @@ export default function WebsitesPage() {
     if (slug === 'outreach') {
       return communityProjects.length > 0
         ? communityProjects.map((p, idx) => ({
-            id: p.id || `PRJ-OUT-${idx + 1}`,
-            name: p.title || p.name || 'Outreach Community Initiative',
-            category: p.category || 'Philanthropy & Grants',
-            lead: p.coordinator || 'Outreach Field Team',
-            progress: p.progressPercent || 75,
+          id: p.id || `PRJ-OUT-${idx + 1}`,
+          name: p.title || p.name || 'Outreach Community Initiative',
+          category: p.category || 'Philanthropy & Grants',
+          lead: p.coordinator || 'Outreach Field Team',
+          progress: p.progressPercent || 75,
             status: p.status === 'COMPLETED' ? 'Completed' : 'In Progress',
-            targetDate: p.targetDate || '2026',
+          targetDate: p.targetDate || '2026',
             env: 'Field Operations / NGO Core',
-            notes: p.description || 'Corporate social responsibility initiative in Central Africa.',
+          notes: p.description || 'Corporate social responsibility initiative in Central Africa.',
             deliverables: ['Community Consultation & Needs Assessment', 'Direct Funding Allocation & Disbursement', 'Field Impact Audit & Beneficiary Reporting']
-          }))
+      }))
         : [
-            {
+        {
               id: 'PRJ-OUT-01',
               name: 'Youth STEM & Coding Scholarships 2026',
               category: 'Education & Grants',
               lead: 'Dr. Evelyn N. (Outreach Director)',
               progress: 78,
-              status: 'In Progress',
-              targetDate: 'Nov 2026',
+          status: 'In Progress',
+          targetDate: 'Nov 2026',
               env: 'Regional Scholarship Portal',
               notes: 'Funding 120 underprivileged students across Littoral and Center regions with full tuition, laptops, and monthly internet stipends.',
               deliverables: ['Beneficiary Merit & Need Selection Panel', 'Hardware Provisioning (120 Laptops)', 'Direct University Tuition Bank Transfer']
-            },
-            {
+  },
+        {
               id: 'PRJ-OUT-02',
               name: 'Rural Clean Water Well Project (South-West)',
               category: 'Health & Infrastructure',
               lead: 'Paul E. (Civil Eng Lead)',
               progress: 90,
-              status: 'In Progress',
-              targetDate: 'Oct 2026',
+          status: 'In Progress',
+          targetDate: 'Oct 2026',
               env: 'Buea Rural Sector',
               notes: 'Solar-powered water borehole installations for 3 rural village communities serving over 4,500 residents.',
               deliverables: ['Hydrogeological Survey & Drilling', 'Solar Pump & Storage Tank Installation', 'Community Water Committee Training']
-            },
-            {
+  },
+        {
               id: 'PRJ-OUT-03',
               name: 'Community Healthcare & Essential Hygiene Drive',
               category: 'Emergency Relief',
               lead: 'Medical & Health Guild',
-              progress: 100,
-              status: 'Completed',
+          progress: 100,
+          status: 'Completed',
               targetDate: 'Sep 2026',
               env: 'Douala & Yaoundé Hubs',
               notes: 'Provided free essential medical kits, antimalarials, and maternity kits to over 2,400 vulnerable families.',
               deliverables: ['Mobile Clinic Logistics & Screening', 'Emergency Pharmaceutical Supplies', 'Public Health Education Sessions']
-            },
-            {
+  },
+        {
               id: 'PRJ-OUT-04',
               name: 'Orphanage Micro-Nutrient Distribution Drive',
               category: 'Social Welfare',
               lead: 'CSR Volunteer Guild',
               progress: 40,
-              status: 'In Progress',
+          status: 'In Progress',
               targetDate: 'Dec 2026',
               env: 'Western Region Orphanages',
               notes: 'Quarterly supply of non-perishable food grains, infant nutrition, and hygienic supplies to 8 registered care centers.',
               deliverables: ['Nutritional Needs Inventory', 'Wholesale Bulk Grain Procurement', 'On-Site Delivery & Safe Storage']
-            }
-          ];
+}
+      ];
     }
     if (slug === 'kyc') {
       return [
@@ -799,33 +799,29 @@ export default function WebsitesPage() {
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pr-2">Ecosystem:</span>
             <button
               onClick={() => setSearchTerm('')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                searchTerm === '' ? 'bg-[#001f5b] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${searchTerm === '' ? 'bg-[#001f5b] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
+                }`}
             >
               All Platforms (5)
             </button>
             <button
               onClick={() => setSearchTerm('Corporate')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                searchTerm === 'Corporate' ? 'bg-[#001f5b] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${searchTerm === 'Corporate' ? 'bg-[#001f5b] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
+                }`}
             >
               Public Portals
             </button>
             <button
               onClick={() => setSearchTerm('Gateway')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                searchTerm === 'Gateway' ? 'bg-[#001f5b] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${searchTerm === 'Gateway' ? 'bg-[#001f5b] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
+                }`}
             >
               Secure Gateways
             </button>
             <button
               onClick={() => setSearchTerm('REST')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                searchTerm === 'REST' ? 'bg-[#001f5b] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${searchTerm === 'REST' ? 'bg-[#001f5b] text-white shadow-2xs' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
+                }`}
             >
               System APIs
             </button>
@@ -859,44 +855,40 @@ export default function WebsitesPage() {
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
           <Link
             to={`/app/websites/${baseSlug}`}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-              isOverview
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${isOverview
                 ? 'bg-[#001f5b] text-white shadow-2xs'
                 : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
-            }`}
+              }`}
           >
             Overview & Telemetry
           </Link>
 
           <Link
             to={`/app/websites/${baseSlug}/insights`}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-              isInsights
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${isInsights
                 ? 'bg-[#001f5b] text-white shadow-2xs'
                 : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
-            }`}
+              }`}
           >
             Web Insights & SEO
           </Link>
 
           <Link
             to={`/app/websites/${baseSlug}/projects`}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-              isProjects
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${isProjects
                 ? 'bg-[#001f5b] text-white shadow-2xs'
                 : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
-            }`}
+              }`}
           >
             Projects & Initiatives
           </Link>
 
           <Link
             to={`/app/websites/${baseSlug}/applications`}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-              isApplications
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${isApplications
                 ? 'bg-[#001f5b] text-white shadow-2xs'
                 : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
-            }`}
+              }`}
           >
             {baseSlug === 'outreach' ? 'Beneficiary Applications' : 'Inbound Submissions'}
           </Link>
@@ -905,22 +897,20 @@ export default function WebsitesPage() {
             <>
               <Link
                 to={`/app/websites/outreach/events`}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                  isEvents
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${isEvents
                     ? 'bg-[#001f5b] text-white shadow-2xs'
                     : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
-                }`}
+              }`}
               >
                 Events & Galas
               </Link>
 
               <Link
                 to={`/app/websites/outreach/donations`}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                  isDonations
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${isDonations
                     ? 'bg-[#001f5b] text-white shadow-2xs'
                     : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
-                }`}
+              }`}
               >
                 Donations & CSR
               </Link>
@@ -1397,31 +1387,28 @@ export default function WebsitesPage() {
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider pr-1">Filter Status:</span>
               <button
                 onClick={() => setStatusFilter('all')}
-                className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
-                  statusFilter === 'all'
+                className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors ${statusFilter === 'all'
                     ? 'bg-[#001f5b] text-white font-bold'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
+              }`}
               >
                 All Projects ({getProjectsForPlatform(selectedSlug).length})
               </button>
               <button
                 onClick={() => setStatusFilter('in progress')}
-                className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
-                  statusFilter === 'in progress'
+                className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors ${statusFilter === 'in progress'
                     ? 'bg-amber-600 text-white font-bold'
                     : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
-                }`}
+              }`}
               >
                 In Progress
               </button>
               <button
                 onClick={() => setStatusFilter('completed')}
-                className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
-                  statusFilter === 'completed'
+                className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors ${statusFilter === 'completed'
                     ? 'bg-emerald-600 text-white font-bold'
                     : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
-                }`}
+              }`}
               >
                 Completed & Deployed
               </button>
@@ -1489,9 +1476,8 @@ export default function WebsitesPage() {
                       </div>
                       <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden mb-3">
                         <div
-                          className={`h-full rounded-full ${
-                            project.progress === 100 ? 'bg-emerald-500' : 'bg-[#001f5b]'
-                          }`}
+                          className={`h-full rounded-full ${project.progress === 100 ? 'bg-emerald-500' : 'bg-[#001f5b]'
+              }`}
                           style={{ width: `${project.progress}%` }}
                         />
                       </div>
@@ -1510,11 +1496,10 @@ export default function WebsitesPage() {
 
                     <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
                       <span
-                        className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                          project.status === 'Completed'
+                        className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${project.status === 'Completed'
                             ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                             : 'bg-amber-50 text-amber-800 border border-amber-200'
-                        }`}
+                          }`}
                       >
                         {project.status}
                       </span>
@@ -1550,31 +1535,28 @@ export default function WebsitesPage() {
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider pr-1">Filter Queue:</span>
               <button
                 onClick={() => setStatusFilter('all')}
-                className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
-                  statusFilter === 'all'
+                className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors ${statusFilter === 'all'
                     ? 'bg-[#001f5b] text-white font-bold'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
+              }`}
               >
                 All Inquiries ({getApplicationsForPlatform(selectedSlug).length})
               </button>
               <button
                 onClick={() => setStatusFilter('pending')}
-                className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
-                  statusFilter === 'pending'
+                className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors ${statusFilter === 'pending'
                     ? 'bg-amber-600 text-white font-bold'
                     : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
-                }`}
+              }`}
               >
                 Pending Review
               </button>
               <button
                 onClick={() => setStatusFilter('approved')}
-                className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors ${
-                  statusFilter === 'approved'
+                className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors ${statusFilter === 'approved'
                     ? 'bg-emerald-600 text-white font-bold'
                     : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
-                }`}
+              }`}
               >
                 Approved
               </button>
@@ -1625,13 +1607,12 @@ export default function WebsitesPage() {
                       </td>
                       <td className="py-3.5 px-4">
                         <span
-                          className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                            app.status === 'APPROVED'
+                          className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${app.status === 'APPROVED'
                               ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                               : app.status === 'PENDING'
                               ? 'bg-amber-50 text-amber-800 border border-amber-200'
                               : 'bg-blue-50 text-blue-800 border border-blue-200'
-                          }`}
+              }`}
                         >
                           {app.status}
                         </span>

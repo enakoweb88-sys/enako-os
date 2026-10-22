@@ -92,7 +92,7 @@ export default function StaffMeals() {
       });
 
       setEmployees(remoteEmps?.items || []);
-    } catch (e: any) { 
+    } catch (e: any) {
       console.error(e); 
     } finally { 
       setLoading(false); 

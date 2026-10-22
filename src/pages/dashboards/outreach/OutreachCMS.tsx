@@ -16,14 +16,14 @@ export default function OutreachCMS() {
   const [researchedBy, setResearchedBy] = useState('');
   const [coverImageUrl, setCoverImageUrl] = useState('');
   const [coverImagePreview, setCoverImagePreview] = useState('');
-  
+
   // Media State
   const [images, setImages] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [videoProgress, setVideoProgress] = useState(0);          // 0–100
   const [videoPhase, setVideoPhase] = useState<'idle' | 'compressing' | 'uploading' | 'done'>('idle');
-  
+
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -106,7 +106,7 @@ export default function OutreachCMS() {
     const files = e.target.files;
     if (!files) return;
     setIsUploadingMedia(true);
-    
+
     try {
       const newImages = [...images];
       for (let i = 0; i < files.length; i++) {
@@ -115,21 +115,21 @@ export default function OutreachCMS() {
           toast.error(`Image ${file.name} is too large`);
           continue;
         }
-        
+
         // Compress image before upload
         const compressedBase64 = await compressImage(file);
-        
+
         // Upload directly to Supabase storage to avoid heavy payloads
         const match = compressedBase64.match(/^data:([a-zA-Z0-9-+\/]+);base64,(.+)$/);
         if (match) {
           const ext = match[1].split('/')[1] || 'jpg';
           const buffer = Uint8Array.from(atob(match[2]), c => c.charCodeAt(0));
           const fileName = `blog-media/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-          
+
           const { error } = await supabase.storage.from('outreach').upload(fileName, buffer, {
             contentType: match[1]
           });
-          
+
           if (!error) {
             const { data: { publicUrl } } = supabase.storage.from('outreach').getPublicUrl(fileName);
             newImages.push(publicUrl);
@@ -264,9 +264,9 @@ export default function OutreachCMS() {
   const handleSave = async (status: string) => {
     if (!title || !content) return toast.error('Title and content are required');
     setSaving(true);
-    
+
     let finalVideoUrl = videoUrl; // Already uploaded immediately on select
-    
+
     try {
 
       const payload = {
@@ -285,7 +285,7 @@ export default function OutreachCMS() {
       } else {
         await outreachAPI.createPost(payload);
       }
-      
+
       toast.success(status === 'PUBLISHED' ? 'Post published!' : 'Draft saved');
       closeModal();
       fetchPosts();
@@ -443,8 +443,7 @@ export default function OutreachCMS() {
                       <span className="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-white/95 text-slate-900 shadow-sm border border-slate-200">
                         {post.category || 'Blog'}
                       </span>
-                      <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                        post.status === 'PUBLISHED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                      <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${post.status === 'PUBLISHED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                       }`}>
                         {post.status}
                       </span>
@@ -468,7 +467,7 @@ export default function OutreachCMS() {
                 <div className="px-5 pb-5">
                   <div className="flex justify-between items-center pt-3 border-t border-slate-100">
                     <span className="text-xs font-bold text-slate-500">{new Date(post.createdAt).toLocaleDateString()}</span>
-                    <button 
+          <button 
                       onClick={() => handleStatusToggle(post.id, post.status)}
                       className="text-xs font-bold text-slate-900 hover:underline"
                     >
@@ -494,7 +493,7 @@ export default function OutreachCMS() {
                 ✕
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto space-y-5 flex-1">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -554,7 +553,7 @@ export default function OutreachCMS() {
                     <>
                       <img src={coverImagePreview} alt="Cover Preview" className="w-full h-full object-cover" />
                       {!isUploadingMedia && (
-                        <button 
+          <button 
                           onClick={(e) => { e.stopPropagation(); setCoverImagePreview(''); setCoverImageUrl(''); }}
                           className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded hover:bg-black"
                         >
@@ -592,7 +591,7 @@ export default function OutreachCMS() {
                 <div className="grid grid-cols-2 gap-4">
                   {/* Multiple Photos */}
                   <div className="relative h-24 border-2 border-dashed border-slate-300 rounded-lg hover:border-slate-400 transition-colors bg-slate-50 overflow-hidden flex flex-col items-center justify-center cursor-pointer group">
-                    <input 
+                  <input 
                       type="file" 
                       accept="image/*" 
                       multiple
@@ -608,11 +607,10 @@ export default function OutreachCMS() {
 
                   {/* Video Upload */}
                   <div className="relative">
-                    <div className={`relative h-24 border-2 border-dashed rounded-lg overflow-hidden flex flex-col items-center justify-center cursor-pointer group transition-all ${
-                      videoPhase === 'done' ? 'border-emerald-500/50 bg-emerald-50'
-                      : videoPhase === 'compressing' || videoPhase === 'uploading' ? 'border-slate-400 bg-slate-50 cursor-not-allowed'
+                    <div className={`relative h-24 border-2 border-dashed rounded-lg overflow-hidden flex flex-col items-center justify-center cursor-pointer group transition-all ${videoPhase === 'done' ? 'border-emerald-500/50 bg-emerald-50'
+                        : videoPhase === 'compressing' || videoPhase === 'uploading' ? 'border-slate-400 bg-slate-50 cursor-not-allowed'
                       : 'border-slate-300 hover:border-slate-400 bg-slate-50'
-                    }`}>
+                      }`}>
                       {(videoPhase === 'compressing' || videoPhase === 'uploading') ? (
                         <div className="w-full px-4 space-y-1.5">
                           <div className="flex justify-between text-[10px] font-bold text-slate-900">
@@ -671,7 +669,7 @@ export default function OutreachCMS() {
                     {images.map((img, idx) => (
                       <div key={idx} className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border border-slate-200">
                         <img src={img} className="w-full h-full object-cover" alt="Uploaded preview" />
-                        <button 
+          <button 
                           onClick={(e) => {
                             e.preventDefault();
                             setImages(images.filter((_, i) => i !== idx));
@@ -687,22 +685,22 @@ export default function OutreachCMS() {
                 )}
               </div>
             </div>
-            
+
             <div className="p-5 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
-              <button 
+          <button 
                 onClick={closeModal}
                 className="px-5 py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition-colors"
               >
                 Cancel
               </button>
-              <button 
+          <button 
                 disabled={saving || isUploadingMedia}
                 onClick={() => handleSave('DRAFT')}
                 className="px-5 py-2 rounded-lg text-xs font-bold text-slate-800 bg-white border border-slate-300 hover:bg-slate-100 transition-colors"
               >
                 {saving || isUploadingMedia ? 'Saving...' : 'Save as Draft'}
               </button>
-              <button 
+          <button 
                 disabled={saving || isUploadingMedia}
                 onClick={() => handleSave('PUBLISHED')}
                 className="px-6 py-2 rounded-lg text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 transition-colors shadow-sm disabled:opacity-50"

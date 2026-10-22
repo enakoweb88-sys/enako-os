@@ -32,7 +32,7 @@ export default function Chat() {
   const [members, setMembers] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
-  
+
   // Create channel state
   const [showCreate, setShowCreate] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
@@ -60,7 +60,7 @@ export default function Chat() {
     try {
       const res = await api.messages(channel);
       setMessages(res);
-    } catch (e: any) { 
+    } catch (e: any) {
       console.error(e);
       setMessages([]);
     }
@@ -203,7 +203,7 @@ export default function Chat() {
                 </button>
               )}
             </div>
-            
+
             {showCreate && (
               <form onSubmit={handleCreateChannel} className="px-3 mb-3">
                 <input 
@@ -257,7 +257,7 @@ export default function Chat() {
             <Hash className="w-5 h-5 text-primary" />
             <h2 className="font-display text-lg font-bold">#{activeChannel}</h2>
           </div>
-          <button 
+                <button
             onClick={() => setShowMembers(!showMembers)}
             className={cn("p-2 rounded-lg transition-colors", showMembers ? "bg-primary-container text-primary" : "hover:bg-surface-container-low text-secondary")}
           >
@@ -340,7 +340,7 @@ export default function Chat() {
             <h3 className="font-bold text-sm">Channel Info</h3>
             <button onClick={() => setShowMembers(false)} className="text-secondary hover:text-primary"><X className="w-4 h-4" /></button>
           </div>
-          
+
           <div className="p-4 flex-1 overflow-y-auto">
             <div className="mb-6">
               <h4 className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2">About</h4>
@@ -387,7 +387,7 @@ export default function Chat() {
                     </div>
                   </div>
                   {isManagerOrCeo && !isGeneral && member.id !== user?.id && (
-                    <button 
+                <button
                       onClick={() => handleRemoveMember(member.id)}
                       className="text-error opacity-0 group-hover:opacity-100 transition-opacity p-1"
                       title="Remove member"

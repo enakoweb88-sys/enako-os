@@ -230,11 +230,10 @@ export default function PendingExpensesPage() {
             </span>
             <button
               onClick={() => setSelectedCategory('ALL')}
-              className={`px-2.5 py-1 text-[11px] font-semibold rounded-md border transition-all shrink-0 ${
-                selectedCategory === 'ALL'
+              className={`px-2.5 py-1 text-[11px] font-semibold rounded-md border transition-all shrink-0 ${selectedCategory === 'ALL'
                   ? 'bg-[#001f5b] text-white border-[#001f5b]'
                   : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-              }`}
+                }`}
             >
               All ({items.length})
             </button>
@@ -242,11 +241,10 @@ export default function PendingExpensesPage() {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-2.5 py-1 text-[11px] font-semibold rounded-md border transition-all shrink-0 ${
-                  selectedCategory === cat
+                className={`px-2.5 py-1 text-[11px] font-semibold rounded-md border transition-all shrink-0 ${selectedCategory === cat
                     ? 'bg-[#001f5b] text-white border-[#001f5b]'
                     : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                }`}
+              }`}
               >
                 {cat} ({items.filter(i => i.category === cat).length})
               </button>

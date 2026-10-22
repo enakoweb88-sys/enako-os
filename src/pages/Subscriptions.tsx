@@ -42,7 +42,7 @@ const getFileUrl = (url: string) => {
 export default function Subscriptions() {
   const { user } = useAuth();
   const role = user?.role?.toLowerCase() ?? 'employee';
-  
+
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -290,7 +290,7 @@ export default function Subscriptions() {
             />
           </div>
         </div>
-        
+
         <div className="overflow-x-auto min-h-[300px]">
           {loading ? (
             <div className="flex justify-center items-center h-40 text-xs text-slate-500">

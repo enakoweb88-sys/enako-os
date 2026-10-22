@@ -26,7 +26,7 @@ export default function Help() {
       const items = res.items || [];
       const filtered = isAdmin ? items : items.filter((t: any) => t.clientEmail === user?.email);
       setTickets(filtered);
-      
+
       if (viewTicket) {
         const updated = items.find((t: any) => t.id === viewTicket.id);
         if (updated) setViewTicket(updated);
@@ -139,7 +139,7 @@ export default function Help() {
                 <h2 className="text-xl font-bold font-display text-primary">Support Tickets Desk</h2>
                 <p className="text-xs text-secondary mt-1">Review your tickets history or request administrative help.</p>
               </div>
-              <button 
+          <button 
                 onClick={() => {
                   setIsFormVisible(!isFormVisible);
                   setViewTicket(null);
@@ -191,7 +191,7 @@ export default function Help() {
                       <p className="text-xs text-center text-secondary py-6">No tickets filed.</p>
                     ) : (
                       tickets.map(t => (
-                        <button 
+          <button 
                           key={t.id} 
                           onClick={() => setViewTicket(t)}
                           className={cn(
@@ -271,7 +271,7 @@ export default function Help() {
                           placeholder="Write a message to support..."
                           className="flex-1 bg-surface-container-low border border-outline-variant/30 rounded-xl px-4 py-2.5 text-xs outline-none focus:ring-1 focus:ring-primary font-medium"
                         />
-                        <button 
+          <button 
                           type="submit" 
                           disabled={replying || !replyMessage.trim()}
                           className="px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:opacity-90 disabled:opacity-50 shrink-0"
@@ -296,7 +296,7 @@ export default function Help() {
         {/* Knowledge Base Content - Directly on page background (NO outer box or container card) */}
         {activeTab === 'knowledge' && (
           <motion.div key="knowledge" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-12 text-slate-800 leading-relaxed pt-2">
-            
+
             {/* Knowledge Base Header */}
             <div>
               <div className="inline-flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-widest mb-2">

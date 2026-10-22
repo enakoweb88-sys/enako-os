@@ -168,7 +168,7 @@ export default function OutreachDonations() {
                       {new Date(donation.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button 
+        <button 
                         onClick={() => setSelectedDonation(donation)}
                         className="px-2.5 py-1 text-xs font-semibold rounded border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
                       >
@@ -188,14 +188,14 @@ export default function OutreachDonations() {
           <div className="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] border border-slate-200">
             <div className="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
               <h2 className="text-base font-bold text-slate-900">Donation Details</h2>
-              <button 
+        <button 
                 onClick={() => setSelectedDonation(null)}
                 className="text-slate-400 hover:text-slate-600 text-lg leading-none font-bold"
               >
                 ✕
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto flex-1 space-y-4">
               <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200">
                 <div>
@@ -252,9 +252,9 @@ export default function OutreachDonations() {
                 </div>
               )}
             </div>
-            
+
             <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
-              <button 
+        <button 
                 onClick={() => setSelectedDonation(null)}
                 className="px-4 py-2 bg-slate-900 text-white font-semibold rounded-lg text-xs hover:bg-slate-800 transition-colors shadow-sm"
               >

@@ -30,7 +30,7 @@ export function HeadDashboard() {
         api.employees({ limit: 100 }),
         api.goals()
       ]);
-      
+
       const ledDepts = user?.ledDepartments || [];
       const myDeptEmployees = empRes.items.filter((e: any) => ledDepts.includes(e.department));
       setDepartmentEmployees(myDeptEmployees);
@@ -198,7 +198,7 @@ export function HeadDashboard() {
                 <label className="block text-[10px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">Title</label>
                 <input required value={goalForm.title} onChange={e => setGoalForm({...goalForm, title: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none font-medium" placeholder="e.g. Increase Q3 Revenue" />
               </div>
-              
+
               <div>
                 <label className="block text-[10px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">Description</label>
                 <textarea value={goalForm.description} onChange={e => setGoalForm({...goalForm, description: e.target.value})} className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none font-medium resize-none" rows={2} />

@@ -82,7 +82,7 @@ export function FinanceDashboard() {
 
       {/* Main Sections Grid */}
       <div className="grid grid-cols-12 gap-6">
-        
+
         {/* Bank & Mobile Money Accounts Overview */}
         <div className="col-span-12 lg:col-span-7 bg-white border border-slate-200 rounded-lg p-6 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between mb-6">
@@ -166,7 +166,7 @@ export function FinanceDashboard() {
 
       {/* Inflow/Outflow Chart & B2B Invoices */}
       <div className="grid grid-cols-12 gap-6">
-        
+
         {/* Daily Cash Position Flow */}
         <div className="col-span-12 lg:col-span-7 bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
@@ -175,7 +175,7 @@ export function FinanceDashboard() {
             </h3>
             <span className="text-xs text-slate-500 font-medium">Last 7 Days Movement</span>
           </div>
-          
+
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={cashPosition.chartData}>

@@ -244,8 +244,7 @@ export default function LogMealPage() {
                 <button
                   type="button"
                   onClick={() => setStatus('ATE')}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
-                    status === 'ATE'
+                  className={`flex-1 py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${status === 'ATE'
                       ? 'border-emerald-600 bg-emerald-600 text-white shadow-2xs font-bold'
                       : 'border-slate-200 text-slate-700 hover:bg-slate-100'
                   }`}
@@ -255,8 +254,7 @@ export default function LogMealPage() {
                 <button
                   type="button"
                   onClick={() => setStatus('DID_NOT_EAT')}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
-                    status === 'DID_NOT_EAT'
+                  className={`flex-1 py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${status === 'DID_NOT_EAT'
                       ? 'border-slate-800 bg-slate-800 text-white shadow-2xs font-bold'
                       : 'border-slate-200 text-slate-700 hover:bg-slate-100'
                   }`}
@@ -285,11 +283,10 @@ export default function LogMealPage() {
                     <label
                       key={opt}
                       onClick={() => setMealName(opt)}
-                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                        mealName === opt
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${mealName === opt
                           ? 'border-[#001f5b] bg-[#001f5b]/5 text-slate-900'
                           : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                      }`}
+                  }`}
                     >
                       <input
                         type="radio"

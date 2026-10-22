@@ -297,8 +297,7 @@ export default function CreateTransactionPage() {
             <button
               type="button"
               onClick={() => setForm(f => ({ ...f, type: 'Receive' }))}
-              className={`py-2.5 px-4 rounded-md text-xs font-bold transition-all border text-center cursor-pointer ${
-                form.type === 'Receive'
+              className={`py-2.5 px-4 rounded-md text-xs font-bold transition-all border text-center cursor-pointer ${form.type === 'Receive'
                   ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-2xs'
                   : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}
@@ -308,8 +307,7 @@ export default function CreateTransactionPage() {
             <button
               type="button"
               onClick={() => setForm(f => ({ ...f, type: 'Send' }))}
-              className={`py-2.5 px-4 rounded-md text-xs font-bold transition-all border text-center cursor-pointer ${
-                form.type === 'Send'
+              className={`py-2.5 px-4 rounded-md text-xs font-bold transition-all border text-center cursor-pointer ${form.type === 'Send'
                   ? 'bg-rose-50 border-rose-500 text-rose-800 shadow-2xs'
                   : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}

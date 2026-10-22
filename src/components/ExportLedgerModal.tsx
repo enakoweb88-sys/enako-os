@@ -126,14 +126,12 @@ export default function ExportLedgerModal<T>({
               <button
                 type="button"
                 onClick={() => setFormat('PDF')}
-                className={`p-3 rounded-lg border text-left transition-all cursor-pointer flex items-center gap-3 ${
-                  format === 'PDF'
+                className={`p-3 rounded-lg border text-left transition-all cursor-pointer flex items-center gap-3 ${format === 'PDF'
                     ? 'border-[#001f5b] bg-[#001f5b]/5 text-[#001f5b] shadow-2xs'
                     : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                }`}
+                  }`}
               >
-                <div className={`w-8 h-8 rounded-md flex items-center justify-center ${
-                  format === 'PDF' ? 'bg-[#001f5b] text-white' : 'bg-slate-100 text-slate-600'
+                <div className={`w-8 h-8 rounded-md flex items-center justify-center ${format === 'PDF' ? 'bg-[#001f5b] text-white' : 'bg-slate-100 text-slate-600'
                 }`}>
                   <FileText className="w-4 h-4" />
                 </div>
@@ -146,14 +144,12 @@ export default function ExportLedgerModal<T>({
               <button
                 type="button"
                 onClick={() => setFormat('EXCEL')}
-                className={`p-3 rounded-lg border text-left transition-all cursor-pointer flex items-center gap-3 ${
-                  format === 'EXCEL'
+                className={`p-3 rounded-lg border text-left transition-all cursor-pointer flex items-center gap-3 ${format === 'EXCEL'
                     ? 'border-emerald-600 bg-emerald-50 text-emerald-900 shadow-2xs'
                     : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                }`}
+                  }`}
               >
-                <div className={`w-8 h-8 rounded-md flex items-center justify-center ${
-                  format === 'EXCEL' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+                <div className={`w-8 h-8 rounded-md flex items-center justify-center ${format === 'EXCEL' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
                 }`}>
                   <Table className="w-4 h-4" />
                 </div>
@@ -176,11 +172,10 @@ export default function ExportLedgerModal<T>({
               <button
                 type="button"
                 onClick={() => setSelectedRange('LAST_7_DAYS')}
-                className={`px-3 py-2 rounded-md text-xs font-semibold border text-left transition-all cursor-pointer flex items-center justify-between ${
-                  selectedRange === 'LAST_7_DAYS'
+                className={`px-3 py-2 rounded-md text-xs font-semibold border text-left transition-all cursor-pointer flex items-center justify-between ${selectedRange === 'LAST_7_DAYS'
                     ? 'border-[#001f5b] bg-[#001f5b] text-white'
                     : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 <span>Last 7 Days</span>
                 {selectedRange === 'LAST_7_DAYS' && <Check className="w-3.5 h-3.5" />}
@@ -189,11 +184,10 @@ export default function ExportLedgerModal<T>({
               <button
                 type="button"
                 onClick={() => setSelectedRange('CURRENT_MONTH')}
-                className={`px-3 py-2 rounded-md text-xs font-semibold border text-left transition-all cursor-pointer flex items-center justify-between ${
-                  selectedRange === 'CURRENT_MONTH'
+                className={`px-3 py-2 rounded-md text-xs font-semibold border text-left transition-all cursor-pointer flex items-center justify-between ${selectedRange === 'CURRENT_MONTH'
                     ? 'border-[#001f5b] bg-[#001f5b] text-white'
                     : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 <span className="truncate">{currentMonthOption?.label || 'Present Month'}</span>
                 {selectedRange === 'CURRENT_MONTH' && <Check className="w-3.5 h-3.5 shrink-0" />}
@@ -202,11 +196,10 @@ export default function ExportLedgerModal<T>({
               <button
                 type="button"
                 onClick={() => setSelectedRange('LAST_3_MONTHS')}
-                className={`px-3 py-2 rounded-md text-xs font-semibold border text-left transition-all cursor-pointer flex items-center justify-between ${
-                  selectedRange === 'LAST_3_MONTHS'
+                className={`px-3 py-2 rounded-md text-xs font-semibold border text-left transition-all cursor-pointer flex items-center justify-between ${selectedRange === 'LAST_3_MONTHS'
                     ? 'border-[#001f5b] bg-[#001f5b] text-white'
                     : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 <span>Last 3 Months</span>
                 {selectedRange === 'LAST_3_MONTHS' && <Check className="w-3.5 h-3.5" />}
@@ -215,11 +208,10 @@ export default function ExportLedgerModal<T>({
               <button
                 type="button"
                 onClick={() => setSelectedRange('LAST_YEAR')}
-                className={`px-3 py-2 rounded-md text-xs font-semibold border text-left transition-all cursor-pointer flex items-center justify-between ${
-                  selectedRange === 'LAST_YEAR'
+                className={`px-3 py-2 rounded-md text-xs font-semibold border text-left transition-all cursor-pointer flex items-center justify-between ${selectedRange === 'LAST_YEAR'
                     ? 'border-[#001f5b] bg-[#001f5b] text-white'
                     : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 <span>Last Year (12 Mo.)</span>
                 {selectedRange === 'LAST_YEAR' && <Check className="w-3.5 h-3.5" />}
@@ -238,11 +230,10 @@ export default function ExportLedgerModal<T>({
                     setSelectedPastMonth(e.target.value);
                     setSelectedRange('SPECIFIC_PAST_MONTH');
                   }}
-                  className={`w-full px-3 py-2 rounded-md text-xs font-semibold border outline-none cursor-pointer transition-colors ${
-                    selectedRange === 'SPECIFIC_PAST_MONTH'
+                  className={`w-full px-3 py-2 rounded-md text-xs font-semibold border outline-none cursor-pointer transition-colors ${selectedRange === 'SPECIFIC_PAST_MONTH'
                       ? 'border-[#001f5b] bg-blue-50/40 text-slate-900'
                       : 'border-slate-200 bg-white text-slate-700'
-                  }`}
+                }`}
                 >
                   {pastMonthOptions.map(p => (
                     <option key={p.key} value={p.key}>
@@ -254,11 +245,10 @@ export default function ExportLedgerModal<T>({
                 <button
                   type="button"
                   onClick={() => setSelectedRange('SPECIFIC_PAST_MONTH')}
-                  className={`px-3 py-2 rounded-md text-xs font-bold border transition-colors shrink-0 cursor-pointer ${
-                    selectedRange === 'SPECIFIC_PAST_MONTH'
+                  className={`px-3 py-2 rounded-md text-xs font-bold border transition-colors shrink-0 cursor-pointer ${selectedRange === 'SPECIFIC_PAST_MONTH'
                       ? 'bg-[#001f5b] text-white border-[#001f5b]'
                       : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
-                  }`}
+                }`}
                 >
                   Apply Month
                 </button>
@@ -269,9 +259,8 @@ export default function ExportLedgerModal<T>({
               <button
                 type="button"
                 onClick={() => setSelectedRange('ALL_TIME')}
-                className={`text-[11px] font-semibold hover:underline ${
-                  selectedRange === 'ALL_TIME' ? 'text-[#001f5b] font-bold' : 'text-slate-500'
-                }`}
+                className={`text-[11px] font-semibold hover:underline ${selectedRange === 'ALL_TIME' ? 'text-[#001f5b] font-bold' : 'text-slate-500'
+                  }`}
               >
                 {selectedRange === 'ALL_TIME' ? '✓ Showing All Time Records' : 'View All Time (Complete Ledger)'}
               </button>
@@ -301,8 +290,7 @@ export default function ExportLedgerModal<T>({
             type="button"
             onClick={handleDownload}
             disabled={filteredItems.length === 0}
-            className={`px-5 py-2 rounded-md text-xs font-semibold text-white shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer ${
-              format === 'EXCEL'
+            className={`px-5 py-2 rounded-md text-xs font-semibold text-white shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer ${format === 'EXCEL'
                 ? 'bg-emerald-700 hover:bg-emerald-800'
                 : 'bg-[#001f5b] hover:bg-[#001744]'
             } disabled:opacity-50`}

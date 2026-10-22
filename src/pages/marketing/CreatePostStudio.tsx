@@ -62,7 +62,7 @@ export default function CreatePostStudio() {
         // Topic Title
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 64px sans-serif';
-        
+
         const words = (topic || 'ENAKO Fintech Solutions').toUpperCase().split(' ');
         let line = '';
         let y = 240;
@@ -328,8 +328,8 @@ export default function CreatePostStudio() {
               Generate custom campaign flyers or promotional graphics instantly for <strong className="text-slate-800">{topic}</strong>.
             </p>
 
-            <button 
-              type="button" 
+                  <button
+                    type="button"
               onClick={handleGenerateFlyer} 
               disabled={generatingAi}
               className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg text-xs uppercase tracking-wider transition-colors disabled:opacity-50 shadow-sm"

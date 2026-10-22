@@ -147,8 +147,7 @@ export default function TodaysMealOrdersPage() {
                       1,000 FCFA
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
-                        m.status === 'ATE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${m.status === 'ATE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
                       }`}>
                         {m.status || 'ORDERED'}
                       </span>

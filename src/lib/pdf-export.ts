@@ -115,7 +115,7 @@ export function exportTablePdf(params: {
 }): boolean {
   // If more than 5 columns, default to landscape so Event Description and all fields have ample space
   const effectiveOrientation: 'portrait' | 'landscape' =
-    params.orientation || (params.headers.length >= 6 ? 'landscape' : 'portrait');
+  params.orientation || (params.headers.length >= 6 ? 'landscape' : 'portrait');
 
   const { doc, pageWidth, pageHeight, startY } = createBrandedPdf(
     params.title,

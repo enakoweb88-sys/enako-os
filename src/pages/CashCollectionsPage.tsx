@@ -91,7 +91,7 @@ export default function CashCollectionsPage() {
           try {
             const p = JSON.parse(val);
             if (Array.isArray(p)) rawItems.push(...p);
-          } catch (e) {}
+      } catch (e) {}
         }
       }
 
@@ -103,7 +103,7 @@ export default function CashCollectionsPage() {
         try {
           const u = JSON.parse(userRaw);
           if (u.name || u.fullName) collectorName = u.name || u.fullName;
-        } catch (e) {}
+      } catch (e) {}
       }
 
       const seen = new Set();
@@ -365,7 +365,7 @@ export default function CashCollectionsPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8 pb-20 font-sans">
-      
+
       {/* Top Header & Breadcrumb (Clean normal text per guidelines) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
         <div>

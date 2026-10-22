@@ -298,13 +298,12 @@ export default function ApiSpecsPage() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex items-center gap-3">
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider ${
-                            ep.method === 'GET'
+                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider ${ep.method === 'GET'
                               ? 'bg-sky-50 text-sky-700 border border-sky-200'
                               : ep.method === 'POST'
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                               : 'bg-amber-50 text-amber-700 border border-amber-200'
-                          }`}
+                            }`}
                         >
                           {ep.method}
                         </span>
@@ -332,22 +331,20 @@ export default function ApiSpecsPage() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => setActiveCodeTab((prev) => ({ ...prev, [ep.key]: 'curl' }))}
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-colors cursor-pointer ${
-                              currentTab === 'curl'
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-colors cursor-pointer ${currentTab === 'curl'
                                 ? 'bg-slate-800 text-sky-400 font-semibold'
                                 : 'text-slate-400 hover:text-slate-200'
-                            }`}
+                          }`}
                           >
                             <Terminal className="w-3.5 h-3.5" />
                             cURL Request
                           </button>
                           <button
                             onClick={() => setActiveCodeTab((prev) => ({ ...prev, [ep.key]: 'response' }))}
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-colors cursor-pointer ${
-                              currentTab === 'response'
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-colors cursor-pointer ${currentTab === 'response'
                                 ? 'bg-slate-800 text-emerald-400 font-semibold'
                                 : 'text-slate-400 hover:text-slate-200'
-                            }`}
+                          }`}
                           >
                             <Layers className="w-3.5 h-3.5" />
                             Response JSON

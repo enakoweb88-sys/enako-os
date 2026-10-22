@@ -58,7 +58,7 @@ export default function CreateCashTaskPage() {
 
     setSubmitting(true);
     const finalLocation = location.startsWith('Other') 
-      ? (customLocation.trim() || 'Regional Field Sector') 
+      ? (customLocation.trim() || 'Regional Field Sector')
       : location;
 
     const newId = `COL-${Math.floor(1000 + Math.random() * 9000)}`;

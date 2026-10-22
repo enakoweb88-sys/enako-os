@@ -63,8 +63,7 @@ export default function ExecutiveSummariesPage() {
             <button
               key={t}
               onClick={() => setFilter(t)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                filter === t
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${filter === t
                   ? 'bg-[#001f5b] text-white shadow-2xs'
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
               }`}
@@ -120,22 +119,22 @@ export default function ExecutiveSummariesPage() {
                       const rawDate = item.date || item.createdAt || new Date();
                       const d = new Date(rawDate);
                       const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A';
-                      
+
                       const rows: (string | number)[][] = [
-                        ['Report ID', item.id || `SUM-${idx + 1}`],
-                        ['Report Type', item.type || 'EXECUTIVE DIGEST'],
+                ['Report ID', item.id || `SUM-${idx + 1}`],
+                ['Report Type', item.type || 'EXECUTIVE DIGEST'],
                         ['Author / Executive', author],
                         ['Date Submitted', dateStr],
-                        ['Status', item.status || 'SUBMITTED'],
-                        ['Executive Summary', (item.content || 'Operational progress confirmed across all active departments.').replace(/\n/g, ' ')]
+                ['Status', item.status || 'SUBMITTED'],
+                ['Executive Summary', (item.content || 'Operational progress confirmed across all active departments.').replace(/\n/g, ' ')]
                       ];
 
                       const success = exportTablePdf({
                         title: 'EXECUTIVE BRIEF & OPERATIONAL DIGEST',
-                        subtitle: `Subject: ${item.type || 'EXECUTIVE BRIEF'} • Reference: ${item.id?.substring(0, 12) || idx + 1}`,
+                subtitle: `Subject: ${item.type || 'EXECUTIVE BRIEF'} • Reference: ${item.id?.substring(0, 12) || idx + 1}`,
                         headers: ['Section / Parameter', 'Details & Content'],
                         rows,
-                        fileName: `Executive_Brief_${(item.id || idx + 1).toString().substring(0, 8)}_${new Date().toISOString().split('T')[0]}.pdf`
+                fileName: `Executive_Brief_${(item.id || idx + 1).toString().substring(0, 8)}_${new Date().toISOString().split('T')[0]}.pdf`
                       });
 
                       if (success) {
@@ -151,12 +150,12 @@ export default function ExecutiveSummariesPage() {
                   className="px-3 py-1 bg-white border border-slate-200 text-[#001f5b] hover:bg-slate-50 text-xs font-semibold rounded transition-colors cursor-pointer"
                 >
                   Download PDF Brief
-                </button>
-              </div>
+            </button>
+            </div>
             </div>
           ))
         )}
-      </div>
     </div>
+      </div>
   );
 }

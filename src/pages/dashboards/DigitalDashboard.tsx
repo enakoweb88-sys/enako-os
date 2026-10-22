@@ -162,7 +162,7 @@ export function DigitalDashboard() {
           <h3 className="text-sm font-semibold text-slate-800">
             Content Pipeline
           </h3>
-          
+
           <div className="space-y-2 pt-1">
             {[
               { label: 'To Do', count: tasks?.todo ?? 0, color: 'border-slate-200 text-slate-700 bg-slate-50' },

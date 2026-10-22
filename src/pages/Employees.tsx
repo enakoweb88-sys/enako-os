@@ -291,7 +291,7 @@ export default function Employees() {
             <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
               <span>Human Resources</span>
               <span>/</span>
-              <button 
+              <button
                 onClick={() => { setViewEmployee(null); setEditMode(false); navigate('/app/employees'); }}
                 className="hover:underline text-slate-500 cursor-pointer"
               >
@@ -649,7 +649,7 @@ export default function Employees() {
                       {viewEmployee.title || 'Operative'} ({viewEmployee.department || 'General'})
                     </p>
                   </div>
-                  <button 
+              <button 
                     onClick={() => navigate(`/app/employees/${viewEmployee.id}`)}
                     className="text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-slate-700 px-3 py-1.5 border border-slate-200 rounded-lg"
                   >

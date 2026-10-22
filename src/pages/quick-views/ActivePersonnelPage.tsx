@@ -153,8 +153,7 @@ export default function ActivePersonnelPage() {
             <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
               <button
                 onClick={() => setViewMode('table')}
-                className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-                  viewMode === 'table' ? 'bg-white shadow-2xs text-[#001f5b]' : 'text-slate-500 hover:text-slate-800'
+                className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === 'table' ? 'bg-white shadow-2xs text-[#001f5b]' : 'text-slate-500 hover:text-slate-800'
                 }`}
                 title="Table View"
               >
@@ -162,8 +161,7 @@ export default function ActivePersonnelPage() {
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-md transition-colors cursor-pointer ${
-                  viewMode === 'grid' ? 'bg-white shadow-2xs text-[#001f5b]' : 'text-slate-500 hover:text-slate-800'
+                className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === 'grid' ? 'bg-white shadow-2xs text-[#001f5b]' : 'text-slate-500 hover:text-slate-800'
                 }`}
                 title="Grid Card View"
               >
@@ -202,11 +200,10 @@ export default function ActivePersonnelPage() {
             <button
               key={tab.id}
               onClick={() => setActiveDept(tab.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
-                activeDept === tab.id
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${activeDept === tab.id
                   ? 'bg-[#001f5b] text-white shadow-2xs'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
-              }`}
+                }`}
             >
               {tab.label}
             </button>

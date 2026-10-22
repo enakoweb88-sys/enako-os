@@ -482,8 +482,8 @@ export default function Transactions() {
 
       let allTx: any[] = [];
       try {
-        const res = await api.transactions({ 
-          search, 
+      const res = await api.transactions({ 
+        search, 
           limit: 1000,
           dateRange: filterRange,
           type: txType,
@@ -499,7 +499,7 @@ export default function Transactions() {
       if (allTx.length === 0 && items.length > 0) {
         allTx = items;
       }
-      
+
       const doc = new jsPDF();
       let cy = 20;
 
@@ -560,7 +560,7 @@ export default function Transactions() {
           fillColor: [248, 250, 252]
         }
       });
-      
+
       cy = ((doc as any).lastAutoTable?.finalY ?? 60) + 15;
 
       // Now draw Charts on next page
@@ -577,7 +577,7 @@ export default function Transactions() {
         doc.setTextColor(brandBlue[0], brandBlue[1], brandBlue[2]);
         doc.setFont(undefined, 'bold');
         doc.text(title, x, y - 5);
-        
+
         if (data.length === 0) {
           doc.setFontSize(8);
           doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
@@ -587,26 +587,26 @@ export default function Transactions() {
 
         const maxVal = Math.max(...data.map(d => d.value), 1);
         const barWidth = Math.max((w / data.length) - 4, 3);
-        
+
         doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
         doc.setLineWidth(0.5);
         doc.line(x, y, x, y + h); 
         doc.line(x, y + h, x + w, y + h); 
-        
+
         data.forEach((d, i) => {
           const barH = (d.value / maxVal) * h;
           const barX = x + 2 + i * (barWidth + (w > 100 && data.length > 10 ? 1.5 : 4));
           const barY = y + h - barH;
-          
+
           doc.setFillColor(brandBlue[0], brandBlue[1], brandBlue[2]);
           doc.rect(barX, barY, barWidth, barH, 'F');
-          
+
           doc.setFontSize(6);
           doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
           const label = d.label.length > 6 ? d.label.substring(0, 6) + '..' : d.label;
-          
+
           doc.text(label, barX, y + h + 5);
-          
+
           if (d.value > 0 && barWidth > 8) {
             doc.text(fmt(d.value, false), barX, barY - 2);
           }
@@ -616,7 +616,7 @@ export default function Transactions() {
       const last28Days = Array.from({ length: 28 }, (_, i) => {
         const d = new Date();
         d.setDate(d.getDate() - (27 - i));
-        return { 
+    return {
           date: d, 
           label: `${d.getDate()}/${d.getMonth()+1}`, 
           value: 0 
@@ -675,8 +675,8 @@ export default function Transactions() {
 
       let allTx: any[] = [];
       try {
-        const res = await api.transactions({ 
-          search, 
+      const res = await api.transactions({ 
+        search, 
           limit: 1000,
           dateRange: filterRange,
           type: txType,
@@ -692,14 +692,14 @@ export default function Transactions() {
       if (allTx.length === 0 && items.length > 0) {
         allTx = items;
       }
-      
+
       const wsData = [
         [`ENAKO FINTECH - FX Transactions & Operations Report - ${period}`],
         [`Generated: ${new Date().toLocaleDateString()}`],
         [],
         ['Date', 'Entity / Reference', 'Type', 'Channel', 'Currency', 'Amount', 'Amount (XAF)', 'Base Rate', 'Status', 'Rate & Margin Details']
       ];
-      
+
       allTx.forEach((tx: any) => {
         const d = tx.createdAt ? new Date(tx.createdAt) : new Date();
         const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString() : 'N/A';
@@ -718,7 +718,7 @@ export default function Transactions() {
       });
 
       const ws = XLSX.utils.aoa_to_sheet(wsData);
-      
+
       ws['!cols'] = [
         { wch: 12 }, { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 10 }, 
         { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 30 }
@@ -726,7 +726,7 @@ export default function Transactions() {
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
-      
+
       XLSX.writeFile(wb, `transactions_${period.toLowerCase()}_${new Date().toISOString().split('T')[0]}.xlsx`);
       toast.success(`Exported ${period} transactions to Excel`);
     } catch (error: any) {
@@ -1045,7 +1045,7 @@ export default function Transactions() {
           </div>
         </div>
       </div>
-      
+
       <AnimatePresence>
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1100,24 +1100,24 @@ export default function Transactions() {
                       <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">
                         Buying Rate {form.currency === 'NGN' || form.sellingCurrency === 'NGN' ? '(per 1,000 NGN)' : '(Buy)'} *
                       </label>
-                      <input 
-                        type="text" 
+                    <input 
+                      type="text" 
                         value={form.buyingRate} 
                         onChange={e => handleBuyingRateChange(e.target.value)} 
                         className="w-full bg-white border border-outline-variant/30 rounded-xl p-3 text-sm font-mono font-bold text-primary outline-none focus:ring-2 focus:ring-primary/20" 
-                        placeholder={form.currency === 'NGN' || form.sellingCurrency === 'NGN' ? "e.g. 400 per 1k NGN" : "Buying Rate (e.g. 600)"} 
+                        placeholder={form.currency === 'NGN' || form.sellingCurrency === 'NGN' ? "e.g. 400 per 1k NGN" : "Buying Rate (e.g. 600)"}
                       />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">
                         Selling Rate {form.currency === 'NGN' || form.sellingCurrency === 'NGN' ? '(per 1,000 NGN)' : '(Sell)'} *
                       </label>
-                      <input 
-                        type="text" 
+                    <input 
+                      type="text" 
                         value={form.sellingRate} 
                         onChange={e => handleSellingRateChange(e.target.value)} 
                         className="w-full bg-white border border-outline-variant/30 rounded-xl p-3 text-sm font-mono font-bold text-primary outline-none focus:ring-2 focus:ring-primary/20" 
-                        placeholder={form.currency === 'NGN' || form.sellingCurrency === 'NGN' ? "e.g. 420 per 1k NGN" : "Selling Rate (e.g. 620)"} 
+                        placeholder={form.currency === 'NGN' || form.sellingCurrency === 'NGN' ? "e.g. 420 per 1k NGN" : "Selling Rate (e.g. 620)"}
                       />
                     </div>
                   </div>
@@ -1128,8 +1128,8 @@ export default function Transactions() {
                       <label className="block text-[10px] font-bold text-emerald-700 mb-1 uppercase tracking-widest">
                         Total XAF Bought (Paid/Collected)
                       </label>
-                      <input 
-                        type="text" 
+                    <input 
+                      type="text" 
                         value={formatCommaNumber(form.buyingAmountXaf)} 
                         onChange={e => handleBuyingAmountXafChange(e.target.value)} 
                         className="w-full bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-sm font-mono font-bold text-emerald-800 outline-none" 
@@ -1140,8 +1140,8 @@ export default function Transactions() {
                       <label className="block text-[10px] font-bold text-blue-700 mb-1 uppercase tracking-widest">
                         Total XAF Sold (Expected Sales)
                       </label>
-                      <input 
-                        type="text" 
+                    <input 
+                      type="text" 
                         value={formatCommaNumber(form.sellingAmountXaf)} 
                         onChange={e => handleSellingAmountXafChange(e.target.value)} 
                         className="w-full bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm font-mono font-bold text-blue-800 outline-none" 
@@ -1156,7 +1156,7 @@ export default function Transactions() {
                       <label className="block text-[10px] font-bold text-secondary mb-1 uppercase tracking-widest">
                         Selling Target Currency
                       </label>
-                      <select 
+                    <select 
                         value={form.sellingCurrency} 
                         onChange={e => handleSellingCurrencyChange(e.target.value)} 
                         className="w-full bg-white border border-outline-variant/30 rounded-xl p-2.5 text-xs font-bold outline-none"
@@ -1173,8 +1173,8 @@ export default function Transactions() {
                       <label className="block text-[10px] font-bold text-secondary mb-1 uppercase tracking-widest">
                         Amount Sold in {form.sellingCurrency}
                       </label>
-                      <input 
-                        type="text" 
+                    <input 
+                      type="text" 
                         value={formatCommaNumber(form.sellingCurrencyAmount)} 
                         onChange={e => handleSellingCurrencyAmountChange(e.target.value)} 
                         placeholder={`e.g. 1,000 ${form.sellingCurrency}`}
@@ -1238,9 +1238,9 @@ export default function Transactions() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Current Balance (XAF) *</label>
-                  <input 
-                    required 
-                    type="text" 
+                    <input 
+                      required 
+                      type="text" 
                     value={formatCommaNumber(floatForm.balance)} 
                     onChange={e => setFloatForm({ ...floatForm, balance: cleanCommas(e.target.value) })} 
                     className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm outline-none focus:border-slate-400 font-mono font-bold text-slate-900" 
@@ -1266,9 +1266,9 @@ export default function Transactions() {
               <form onSubmit={submitCharges} className="p-6 space-y-4 overflow-y-auto">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Transfer Charges (XAF) *</label>
-                  <input 
-                    required 
-                    type="text" 
+                    <input 
+                      required 
+                      type="text" 
                     value={formatCommaNumber(chargesForm.charges)} 
                     onChange={e => setChargesForm({ ...chargesForm, charges: cleanCommas(e.target.value) })} 
                     className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm outline-none focus:border-slate-400 font-mono font-bold text-slate-900" 

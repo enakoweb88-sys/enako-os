@@ -51,7 +51,7 @@ export default function DashboardLayout() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotif, setShowNotif] = useState(false);
-  
+
   // Dual-sidebar state
   const [subSidebarOpen, setSubSidebarOpen] = useState(true);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
@@ -306,27 +306,27 @@ export default function DashboardLayout() {
       ],
       views: location.pathname.startsWith('/app/subscriptions')
         ? [
-            {
+        {
               label: 'Add Subscription',
               subtitle: 'Log enterprise software contract',
               path: '/app/subscriptions/new',
               icon: Plus
-            }
-          ]
+}
+      ]
         : [
-            {
+        {
               label: 'New Expense',
               subtitle: 'Submit reimbursement claim',
               path: '/app/expenses/new',
               icon: Plus
-            },
-            {
+    },
+        {
               label: 'Pending Approvals',
               subtitle: 'Awaiting CEO & manager review',
               path: '/app/expenses/pending',
               icon: Clock
-            }
-          ]
+}
+      ]
     },
     {
       id: 'operations',
@@ -347,19 +347,19 @@ export default function DashboardLayout() {
       ],
       views: location.pathname.startsWith('/app/meals')
         ? [
-            {
+        {
               label: 'Log Meal Entry',
               subtitle: 'Record daily catering check-in',
               path: '/app/meals/new',
               icon: Plus
-            },
-            {
+    },
+        {
               label: "Today's Orders",
               subtitle: 'Catering orders logged today',
               path: '/app/meals/today',
               icon: UtensilsCrossed
-            }
-          ]
+}
+      ]
         : location.pathname.startsWith('/app/goals')
         ? [
             {
@@ -536,13 +536,13 @@ export default function DashboardLayout() {
             { label: 'Rate Limits & Quotas', subtitle: 'Tiered thresholds & 429 backoff', path: '/app/docs#rate-limits' },
             { label: 'Error Codes & Handling', subtitle: 'RFC 7807 machine-readable codes', path: '/app/docs#error-handling' },
             { label: 'Webhooks & Event Delivery', subtitle: 'HMAC SHA-256 signed events', path: '/app/docs#webhooks' },
-          ]
+      ]
         : [
             { label: 'Transactions API', subtitle: 'Ledger, rates & exchange ops', path: '/app/apis#transactions' },
             { label: 'KYC & Verification API', subtitle: 'Submissions & compliance audit', path: '/app/apis#kyc' },
             { label: 'Employees & Roster API', subtitle: 'Operative profiles & clearance', path: '/app/apis#employees' },
             { label: 'System & Health API', subtitle: 'Gateway uptime & latency telemetry', path: '/app/apis#system' },
-          ]
+      ]
     },
     {
       id: 'security',
@@ -641,7 +641,7 @@ export default function DashboardLayout() {
       try {
         const q = searchQuery.toLowerCase();
         const localMatches: any[] = [];
-        
+
         railCategories.forEach(cat => {
           cat.sections.forEach(sec => {
             sec.items.forEach(it => {

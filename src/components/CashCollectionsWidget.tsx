@@ -40,7 +40,7 @@ export function CashCollectionsWidget() {
           try {
             const p = JSON.parse(val);
             if (Array.isArray(p)) rawItems.push(...p);
-          } catch (e) {}
+      } catch (e) {}
         }
       }
 
@@ -52,7 +52,7 @@ export function CashCollectionsWidget() {
         try {
           const u = JSON.parse(userRaw);
           if (u.name || u.fullName) collectorName = u.name || u.fullName;
-        } catch (e) {}
+      } catch (e) {}
       }
 
       const seen = new Set();

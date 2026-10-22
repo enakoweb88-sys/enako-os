@@ -309,8 +309,7 @@ export default function CreateSubscriptionPage() {
                   <button
                     type="button"
                     onClick={() => setCycle('Monthly')}
-                    className={`flex-1 py-2 text-xs font-semibold rounded-lg border transition-all ${
-                      cycle === 'Monthly'
+                    className={`flex-1 py-2 text-xs font-semibold rounded-lg border transition-all ${cycle === 'Monthly'
                         ? 'border-[#001f5b] bg-[#001f5b] text-white'
                         : 'border-slate-200 text-slate-700 hover:bg-slate-100'
                     }`}
@@ -320,8 +319,7 @@ export default function CreateSubscriptionPage() {
                   <button
                     type="button"
                     onClick={() => setCycle('Yearly')}
-                    className={`flex-1 py-2 text-xs font-semibold rounded-lg border transition-all ${
-                      cycle === 'Yearly'
+                    className={`flex-1 py-2 text-xs font-semibold rounded-lg border transition-all ${cycle === 'Yearly'
                         ? 'border-[#001f5b] bg-[#001f5b] text-white'
                         : 'border-slate-200 text-slate-700 hover:bg-slate-100'
                     }`}

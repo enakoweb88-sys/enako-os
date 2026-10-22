@@ -88,7 +88,7 @@ export function EmployeeDashboard({ targetUser }: EmployeeDashboardProps) {
 
       {/* Main Grid: Tasks & Expense Claims */}
       <div className="grid grid-cols-12 gap-6">
-        
+
         {/* Assigned Tasks List */}
         <div className="col-span-12 lg:col-span-7 bg-white border border-slate-200 rounded-lg p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
@@ -170,7 +170,7 @@ export function EmployeeDashboard({ targetUser }: EmployeeDashboardProps) {
 
       {/* Secondary Grid: Staff Meals Log & Goals Tracking */}
       <div className="grid grid-cols-12 gap-6">
-        
+
         {/* Goals & Performance Targets */}
         <div className="col-span-12 lg:col-span-7 bg-white border border-slate-200 rounded-lg p-6 shadow-sm space-y-4">
           <div className="border-b border-slate-100 pb-4">

@@ -26,7 +26,7 @@ export default function Announcements() {
       setPosts(res);
     } catch (e: any) { 
       console.error(e); 
-    } finally { 
+    } finally {
       setLoading(false); 
     }
   }, []);
@@ -43,7 +43,7 @@ export default function Announcements() {
       load();
     } catch (e: any) { 
       alert(e.message); 
-    } finally { 
+    } finally {
       setSubmitting(false); 
     }
   };
@@ -114,7 +114,7 @@ export default function Announcements() {
               Post Announcement
             </button>
           )}
-          <button 
+            <button
             onClick={load} 
             className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
           >
@@ -207,7 +207,7 @@ export default function Announcements() {
               <div className="flex justify-between items-center pt-3 border-t border-slate-100">
                 <div className="flex items-center gap-3">
                   {/* Like Button */}
-                  <button 
+            <button
                     onClick={() => handleToggleLike(post.id)}
                     className={cn(
                       "text-xs font-semibold py-1.5 px-3 rounded-lg border transition-colors",
@@ -225,7 +225,7 @@ export default function Announcements() {
                   </button>
 
                   {/* Comment / Reply Button */}
-                  <button 
+            <button
                     onClick={() => setActiveCommentPostId(isCommentsOpen ? null : post.id)}
                     className={cn(
                       "text-xs font-semibold py-1.5 px-3 rounded-lg border transition-colors",
@@ -285,7 +285,7 @@ export default function Announcements() {
                       }}
                       className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900 focus:border-slate-500 outline-none"
                     />
-                    <button 
+            <button
                       onClick={() => handleAddComment(post.id)}
                       disabled={commentingMap[post.id] || !(commentInputMap[post.id] || '').trim()}
                       className="bg-slate-900 text-white font-semibold px-4 py-2 rounded-lg text-xs hover:bg-slate-800 transition-colors disabled:opacity-50"

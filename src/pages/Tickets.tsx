@@ -47,7 +47,7 @@ export default function Tickets() {
     setReplying(true);
     try {
       const reply = await api.replySupportTicket(viewTicket.id, replyMessage);
-      
+
       setViewTicket(prev => prev ? { 
         ...prev, 
         status: 'Resolved',
@@ -230,7 +230,7 @@ export default function Tickets() {
                 </div>
                 <button onClick={() => setViewTicket(null)} className="text-xs font-bold text-slate-400 hover:text-slate-700 uppercase">Close</button>
               </div>
-              
+
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -239,7 +239,7 @@ export default function Tickets() {
                       "px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border inline-block",
                       viewTicket.status === 'Resolved' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
                       viewTicket.status === 'Escalated' ? "bg-rose-50 text-rose-700 border-rose-200" :
-                      "bg-amber-50 text-amber-700 border-amber-200"
+                        "bg-amber-50 text-amber-700 border-amber-200"
                     )}>
                       {viewTicket.status}
                     </span>

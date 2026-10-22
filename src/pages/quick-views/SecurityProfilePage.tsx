@@ -370,8 +370,7 @@ export default function SecurityProfilePage() {
               setTwoFactorEnabled(!twoFactorEnabled);
               toast.success(`Two-Factor Authentication is now ${!twoFactorEnabled ? 'Activated' : 'Deactivated'}`);
             }}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer border ${
-              twoFactorEnabled
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer border ${twoFactorEnabled
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
                 : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
             }`}

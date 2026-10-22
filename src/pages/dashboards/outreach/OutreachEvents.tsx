@@ -97,7 +97,7 @@ export default function OutreachEvents() {
     try {
       const targetSchools = form.targetSchools.split(',').map(s => s.trim()).filter(s => s);
       const selectedType = form.type === 'CUSTOM' ? form.customType.toUpperCase().replace(/\s+/g, '_') : form.type;
-      
+
       const payload = {
         title: form.title,
         titleFr: form.titleFr || form.title,
@@ -120,7 +120,7 @@ export default function OutreachEvents() {
 
       await outreachAPI.createEvent(payload);
       toast.success('Outreach Event / Fundraiser published successfully!');
-      
+
       setIsModalOpen(false);
       // Reset form
       setForm({
@@ -197,7 +197,7 @@ export default function OutreachEvents() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={fetchEvents}
             className="bg-white border border-slate-300 text-slate-700 font-bold px-4 py-2.5 rounded-lg text-xs hover:bg-slate-50 transition-colors"
           >

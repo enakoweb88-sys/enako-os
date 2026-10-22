@@ -182,7 +182,7 @@ export default function TrackGoalsPage() {
 
     const matchesScope = scopeFilter === 'ALL' || g.scope === scopeFilter;
     const progress = getProgress(g);
-    const matchesStatus = statusFilter === 'ALL' || 
+    const matchesStatus = statusFilter === 'ALL' ||
       (statusFilter === 'COMPLETED' && (g.status === 'COMPLETED' || progress >= 100)) ||
       (statusFilter === 'ACTIVE' && g.status !== 'COMPLETED' && progress < 100);
 
@@ -536,7 +536,7 @@ export default function TrackGoalsPage() {
                       {selectedGoal.scope === 'DEPARTMENT'
                         ? selectedGoal.department?.name || 'Departmental'
                         : selectedGoal.scope === 'PERSONAL'
-                        ? selectedGoal.owner?.fullName || 'Personal Operative'
+                          ? selectedGoal.owner?.fullName || 'Personal Operative'
                         : 'Company-Wide (Executive)'}
                     </p>
                   </div>

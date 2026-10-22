@@ -21,16 +21,16 @@ export default function Reports() {
   const isExecutiveManager = role === 'manager';
   const isManager = role === 'manager' || role === 'outreach_manager';
   const isCeo = role === 'ceo';
-  
+
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Tabs for Manager: 'today' | 'all'
   const [managerTab, setManagerTab] = useState<'today' | 'all'>('today');
 
   const [isGenerating, setIsGenerating] = useState(false);
-  
+
   // Create Report View State
   const [isCreatingReport, setIsCreatingReport] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -116,7 +116,7 @@ ${dailyForm.recommendation}`;
       } else {
         await api.createDailyReport(payload);
       }
-      
+
       if (status === 'SUBMITTED') {
         setIsCreatingReport(false);
         setEditingId(null);
@@ -127,7 +127,7 @@ ${dailyForm.recommendation}`;
           impact: 'Low',
           details: '',
           recommendation: '',
-          attachments: { 
+    attachments: {
             transactions: false, expenses: false, foodAndMeal: false, subscriptions: false,
             kyc: false, leaves: false, websites: false
           },
@@ -156,7 +156,7 @@ ${dailyForm.recommendation}`;
     let recommendation = '';
     let inDetails = false;
     let inRecs = false;
-    
+
     const parsed = {
       title: '',
       type: report.type || 'DAILY',
@@ -235,35 +235,35 @@ ${dailyForm.recommendation}`;
 
     // ─── HEADER SECTION ───
     // Logo
-    try {
+      try {
       doc.addImage(ENAKO_LOGO_BASE64, 'PNG', 15, 10, 28, 28);
     } catch (e) { /* logo failed, continue without it */ }
 
     // Company Name & Report Type
     doc.setFontSize(20);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
     doc.text('ENAKO FINTECH', 50, 20);
 
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
     doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
     doc.text('Empowering Communities Through Innovation', 50, 27);
 
     // Report Type Badge
     const badgeText = isGeneral ? 'GENERAL REPORT' : 'WEEKLY REPORT';
     doc.setFontSize(9);
-    doc.setFont(undefined, 'bold');
+      doc.setFont(undefined, 'bold');
     const badgeWidth = doc.getTextWidth(badgeText) + 12;
-    doc.setFillColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+      doc.setFillColor(brandGreen[0], brandGreen[1], brandGreen[2]);
     doc.roundedRect(pageWidth - 15 - badgeWidth, 12, badgeWidth, 10, 2, 2, 'F');
-    doc.setTextColor(255, 255, 255);
+      doc.setTextColor(255, 255, 255);
     doc.text(badgeText, pageWidth - 15 - badgeWidth + 6, 19);
 
     // Report Reference
-    doc.setFontSize(8);
+      doc.setFontSize(8);
     doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
-    doc.text(`Ref: ${report.id?.substring(0, 12) || 'N/A'}`, pageWidth - 15 - badgeWidth, 30);
+      doc.text(`Ref: ${report.id?.substring(0, 12) || 'N/A'}`, pageWidth - 15 - badgeWidth, 30);
 
     // Divider line under header
     doc.setDrawColor(brandGreen[0], brandGreen[1], brandGreen[2]);
@@ -277,48 +277,48 @@ ${dailyForm.recommendation}`;
     doc.roundedRect(15, 48, pageWidth - 30, 38, 3, 3, 'FD');
 
     doc.setFontSize(9);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
     doc.text('SUBMITTER DETAILS', 20, 56);
 
     // Details grid
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(10);
     doc.setTextColor(darkText[0], darkText[1], darkText[2]);
 
     // Row 1
-    doc.setFont(undefined, 'bold');
+      doc.setFont(undefined, 'bold');
     doc.text('Full Name:', 20, 65);
-    doc.setFont(undefined, 'normal');
-    doc.text(report.user?.fullName || 'Unknown', 52, 65);
+      doc.setFont(undefined, 'normal');
+      doc.text(report.user?.fullName || 'Unknown', 52, 65);
 
-    doc.setFont(undefined, 'bold');
+      doc.setFont(undefined, 'bold');
     doc.text('Date:', 115, 65);
-    doc.setFont(undefined, 'normal');
+      doc.setFont(undefined, 'normal');
     doc.text(formattedDate, 132, 65);
 
     // Row 2
-    doc.setFont(undefined, 'bold');
+      doc.setFont(undefined, 'bold');
     doc.text('Submitted At:', 20, 75);
-    doc.setFont(undefined, 'normal');
+      doc.setFont(undefined, 'normal');
     doc.text(formattedTime, 52, 75);
 
     // Row 3
     if (report.user?.email) {
-      doc.setFont(undefined, 'bold');
+        doc.setFont(undefined, 'bold');
       doc.text('Email:', 20, 83);
-      doc.setFont(undefined, 'normal');
+    doc.setFont(undefined, 'normal');
       doc.text(report.user.email, 52, 83);
-    }
+      }
 
     // ─── REPORT CONTENT SECTION ───
     let currentY = 96;
 
     // Section header with green left border
-    doc.setFillColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+      doc.setFillColor(brandGreen[0], brandGreen[1], brandGreen[2]);
     doc.rect(15, currentY, 3, 8, 'F');
     doc.setFontSize(13);
-    doc.setFont(undefined, 'bold');
+      doc.setFont(undefined, 'bold');
     doc.setTextColor(darkText[0], darkText[1], darkText[2]);
     doc.text('Report Content', 22, currentY + 6);
     currentY += 14;
@@ -330,9 +330,9 @@ ${dailyForm.recommendation}`;
     currentY += 6;
 
     // Parse and render content sections
-    const content = report.content || 'No content provided for this session.';
+      const content = report.content || 'No content provided for this session.';
     const sections = content.split('\n');
-    
+
     const detailLines: string[] = [];
     const recommendationLines: string[] = [];
     let inRecommendation = false;
@@ -340,62 +340,62 @@ ${dailyForm.recommendation}`;
     for (const line of sections) {
       if (line.match(/^Recommendation:/i)) {
         inRecommendation = true;
-      } else if (inRecommendation && line.match(/^(Title|Category|Impact Level|Details):/i)) {
+        } else if (inRecommendation && line.match(/^(Title|Category|Impact Level|Details):/i)) {
         inRecommendation = false;
-      }
-      
+        }
+
       if (inRecommendation) {
         recommendationLines.push(line);
-      } else {
+        } else {
         detailLines.push(line);
+        }
       }
-    }
 
     const printLines = (lines: string[]) => {
-      doc.setFontSize(10);
+    doc.setFontSize(10);
       for (const line of lines) {
         if (currentY > pageHeight - 40) {
           doc.addPage();
           currentY = 20;
-          doc.saveGraphicsState();
-          // @ts-ignore
+        doc.saveGraphicsState();
+        // @ts-ignore
           doc.setGState(new doc.GState({ opacity: 0.04 }));
-          doc.setFontSize(52);
-          doc.setFont(undefined, 'bold');
-          doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
-          for (let y = 40; y < pageHeight; y += 80) {
-            doc.text('ENAKO FINTECH', pageWidth / 2, y, { angle: 35, align: 'center' });
+        doc.setFontSize(52);
+            doc.setFont(undefined, 'bold');
+        doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+        for (let y = 40; y < pageHeight; y += 80) {
+          doc.text('ENAKO FINTECH', pageWidth / 2, y, { angle: 35, align: 'center' });
+}
+        doc.restoreGraphicsState();
+    doc.setFontSize(10);
           }
-          doc.restoreGraphicsState();
-          doc.setFontSize(10);
-        }
 
-        if (line.match(/^(Title|Category|Impact Level|Details|Recommendation):/i)) {
+          if (line.match(/^(Title|Category|Impact Level|Details|Recommendation):/i)) {
           const colonIndex = line.indexOf(':');
           const label = line.substring(0, colonIndex + 1);
           const value = line.substring(colonIndex + 1).trim();
-          
-          doc.setFont(undefined, 'bold');
-          doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+
+            doc.setFont(undefined, 'bold');
+        doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
           doc.text(label, 20, currentY);
-          
+
           if (value) {
-            doc.setFont(undefined, 'normal');
-            doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(darkText[0], darkText[1], darkText[2]);
             doc.text(value, 20 + doc.getTextWidth(label) + 3, currentY);
-          }
+}
           currentY += 7;
         } else if (line.trim() === '') {
           currentY += 4;
-        } else {
-          doc.setFont(undefined, 'normal');
-          doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+          } else {
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(darkText[0], darkText[1], darkText[2]);
           const wrapped = doc.splitTextToSize(line, pageWidth - 40);
           doc.text(wrapped, 20, currentY);
           currentY += wrapped.length * 5.5;
+          }
         }
-      }
-    };
+      };
 
     // Print main details
     printLines(detailLines);
@@ -403,14 +403,14 @@ ${dailyForm.recommendation}`;
     // ─── DATA ATTACHMENTS (NEW PAGES) ───
     if (report.attachments) {
       const atts = typeof report.attachments === 'string' ? JSON.parse(report.attachments) : report.attachments;
-      
+
       const drawAttachmentHeader = (title: string) => {
-        doc.addPage();
-        doc.setFillColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+          doc.addPage();
+      doc.setFillColor(brandGreen[0], brandGreen[1], brandGreen[2]);
         doc.rect(0, 0, pageWidth, 12, 'F');
         doc.setFontSize(14);
-        doc.setTextColor(255, 255, 255);
-        doc.setFont(undefined, 'bold');
+    doc.setTextColor(255, 255, 255);
+          doc.setFont(undefined, 'bold');
         doc.text(`ATTACHED DATA: ${title}`, 15, 8);
         return 25;
       };
@@ -424,311 +424,311 @@ ${dailyForm.recommendation}`;
 
       const renderAttachmentSection = async (key: string, title: string, fetcher: () => Promise<any[]>, generateInsight: (data: any[]) => string, renderData: (doc: any, cy: number, data: any[]) => void) => {
         if (!atts[key]) return;
-        try {
+    try {
           let cy = drawAttachmentHeader(title);
           const rawData = await fetcher();
-          const data = (rawData as any)?.items || rawData || [];
-          
+            const data = (rawData as any)?.items || rawData || [];
+
           // Print Description or Smart Insight
           const customDesc = atts.attachmentDescriptions?.[key];
-          doc.setFontSize(10);
-          doc.setTextColor(darkText[0], darkText[1], darkText[2]);
-          
+    doc.setFontSize(10);
+            doc.setTextColor(darkText[0], darkText[1], darkText[2]);
+
           let description = '';
           if (customDesc && customDesc.trim() !== '') {
             description = customDesc;
-            doc.setFont(undefined, 'bold');
+        doc.setFont(undefined, 'bold');
             doc.text('Manager Note:', 15, cy);
             cy += 6;
-          } else {
+      } else {
             description = generateInsight(data);
-          }
-          
-          doc.setFont(undefined, 'normal');
-          doc.setFontSize(9);
+}
+
+            doc.setFont(undefined, 'normal');
+    doc.setFontSize(9);
           const wrapped = doc.splitTextToSize(description, pageWidth - 30);
           doc.text(wrapped, 15, cy);
           cy += (wrapped.length * 5) + 8;
-          
+
           // Render specific data (tables/calculations)
           renderData(doc, cy, data);
         } catch (err) {
           console.error(`Failed to attach data for ${key}`, err);
-        }
+          }
       };
 
       await renderAttachmentSection('expenses', 'COMPANY EXPENSES', 
         async () => {
           try { return await api.expenses(); } catch { return await apiRequest('/expenses'); }
-        },
+          },
         (data) => {
-          const total = data.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+            const total = data.reduce((sum, d) => sum + Number(d.amount || 0), 0);
           return `Summary: This month, the company recorded ${data.length} expense transactions amounting to ${fmt(total)}. This indicates a structured expenditure flow across operational categories.`;
-        },
+          },
         (doc, cy, data) => {
-          const total = data.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+            const total = data.reduce((sum, e) => sum + Number(e.amount || 0), 0);
           doc.setFontSize(12);
-          doc.setFont(undefined, 'bold');
+            doc.setFont(undefined, 'bold');
           doc.text('Expenses Calculation', 15, cy);
-          cy += 6;
-          doc.setFontSize(10);
-          doc.setFont(undefined, 'normal');
+            cy += 6;
+    doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
           doc.text(`Total Records: ${data.length}`, 15, cy);
           doc.text(`Total Amount: ${fmt(total)}`, 70, cy);
           cy += 8;
-          
-          const tableData = data.map((e: any) => [new Date(e.createdAt || Date.now()).toLocaleDateString(), e.category || 'Other', e.description || '-', fmt(e.amount), e.status || 'APPROVED']);
+
+            const tableData = data.map((e: any) => [new Date(e.createdAt || Date.now()).toLocaleDateString(), e.category || 'Other', e.description || '-', fmt(e.amount), e.status || 'APPROVED']);
           runAutoTable(doc, { startY: cy, head: [['Date', 'Category', 'Description', 'Amount', 'Status']], body: tableData, ...commonTableStyles });
-        }
-      );
+          }
+        );
 
       await renderAttachmentSection('transactions', 'FX TRANSACTIONS', 
         async () => {
-          try { return await (api as any).transactions?.() || await apiRequest('/finance/transactions'); } catch { return []; }
-        },
+            try { return await (api as any).transactions?.() || await apiRequest('/finance/transactions'); } catch { return []; }
+          },
         (data) => {
-          const total = data.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+            const total = data.reduce((sum, d) => sum + Number(d.amount || 0), 0);
           return `Summary: A total of ${data.length} FX transactions were processed over the period, with a cumulative volume of ${fmt(total)}. The distribution of these transactions reflects active client engagement across platforms.`;
-        },
+          },
         (doc, cy, data) => {
-          const total = data.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+            const total = data.reduce((sum, t) => sum + Number(t.amount || 0), 0);
           doc.setFontSize(12);
-          doc.setFont(undefined, 'bold');
+            doc.setFont(undefined, 'bold');
           doc.text('Transactions Calculation', 15, cy);
-          cy += 6;
-          doc.setFontSize(10);
-          doc.setFont(undefined, 'normal');
+            cy += 6;
+    doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
           doc.text(`Total Transactions: ${data.length}`, 15, cy);
           doc.text(`Total Volume: ${fmt(total)}`, 70, cy);
           cy += 8;
-          
+
           const tableData = data.map((t: any) => [
             new Date(t.createdAt).toLocaleDateString(),
             t.type,
-            t.entity || '-',
-            `${Number(t.amount || 0).toLocaleString()} ${t.currency || 'XAF'}`,
+              t.entity || '-',
+              `${Number(t.amount || 0).toLocaleString()} ${t.currency || 'XAF'}`,
             t.amountInXaf ? fmt(t.amountInXaf) : '-',
             t.status,
-            (t.description || '').substring(0, 30)
+              (t.description || '').substring(0, 30)
           ]);
           runAutoTable(doc, { startY: cy, head: [['Date', 'Type', 'Entity', 'Amount', 'XAF Amount', 'Status', 'Rate & Margin Details']], body: tableData, ...commonTableStyles });
-        }
-      );
+          }
+        );
 
       await renderAttachmentSection('subscriptions', 'ENTERPRISE SUBSCRIPTIONS', 
         async () => {
-          try { return await (api as any).subscriptions?.() || await apiRequest('/subscriptions'); } catch { return []; }
-        },
+            try { return await (api as any).subscriptions?.() || await apiRequest('/subscriptions'); } catch { return []; }
+          },
         (data) => {
           const active = data.filter(d => d.status === 'Active');
-          const mrr = active.reduce((sum, d) => sum + (d.cycle === 'Monthly' ? Number(d.costInXaf || d.cost || 0) : Number(d.costInXaf || d.cost || 0)/12), 0);
+            const mrr = active.reduce((sum, d) => sum + (d.cycle === 'Monthly' ? Number(d.costInXaf || d.cost || 0) : Number(d.costInXaf || d.cost || 0) / 12), 0);
           return `Summary: Currently tracking ${data.length} subscriptions (${active.length} active). The estimated Monthly Run Rate (MRR) stands at ${fmt(mrr)}, ensuring continuous service delivery across our infrastructure stack.`;
-        },
+          },
         (doc, cy, data) => {
           const active = data.filter(d => d.status === 'Active');
-          const mrr = active.reduce((sum, d) => sum + (d.cycle === 'Monthly' ? Number(d.costInXaf || d.cost || 0) : Number(d.costInXaf || d.cost || 0)/12), 0);
-          
+            const mrr = active.reduce((sum, d) => sum + (d.cycle === 'Monthly' ? Number(d.costInXaf || d.cost || 0) : Number(d.costInXaf || d.cost || 0) / 12), 0);
+
           doc.setFontSize(12);
-          doc.setFont(undefined, 'bold');
+            doc.setFont(undefined, 'bold');
           doc.text('Subscriptions Calculation', 15, cy);
-          cy += 6;
-          doc.setFontSize(10);
-          doc.setFont(undefined, 'normal');
+            cy += 6;
+    doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
           doc.text(`Total Subscriptions: ${data.length}`, 15, cy);
           doc.text(`Active: ${active.length}`, 70, cy);
           doc.text(`MRR: ${fmt(mrr)}`, 110, cy);
           cy += 8;
 
-          const tableData = data.map((s: any) => [s.name, s.cycle, fmt(s.costInXaf || s.cost), new Date(s.startDate || Date.now()).toLocaleDateString(), new Date(s.nextBilling || Date.now()).toLocaleDateString(), s.status || 'Active']);
+            const tableData = data.map((s: any) => [s.name, s.cycle, fmt(s.costInXaf || s.cost), new Date(s.startDate || Date.now()).toLocaleDateString(), new Date(s.nextBilling || Date.now()).toLocaleDateString(), s.status || 'Active']);
           runAutoTable(doc, { startY: cy, head: [['Service', 'Cycle', 'Cost', 'Start Date', 'Next Bill', 'Status']], body: tableData, ...commonTableStyles });
-        }
-      );
+          }
+        );
 
       await renderAttachmentSection('foodAndMeal', 'STAFF MEALS SUMMARY', 
         async () => {
-          try { return await (api as any).meals?.() || await apiRequest('/meals/records'); } catch { return []; }
-        },
+            try { return await (api as any).meals?.() || await apiRequest('/meals/records'); } catch { return []; }
+          },
         (data) => {
           const ate = data.filter(d => d.status === 'ATE');
-          const cost = ate.reduce((sum, d) => sum + Number(d.totalAmount || 0), 0);
+            const cost = ate.reduce((sum, d) => sum + Number(d.totalAmount || 0), 0);
           return `Summary: The staff welfare program recorded ${data.length} meal entries this month. ${ate.length} meals were successfully consumed, representing an operational cost of ${fmt(cost)}.`;
-        },
+          },
         (doc, cy, data) => {
           const ateMeals = data.filter(m => m.status === 'ATE');
-          const totalCost = ateMeals.reduce((sum, m) => sum + Number(m.totalAmount || 0), 0);
-          const totalCompany = ateMeals.reduce((sum, m) => sum + Number(m.companyAmount || 0), 0);
-          const totalEmployee = ateMeals.reduce((sum, m) => sum + Number(m.employeeAmount || 0), 0);
-          
+            const totalCost = ateMeals.reduce((sum, m) => sum + Number(m.totalAmount || 0), 0);
+            const totalCompany = ateMeals.reduce((sum, m) => sum + Number(m.companyAmount || 0), 0);
+            const totalEmployee = ateMeals.reduce((sum, m) => sum + Number(m.employeeAmount || 0), 0);
+
           doc.setFontSize(12);
-          doc.setFont(undefined, 'bold');
+            doc.setFont(undefined, 'bold');
           doc.text('Meals Grand Totals', 15, cy);
-          cy += 6;
-          doc.setFontSize(10);
-          doc.setFont(undefined, 'normal');
+            cy += 6;
+    doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
           doc.text(`Total Meals Cost: ${fmt(totalCost)}`, 15, cy);
           doc.text(`Company Pays: ${fmt(totalCompany)}`, 75, cy);
           doc.text(`Employees Pay: ${fmt(totalEmployee)}`, 135, cy);
           cy += 8;
-          
+
           const employeeTotals: Record<string, any> = {};
           ateMeals.forEach(m => {
             const empId = m.employeeId;
-            if (!employeeTotals[empId]) employeeTotals[empId] = { name: m.employee?.fullName || 'Unknown', count: 0, total: 0, company: 0, employee: 0 };
+              if (!employeeTotals[empId]) employeeTotals[empId] = { name: m.employee?.fullName || 'Unknown', count: 0, total: 0, company: 0, employee: 0 };
             employeeTotals[empId].count += 1;
-            employeeTotals[empId].total += Number(m.totalAmount || 0);
-            employeeTotals[empId].company += Number(m.companyAmount || 0);
-            employeeTotals[empId].employee += Number(m.employeeAmount || 0);
-          });
-          
+              employeeTotals[empId].total += Number(m.totalAmount || 0);
+              employeeTotals[empId].company += Number(m.companyAmount || 0);
+              employeeTotals[empId].employee += Number(m.employeeAmount || 0);
+  });
+
           const empData = Object.values(employeeTotals).map(emp => [emp.name, emp.count.toString(), fmt(emp.total), fmt(emp.company), fmt(emp.employee)]);
-          
+
           doc.setFontSize(11);
-          doc.setFont(undefined, 'bold');
+            doc.setFont(undefined, 'bold');
           doc.text('Employee Cost Breakdown', 15, cy);
           cy += 4;
-          
+
           runAutoTable(doc, { startY: cy, head: [['Employee Name', 'Meals Eaten', 'Total Cost', 'Company Pays', 'Employee Pays']], body: empData, ...commonTableStyles });
-          
+
           cy = ((doc as any).lastAutoTable?.finalY ?? cy) + 10;
           if (cy > pageHeight - 40) { doc.addPage(); cy = 20; }
-          
+
           doc.setFontSize(11);
-          doc.setFont(undefined, 'bold');
+            doc.setFont(undefined, 'bold');
           doc.text('Detailed Meal Records', 15, cy);
           cy += 4;
-          
-          const tableData = data.map((m: any) => [new Date(m.date || Date.now()).toLocaleDateString(), m.employee?.fullName || 'Unknown', m.mealName || '-', m.status, m.status === 'ATE' ? fmt(m.totalAmount) : '-', m.status === 'ATE' ? fmt(m.companyAmount) : '-', m.status === 'ATE' ? fmt(m.employeeAmount) : '-']);
+
+            const tableData = data.map((m: any) => [new Date(m.date || Date.now()).toLocaleDateString(), m.employee?.fullName || 'Unknown', m.mealName || '-', m.status, m.status === 'ATE' ? fmt(m.totalAmount) : '-', m.status === 'ATE' ? fmt(m.companyAmount) : '-', m.status === 'ATE' ? fmt(m.employeeAmount) : '-']);
           runAutoTable(doc, { startY: cy, head: [['Date', 'Employee', 'Meal', 'Status', 'Total', 'Company', 'Employee']], body: tableData, ...commonTableStyles });
-        }
-      );
+          }
+        );
 
       await renderAttachmentSection('kyc', 'KYC & COMPLIANCE', 
         async () => {
           try { return await apiRequest('/users/kyc/requests'); } catch { return []; }
-        },
+          },
         (data) => {
           const approved = data.filter(d => d.status === 'APPROVED');
           return `Summary: Compliance operations reviewed ${data.length} KYC requests recently. Of these, ${approved.length} were successfully verified and approved.`;
-        },
+          },
         (doc, cy, data) => {
           const approved = data.filter(d => d.status === 'APPROVED').length;
           doc.setFontSize(12);
-          doc.setFont(undefined, 'bold');
+            doc.setFont(undefined, 'bold');
           doc.text('KYC Calculation', 15, cy);
-          cy += 6;
-          doc.setFontSize(10);
-          doc.setFont(undefined, 'normal');
+            cy += 6;
+    doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
           doc.text(`Total Requests: ${data.length}`, 15, cy);
           doc.text(`Approved: ${approved}`, 80, cy);
           cy += 8;
-          
-          const tableData = data.map((k: any) => [new Date(k.createdAt || Date.now()).toLocaleDateString(), k.user?.fullName || k.userId, k.documentType || 'ID', k.status]);
+
+            const tableData = data.map((k: any) => [new Date(k.createdAt || Date.now()).toLocaleDateString(), k.user?.fullName || k.userId, k.documentType || 'ID', k.status]);
           runAutoTable(doc, { startY: cy, head: [['Date', 'User', 'Document Type', 'Status']], body: tableData, ...commonTableStyles });
-        }
-      );
+          }
+        );
 
       await renderAttachmentSection('leaves', 'EMPLOYEE LEAVES', 
         async () => {
           try { return await apiRequest('/hr/leaves'); } catch { return []; }
-        },
+          },
         (data) => {
           const active = data.filter(d => d.status === 'APPROVED');
           return `Summary: HR processed ${data.length} leave requests during this period. There are currently ${active.length} approved leaves.`;
-        },
+          },
         (doc, cy, data) => {
           const approved = data.filter(d => d.status === 'APPROVED').length;
           doc.setFontSize(12);
-          doc.setFont(undefined, 'bold');
+            doc.setFont(undefined, 'bold');
           doc.text('Leaves Calculation', 15, cy);
-          cy += 6;
-          doc.setFontSize(10);
-          doc.setFont(undefined, 'normal');
+            cy += 6;
+    doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
           doc.text(`Total Requests: ${data.length}`, 15, cy);
           doc.text(`Approved: ${approved}`, 80, cy);
           cy += 8;
-          
-          const tableData = data.map((l: any) => [l.employee?.fullName || 'Unknown', l.leaveType || 'Annual', new Date(l.startDate || Date.now()).toLocaleDateString(), new Date(l.endDate || Date.now()).toLocaleDateString(), l.status]);
+
+            const tableData = data.map((l: any) => [l.employee?.fullName || 'Unknown', l.leaveType || 'Annual', new Date(l.startDate || Date.now()).toLocaleDateString(), new Date(l.endDate || Date.now()).toLocaleDateString(), l.status]);
           runAutoTable(doc, { startY: cy, head: [['Employee', 'Type', 'Start Date', 'End Date', 'Status']], body: tableData, ...commonTableStyles });
-        }
-      );
+          }
+        );
 
       await renderAttachmentSection('websites', 'WEBSITE PERFORMANCE', 
         async () => {
           try { return await apiRequest('/analytics/events'); } catch { return []; }
-        },
+          },
         (data) => {
           return `Summary: Digital outreach generated ${data.length} recorded events/sessions. The traffic metrics indicate a robust engagement rate and successful retention across both the main corporate portal and our outreach campaigns.`;
-        },
+          },
         (doc, cy, data) => {
           doc.setFontSize(12);
-          doc.setFont(undefined, 'bold');
+            doc.setFont(undefined, 'bold');
           doc.text('Performance Calculation', 15, cy);
-          cy += 6;
-          doc.setFontSize(10);
-          doc.setFont(undefined, 'normal');
+            cy += 6;
+    doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
           doc.text(`Total Events: ${data.length}`, 15, cy);
           cy += 8;
-          
-          const tableData = data.map((e: any) => [new Date(e.timestamp || e.createdAt || Date.now()).toLocaleDateString(), e.eventType || 'Pageview', e.path || '/', e.metadata?.referrer || 'Direct']);
+
+            const tableData = data.map((e: any) => [new Date(e.timestamp || e.createdAt || Date.now()).toLocaleDateString(), e.eventType || 'Pageview', e.path || '/', e.metadata?.referrer || 'Direct']);
           runAutoTable(doc, { startY: cy, head: [['Date', 'Event Type', 'Page/Path', 'Referrer']], body: tableData, ...commonTableStyles });
-        }
-      );
-    }
+          }
+        );
+      }
 
     // Print recommendations at the end
     if (recommendationLines.length > 0) {
-      doc.addPage();
-      currentY = 20;
-      doc.saveGraphicsState();
-      // @ts-ignore
-      doc.setGState(new doc.GState({ opacity: 0.04 }));
-      doc.setFontSize(52);
-      doc.setFont(undefined, 'bold');
-      doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
-      for (let y = 40; y < pageHeight; y += 80) {
-        doc.text('ENAKO FINTECH', pageWidth / 2, y, { angle: 35, align: 'center' });
-      }
-      doc.restoreGraphicsState();
-      
+        doc.addPage();
+          currentY = 20;
+        doc.saveGraphicsState();
+        // @ts-ignore
+          doc.setGState(new doc.GState({ opacity: 0.04 }));
+        doc.setFontSize(52);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+        for (let y = 40; y < pageHeight; y += 80) {
+          doc.text('ENAKO FINTECH', pageWidth / 2, y, { angle: 35, align: 'center' });
+        }
+        doc.restoreGraphicsState();
+
       printLines(recommendationLines);
-    }
+      }
 
     // ─── FOOTER & PAGE NUMBERS ───
     const totalPages = doc.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
-      doc.setFillColor(brandGreen[0], brandGreen[1], brandGreen[2]);
+        doc.setFillColor(brandGreen[0], brandGreen[1], brandGreen[2]);
       doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(8);
-      doc.setFont(undefined, 'normal');
+        doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.setFont(undefined, 'normal');
       doc.text('Enako Fintech | Empowering Communities Through Innovation', 15, pageHeight - 12);
       doc.text(`Generated: ${new Date().toLocaleString()}`, 15, pageHeight - 6);
       doc.text(`Page ${i} of ${totalPages}`, pageWidth - 40, pageHeight - 9);
-      
+
       if (i === 1) {
         doc.setFontSize(7);
-        doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
+    doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
         doc.text('CONFIDENTIAL - This report is the property of Enako Fintech. Unauthorized distribution is prohibited.', pageWidth / 2, pageHeight - 24, { align: 'center' });
+        }
       }
-    }
 
     // Save
     const fileName = isGeneral ? 'ENAKO_General_Report' : 'ENAKO_Weekly_Report';
     const saved = savePdf(doc, `${fileName}_${safeDateStr}.pdf`);
     if (saved) {
       toast.success('Report PDF downloaded successfully');
-    }
+      }
   } catch (err: any) {
     console.error('Failed to generate daily report PDF:', err);
-    toast.error(err.message || 'Failed to generate report PDF');
-  }
-};
+      toast.error(err.message || 'Failed to generate report PDF');
+    }
+  };
 
   // Filter Logic
   const getFilteredReports = () => {
     let filtered = reports.filter(r => 
-      (r.user?.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (r.user?.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (r.content || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -786,7 +786,7 @@ ${dailyForm.recommendation}`;
                   Create Report
                 </button>
               )}
-              <button 
+                <button 
                 onClick={load} 
                 className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700 transition-colors"
               >
@@ -798,13 +798,13 @@ ${dailyForm.recommendation}`;
           {/* Manager Tabs */}
           {isManager && (
             <div className="flex gap-2 p-1 bg-slate-100 rounded-lg w-fit border border-slate-200">
-              <button 
+                <button 
                 onClick={() => setManagerTab('today')} 
                 className={cn("px-4 py-1.5 rounded-md text-xs font-semibold transition-colors", managerTab === 'today' ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900")}
               >
                 This Week's Team Reports
               </button>
-              <button 
+                <button 
                 onClick={() => setManagerTab('all')} 
                 className={cn("px-4 py-1.5 rounded-md text-xs font-semibold transition-colors", managerTab === 'all' ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900")}
               >
@@ -861,14 +861,14 @@ ${dailyForm.recommendation}`;
                     </div>
                     <div className="flex items-center gap-2 self-end sm:self-auto">
                       {report.status === 'DRAFT' && report.userId === user?.id && (
-                        <button 
+                <button 
                           onClick={() => handleEditDraft(report)} 
                           className="py-1.5 px-3 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors text-xs font-semibold border border-amber-200"
                         >
                           Edit Draft
                         </button>
                       )}
-                      <button 
+                <button 
                         onClick={() => downloadDailyPdf(report)} 
                         className="py-1.5 px-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors text-xs font-semibold shadow-sm"
                       >
@@ -885,7 +885,7 @@ ${dailyForm.recommendation}`;
         /* Create / Edit Report Form */
         <div className="space-y-6">
           <div className="flex items-center gap-3">
-            <button 
+                <button 
               onClick={() => {
                 setIsCreatingReport(false);
                 setEditingId(null);
@@ -936,14 +936,14 @@ ${dailyForm.recommendation}`;
                   required
                   value={dailyForm.title}
                   onChange={e => setDailyForm({...dailyForm, title: e.target.value})}
-                  className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-slate-500 text-slate-900" 
+                  className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-slate-500 text-slate-900"
                   placeholder="E.g., Weekly Summary Report" 
                 />
               </div>
-              
+
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Category *</label>
-                <select 
+                  <select 
                   value={dailyForm.category}
                   onChange={e => setDailyForm({...dailyForm, category: e.target.value})}
                   className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-slate-500 text-slate-900"
@@ -958,7 +958,7 @@ ${dailyForm.recommendation}`;
 
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Impact Level *</label>
-                <select 
+                  <select 
                   value={dailyForm.impact}
                   onChange={e => setDailyForm({...dailyForm, impact: e.target.value})}
                   className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm font-medium outline-none focus:border-slate-500 text-slate-900"
@@ -974,7 +974,7 @@ ${dailyForm.recommendation}`;
             <div>
               <label className="block text-[11px] font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Details *</label>
               <textarea 
-                required 
+                  required
                 rows={5} 
                 value={dailyForm.details} 
                 onChange={e => setDailyForm({...dailyForm, details: e.target.value})} 
@@ -1001,7 +1001,7 @@ ${dailyForm.recommendation}`;
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {Object.keys(dailyForm.attachments).map(key => (
                       <label key={key} className={cn("flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors text-xs font-semibold", dailyForm.attachments[key as keyof typeof dailyForm.attachments] ? "bg-slate-50 border-slate-900 text-slate-900" : "bg-white border-slate-200 text-slate-600 hover:border-slate-400")}>
-                        <input 
+                <input 
                           type="checkbox" 
                           checked={dailyForm.attachments[key as keyof typeof dailyForm.attachments]}
                           onChange={(e) => setDailyForm({...dailyForm, attachments: {...dailyForm.attachments, [key]: e.target.checked}})}
@@ -1011,7 +1011,7 @@ ${dailyForm.recommendation}`;
                       </label>
                     ))}
                   </div>
-                  
+
                   {/* Custom Descriptions for selected attachments */}
                   <div className="space-y-3">
                     <AnimatePresence>
@@ -1051,11 +1051,11 @@ ${dailyForm.recommendation}`;
                   {isGenerating ? 'Saving...' : 'Save Draft'}
                 </button>
               )}
-              
-              <button 
-                disabled={isGenerating} 
+
+                <button 
+                  disabled={isGenerating} 
                 onClick={(e) => handleSaveReport(e, 'SUBMITTED')}
-                type="button" 
+                  type="button" 
                 className="px-5 py-2.5 bg-slate-900 text-white rounded-lg text-xs font-semibold uppercase tracking-wider hover:bg-slate-800 transition-colors disabled:opacity-50 shadow-sm"
               >
                 {isGenerating ? 'Submitting...' : 'Review & Submit Report'}

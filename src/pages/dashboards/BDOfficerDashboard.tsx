@@ -86,7 +86,7 @@ export function BDOfficerDashboard() {
             {pipeline?.stages?.reduce((acc: number, s: any) => acc + (s.count || 0), 0) || 0} active stage opportunities
           </span>
         </div>
-        
+
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
           {(pipeline?.stages || []).map((stage: any) => (
             <div key={stage.name} className="bg-slate-50 border border-slate-200/80 rounded-lg p-3">
@@ -105,7 +105,7 @@ export function BDOfficerDashboard() {
         <div className="col-span-12 lg:col-span-4 space-y-6">
           <div className="bg-white border border-slate-200/90 rounded-lg p-5 shadow-2xs flex flex-col items-center">
             <h3 className="text-sm font-semibold text-slate-800 mb-4 w-full text-left">Quota Performance</h3>
-            
+
             <div className="relative w-36 h-36 mb-4">
               <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
                 <circle cx="50" cy="50" r="40" className="fill-none stroke-slate-100 stroke-[8]" />
@@ -139,7 +139,7 @@ export function BDOfficerDashboard() {
             </h3>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Total Earned (YTD)</p>
             <p className="text-2xl font-bold mb-4 font-mono text-emerald-600">{fmt(commission.total)}</p>
-            
+
             <div className="flex justify-between items-center p-3 bg-slate-50 border border-slate-200/80 rounded-lg">
               <div>
                 <p className="text-[10px] uppercase text-slate-500 font-semibold">Paid</p>
@@ -165,7 +165,7 @@ export function BDOfficerDashboard() {
                 {tasks.filter(t => t.status === 'DONE').length} / {tasks.length}
               </span>
             </div>
-            
+
             <div className="w-full bg-slate-100 rounded-full h-1.5 mb-4">
               <div className="bg-[#001f5b] h-1.5 rounded-full transition-all" style={{ width: `${tasks.length > 0 ? (tasks.filter(t => t.status === 'DONE').length / tasks.length) * 100 : 0}%` }} />
             </div>

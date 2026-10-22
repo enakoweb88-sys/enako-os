@@ -487,15 +487,13 @@ export default function SecurityAuditPage() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as AuditModule)}
-              className={`px-3.5 py-2 text-xs font-bold transition-all border-b-2 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                isActive
+              className={`px-3.5 py-2 text-xs font-bold transition-all border-b-2 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${isActive
                   ? 'border-[#001f5b] text-[#001f5b]'
                   : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
               }`}
             >
               <span>{tab.label}</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                isActive ? 'bg-[#001f5b]/10 text-[#001f5b]' : 'bg-slate-100 text-slate-600'
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${isActive ? 'bg-[#001f5b]/10 text-[#001f5b]' : 'bg-slate-100 text-slate-600'
               }`}>
                 {tab.count}
               </span>

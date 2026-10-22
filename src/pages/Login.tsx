@@ -178,8 +178,7 @@ export default function Login() {
                     key={r.role}
                     type="button"
                     onClick={() => handleRoleChange(r.role)}
-                    className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer text-center truncate ${
-                      isSelected
+                    className={`flex-1 py-2.5 px-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer text-center truncate ${isSelected
                         ? 'bg-[#001F5B] text-[#00C2C7] shadow-sm shadow-[#001F5B]/30 font-extrabold scale-[1.01]'
                         : 'text-slate-600 hover:text-[#001F5B] hover:bg-white/80'
                     }`}

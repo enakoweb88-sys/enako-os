@@ -99,7 +99,7 @@ export default function Expenses() {
   }, [load]);
 
   const handleReview = async (id: string, status: string) => {
-    try { 
+    try {
       try {
         await api.reviewExpense(id, status);
       } catch (err) {
@@ -115,9 +115,9 @@ export default function Expenses() {
       }
 
       toast.success(status === 'APPROVED' ? 'Claim approved' : 'Claim rejected');
-      load(); 
+    load(); 
     } catch (e: any) { 
-      toast.error(e.message || 'Action failed'); 
+      toast.error(e.message || 'Action failed');
     }
   };
 
@@ -334,11 +334,10 @@ export default function Expenses() {
             </span>
             <button
               onClick={() => setSelectedCategory('ALL')}
-              className={`px-2.5 py-1 text-[11px] font-semibold rounded-md border transition-all shrink-0 ${
-                selectedCategory === 'ALL'
+              className={`px-2.5 py-1 text-[11px] font-semibold rounded-md border transition-all shrink-0 ${selectedCategory === 'ALL'
                   ? 'bg-[#001f5b] text-white border-[#001f5b]'
                   : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-              }`}
+                }`}
             >
               All
             </button>
@@ -346,11 +345,10 @@ export default function Expenses() {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-2.5 py-1 text-[11px] font-semibold rounded-md border transition-all shrink-0 ${
-                  selectedCategory === cat
+                className={`px-2.5 py-1 text-[11px] font-semibold rounded-md border transition-all shrink-0 ${selectedCategory === cat
                     ? 'bg-[#001f5b] text-white border-[#001f5b]'
                     : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                }`}
+              }`}
               >
                 {cat}
               </button>
@@ -480,13 +478,13 @@ export default function Expenses() {
                       <td className="px-5 py-3.5 text-right">
                         {t.status === 'PENDING' ? (
                           <div className="flex items-center justify-end gap-1.5">
-                            <button 
+          <button
                               onClick={() => handleReview(t.id, 'APPROVED')} 
                               className="px-2.5 py-1 bg-emerald-600 text-white rounded-md text-[10px] font-bold uppercase tracking-wider hover:bg-emerald-700 transition-colors shadow-2xs cursor-pointer"
                             >
                               Approve
                             </button>
-                            <button 
+          <button
                               onClick={() => handleReview(t.id, 'REJECTED')} 
                               className="px-2.5 py-1 border border-rose-200 text-rose-700 bg-rose-50/50 hover:bg-rose-100 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
                             >

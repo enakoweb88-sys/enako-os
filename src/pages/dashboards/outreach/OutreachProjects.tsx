@@ -237,7 +237,7 @@ export default function OutreachProjects() {
 
       await outreachAPI.createCommunityProject(payload);
       toast.success(`Project published successfully for ${form.communitySlug.toUpperCase()}!`);
-      
+
       setIsModalOpen(false);
       // Reset Form
       setForm({
@@ -309,7 +309,7 @@ export default function OutreachProjects() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={fetchProjects}
             className="bg-white border border-slate-300 text-slate-700 font-bold px-4 py-2.5 rounded-lg text-xs hover:bg-slate-50 transition-colors"
           >
@@ -538,7 +538,7 @@ export default function OutreachProjects() {
               {/* Local File Pickers: Cover Photo, Gallery & Video */}
               <div className="space-y-3 pt-2">
                 <label className="block text-slate-600 uppercase tracking-wider">Project Media Uploads</label>
-                
+
                 <div className="grid grid-cols-2 gap-3">
                   {/* Cover Photo Input */}
                   <div className="relative border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-slate-400 transition-colors cursor-pointer bg-slate-50">
@@ -554,9 +554,8 @@ export default function OutreachProjects() {
 
                   {/* Video Input with compression progress */}
                   <div className="relative">
-                    <div className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-all ${
-                      videoPhase === 'done' ? 'border-emerald-500/50 bg-emerald-50'
-                      : videoPhase === 'compressing' || videoPhase === 'uploading' ? 'border-slate-400 bg-slate-50 cursor-not-allowed'
+                    <div className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-all ${videoPhase === 'done' ? 'border-emerald-500/50 bg-emerald-50'
+                        : videoPhase === 'compressing' || videoPhase === 'uploading' ? 'border-slate-400 bg-slate-50 cursor-not-allowed'
                       : 'border-slate-300 hover:border-slate-400 bg-slate-50 cursor-pointer'
                     }`}>
                       {(videoPhase === 'compressing' || videoPhase === 'uploading') ? (
