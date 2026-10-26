@@ -78,6 +78,7 @@ import SecurityBadgePage from './pages/quick-views/SecurityBadgePage';
 import SecuritySessionsPage from './pages/quick-views/SecuritySessionsPage';
 import SecurityAuditPage from './pages/quick-views/SecurityAuditPage';
 import AccountPreferencesPage from './pages/quick-views/AccountPreferencesPage';
+import { MarketerLeads, MarketerTerritory, MarketerPerformance, MarketerDailyReport } from './pages/marketer/FieldMarketerPages';
 
 export default function App() {
   return (
@@ -98,6 +99,10 @@ export default function App() {
           >
             <Route index element={<Navigate to="/app/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="marketer/leads" element={<MarketerLeads />} />
+            <Route path="marketer/territory" element={<MarketerTerritory />} />
+            <Route path="marketer/performance" element={<MarketerPerformance />} />
+            <Route path="marketer/daily-report" element={<MarketerDailyReport />} />
             
             {/* Dedicated Quick-Views & Executive Sections */}
             <Route path="metrics" element={<RealTimeMetricsPage />} />

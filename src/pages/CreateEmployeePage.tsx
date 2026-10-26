@@ -33,6 +33,7 @@ const DEPARTMENT_POSITIONS: Record<string, string[]> = {
     'Brand Strategy Officer'
   ],
   'Operations': [
+    'Field Marketer',
     'Operations Officer',
     'Mobile Money Float Coordinator',
     'Customer Operations Specialist',
@@ -93,6 +94,16 @@ export default function CreateEmployeePage() {
     goals: '',
   });
   const [kpis, setKpis] = useState([{ title: '', description: '', targetValue: '', unit: '', dueDate: '' }]);
+
+  const fieldMarketerKpis = [
+    { title: 'Prospecting', description: '200 new verified prospects contacted; about 10 daily.', targetValue: '200', unit: 'verified prospects', dueDate: '' },
+    { title: 'Verified Akawo account activations', description: '40 verified Akawo accounts created.', targetValue: '40', unit: 'verified accounts', dueDate: '' },
+    { title: 'Landbanking accounts with first payment', description: '20 Landbanking accounts with a first payment.', targetValue: '20', unit: 'funded accounts', dueDate: '' },
+    { title: 'Customer follow-up within 48 hours', description: '20 interested prospects followed up within 48 hours.', targetValue: '20', unit: 'follow-ups', dueDate: '' },
+    { title: 'Customer retention: second payment within 30 days', description: 'At least 60% of new customers make a second confirmed payment.', targetValue: '60', unit: '%', dueDate: '' },
+    { title: 'Daily field reports and office check-ins', description: 'Daily reports and twice-weekly office check-ins.', targetValue: '100', unit: '%', dueDate: '' },
+    { title: 'Conduct and attendance', description: 'Punctuality, accurate information, and procedural compliance.', targetValue: '100', unit: '%', dueDate: '' },
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -465,6 +476,11 @@ export default function CreateEmployeePage() {
             <p className="text-xs text-slate-500 -mt-2">
               Add each measurable responsibility separately. The employee will update progress against these targets during the month.
             </p>
+            {form.position === 'Field Marketer' && (
+              <button type="button" onClick={() => setKpis(fieldMarketerKpis)} className="text-xs font-bold text-[#001f5b] border border-[#001f5b]/30 bg-[#001f5b]/5 rounded-lg px-3 py-2">
+                Apply Field Marketer monthly KPI template
+              </button>
+            )}
             {kpis.map((kpi, index) => <div key={index} className="grid grid-cols-1 sm:grid-cols-5 gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
               <input value={kpi.title} onChange={e => setKpis(kpis.map((item, i) => i === index ? { ...item, title: e.target.value } : item))} placeholder="KPI e.g. New followers" className="sm:col-span-2 bg-white border border-slate-200 rounded-lg p-2.5 text-xs" />
               <input type="number" value={kpi.targetValue} onChange={e => setKpis(kpis.map((item, i) => i === index ? { ...item, targetValue: e.target.value } : item))} placeholder="Target" className="bg-white border border-slate-200 rounded-lg p-2.5 text-xs" />

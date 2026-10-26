@@ -11,17 +11,20 @@ import { SupportDashboard } from './dashboards/SupportDashboard';
 import { HeadDashboard } from './dashboards/HeadDashboard';
 import { EngineeringDashboard } from './dashboards/EngineeringDashboard';
 import OutreachOverview from './dashboards/outreach/OutreachOverview';
+import { MarketerWorkspace } from './marketer/FieldMarketerPages';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const role = user?.role?.toLowerCase() ?? 'employee';
   const dept = (user?.department?.name || user?.department || '').toString().toLowerCase();
+  const title = (user?.title || '').toLowerCase();
   const isHead = (user?.ledDepartments?.length ?? 0) > 0;
 
   const activeDepartment = () => {
     if (role === 'ceo') return 'ceo';
     if (role === 'manager' || dept.includes('management') || dept.includes('executive') || dept.includes('strategy') || dept.includes('director')) return 'manager';
     if (role === 'outreach_manager') return 'outreach';
+    if (title.includes('field marketer') || title.includes('field marketing')) return 'marketer';
 
     if (role === 'engineering' || dept.includes('engineering') || dept.includes('software') || dept.includes('tech') || dept.includes('developer') || dept.includes('dev')) return 'engineering';
     if (role === 'finance' || dept.includes('finance') || dept.includes('account')) return 'finance';
@@ -47,6 +50,7 @@ export default function Dashboard() {
       {currentDept === 'admin' && <AdminDashboard />}
       {currentDept === 'support' && <SupportDashboard />}
       {currentDept === 'outreach' && <OutreachOverview />}
+      {currentDept === 'marketer' && <MarketerWorkspace />}
       {currentDept === 'employee' && isHead && <HeadDashboard />}
       {currentDept === 'employee' && !isHead && <EmployeeDashboard />}
     </div>

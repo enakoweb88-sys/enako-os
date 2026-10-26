@@ -13,6 +13,51 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
 
+  // Refresh the server profile whenever the app starts. This makes HR changes
+  // (such as assigning the Field Marketer title) take effect without waiting
+  // for the existing access token to expire.
+  useEffect(() => {
+    const refreshToken = sessionStorage.getItem('enako_refresh_token');
+    if (!refreshToken) return;
+
+    let active = true;
+    const restoreProfile = async () => {
+      let currentUser = getStoredUser();
+
+      try {
+        const session = await api.refreshSession(refreshToken);
+        storeSession(session);
+        currentUser = session.user;
+        if (active) setUser(session.user);
+      } catch {
+        // Keep the existing valid session available if the refresh endpoint is unavailable.
+      }
+
+      // Older deployed API versions can return a session user without the job title.
+      // Resolve the current employee record so role-specific workspaces still open correctly.
+      if (!currentUser?.email) return;
+      try {
+        const result = await api.employees({ search: currentUser.email, limit: 10 });
+        const profile = result.items.find((employee: any) => employee.id === currentUser?.id || employee.email?.toLowerCase() === currentUser?.email.toLowerCase());
+        if (!profile) return;
+
+        const updatedUser = {
+          ...currentUser,
+          title: profile.title ?? currentUser.title,
+          department: profile.department ?? currentUser.department,
+          role: profile.role ?? currentUser.role,
+        };
+        sessionStorage.setItem('enako_user', JSON.stringify(updatedUser));
+        if (active) setUser(updatedUser);
+      } catch {
+        // The session response remains the trusted fallback when employee lookup is unavailable.
+      }
+    };
+
+    restoreProfile();
+    return () => { active = false; };
+  }, []);
+
   useEffect(() => {
     const handleUnload = () => {
       const sessionId = sessionStorage.getItem('enako_session_id');

@@ -18,6 +18,8 @@ export const employeesApi = {
     apiRequest<any>(`/employees/${id}/suspend`, { method: 'PATCH' }),
   activateEmployee: (id: string) =>
     apiRequest<any>(`/employees/${id}/activate`, { method: 'PATCH' }),
+  applyFieldMarketerTemplate: (id: string) =>
+    apiRequest<{ added: number; total: number }>(`/employees/${id}/field-marketer-template`, { method: 'POST' }),
   deleteEmployee: (id: string) =>
     apiRequest<any>(`/employees/${id}`, { method: 'DELETE' }),
   resetEmployeePassword: (id: string, password: string) =>

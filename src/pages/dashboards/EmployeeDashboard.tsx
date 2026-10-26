@@ -12,12 +12,13 @@ function fmt(val: string | number | null | undefined, currency = true) {
 
 interface EmployeeDashboardProps {
   targetUser?: any;
+  marketer?: boolean;
 }
 
 import { OrganizationHeaderCard } from '../../components/OrganizationHeaderCard';
 import { WorkplaceStatCards } from '../../components/WorkplaceStatCards';
 
-export function EmployeeDashboard({ targetUser }: EmployeeDashboardProps) {
+export function EmployeeDashboard({ targetUser, marketer = false }: EmployeeDashboardProps) {
   const { user: authUser } = useAuth();
   const user = targetUser || authUser;
 
@@ -38,14 +39,27 @@ export function EmployeeDashboard({ targetUser }: EmployeeDashboardProps) {
       api.tasks().catch(() => []),
       api.expenses().catch(() => ({ items: [], totals: [] })),
       api.goals().catch(() => []),
-      api.staffMeals().catch(() => []),
+      api.meals().catch(() => ({ items: [], totals: {} })),
     ])
       .then(([allTasks, allExpenses, allGoals, allMeals]) => {
-        const myTasks = Array.isArray(allTasks) ? allTasks.filter((t: any) => t.assignedToId === user.id || t.assignedTo?.id === user.id) : [];
+        // The API uses assignee/assigneeId and owner/ownerId. Keep the legacy
+        // aliases too so historical cached responses remain readable.
+        const myTasks = Array.isArray(allTasks)
+          ? allTasks.filter((t: any) =>
+              t.assigneeId === user.id || t.assignee?.id === user.id ||
+              t.assignedToId === user.id || t.assignedTo?.id === user.id,
+            )
+          : [];
         const expItems = allExpenses?.items || (Array.isArray(allExpenses) ? allExpenses : []);
         const myExpenses = expItems.filter((e: any) => e.submittedById === user.id || e.submittedBy?.id === user.id);
-        const myGoals = Array.isArray(allGoals) ? allGoals.filter((g: any) => g.employeeId === user.id || g.employee?.id === user.id) : [];
-        const myMeals = Array.isArray(allMeals) ? allMeals.filter((m: any) => m.employeeId === user.id || m.employee?.id === user.id) : [];
+        const myGoals = Array.isArray(allGoals)
+          ? allGoals.filter((g: any) =>
+              g.ownerId === user.id || g.owner?.id === user.id ||
+              g.employeeId === user.id || g.employee?.id === user.id,
+            )
+          : [];
+        const mealItems = allMeals?.items || (Array.isArray(allMeals) ? allMeals : []);
+        const myMeals = mealItems.filter((m: any) => m.employeeId === user.id || m.employee?.id === user.id);
 
         setTasks(myTasks);
         setExpenses(myExpenses);
@@ -67,17 +81,45 @@ export function EmployeeDashboard({ targetUser }: EmployeeDashboardProps) {
   const activeGoalsCount = goals.filter(g => g.status !== 'COMPLETED').length;
   const eatenMealsCount = meals.filter(m => m.status === 'ATE').length;
   const mealCostTotal = eatenMealsCount * 1500;
+  const isMarketer = marketer || /field marketer|field marketing/i.test(user?.title || '');
+  const marketerWeights: Record<string, number> = {
+    'prospecting': 10,
+    'verified akawo account activations': 30,
+    'landbanking accounts with first payment': 15,
+    'customer follow-up within 48 hours': 10,
+    'customer retention: second payment within 30 days': 15,
+    'daily field reports and office check-ins': 10,
+    'conduct and attendance': 10,
+  };
+  const monthlyScore = Math.round(goals.reduce((score, goal) => {
+    const weight = marketerWeights[goal.title?.trim().toLowerCase()] || 0;
+    const target = Number(goal.targetValue || 0);
+    const progress = target > 0 ? Math.min(Number(goal.currentValue || 0) / target, 1) : 0;
+    return score + (weight * progress);
+  }, 0));
+  const scoreRating = monthlyScore >= 80 ? 'Excellent' : monthlyScore >= 65 ? 'Good' : monthlyScore >= 50 ? 'Needs improvement' : 'Unsatisfactory';
 
   return (
     <div className="space-y-6 font-sans">
       {/* ── 1. ORGANIZATION SUMMARY CARD ── */}
       <OrganizationHeaderCard subtitle={`${user?.fullName || 'Staff Member'} • ${user?.department?.name || user?.department || 'Operations'}`} />
 
+      {isMarketer && (
+        <div className="bg-[#001f5b] text-white rounded-lg p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.18em] text-slate-300 uppercase">Field Marketer Monthly KPI Score</p>
+            <h2 className="text-xl font-bold mt-1">{monthlyScore} / 100 <span className="text-sm font-medium text-slate-300">• {scoreRating}</span></h2>
+            <p className="text-xs text-slate-300 mt-1">Verified activity and payments only. Retention is assessed after 30 days.</p>
+          </div>
+          <div className="text-xs text-slate-200 font-medium">{goals.length} of 7 monthly KPI measures assigned</div>
+        </div>
+      )}
+
       {/* ── 2. TOP METRIC CARDS WITH COLORED BOTTOM ACCENT ── */}
       <WorkplaceStatCards
-        card1Label="ASSIGNED TASKS"
+        card1Label={isMarketer ? "FIELD ACTIVITIES" : "ASSIGNED TASKS"}
         domainsCount={tasks.length}
-        card2Label="COMPLETED TASKS"
+        card2Label={isMarketer ? "COMPLETED ACTIVITIES" : "COMPLETED TASKS"}
         usersCount={completedTasks}
         card3Label="PENDING CLAIMS"
         groupsCount={fmt(pendingExpTotal)}
@@ -175,7 +217,7 @@ export function EmployeeDashboard({ targetUser }: EmployeeDashboardProps) {
         <div className="col-span-12 lg:col-span-7 bg-white border border-slate-200 rounded-lg p-6 shadow-sm space-y-4">
           <div className="border-b border-slate-100 pb-4">
             <h3 className="font-display text-base font-bold text-slate-900 uppercase tracking-wider">
-              Assigned Performance Goals ({goals.length})
+              {isMarketer ? 'Monthly Field Marketer KPIs' : 'Assigned Performance Goals'} ({goals.length})
             </h3>
           </div>
 
@@ -202,6 +244,7 @@ export function EmployeeDashboard({ targetUser }: EmployeeDashboardProps) {
 
                     <div className="flex justify-between text-[10px] text-slate-500 font-medium">
                       <span>Progress: {pct}%</span>
+                      {isMarketer && marketerWeights[g.title?.trim().toLowerCase()] && <span>Weight: {marketerWeights[g.title.trim().toLowerCase()]} points</span>}
                       {g.dueDate && <span>Target Date: {new Date(g.dueDate).toLocaleDateString()}</span>}
                     </div>
                   </div>

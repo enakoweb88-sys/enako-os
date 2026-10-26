@@ -4,6 +4,7 @@ export type AuthUser = {
   id: string;
   email: string;
   fullName: string;
+  title?: string | null;
   role: RoleName;
   department?: string | null;
   ledDepartments?: string[];
@@ -66,7 +67,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     window.clearTimeout(timeout);
   }
 
-  if (response.status === 401 && !path.includes('/auth/login')) {
+  if (response.status === 401 && !path.includes('/auth/login') && !path.includes('/auth/refresh')) {
     const refreshToken = sessionStorage.getItem('enako_refresh_token');
     if (refreshToken) {
       const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {

@@ -15,6 +15,7 @@ import {
 import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
+import FieldMarketerLayout from './FieldMarketerLayout';
 
 interface SubNavItem {
   label: string;
@@ -44,6 +45,14 @@ interface RailCategory {
 }
 
 export default function DashboardLayout() {
+  const { user } = useAuth();
+
+  return /field marketer|field marketing/i.test(user?.title || '')
+    ? <FieldMarketerLayout />
+    : <EnterpriseDashboardLayout />;
+}
+
+function EnterpriseDashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
