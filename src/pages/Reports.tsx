@@ -26,10 +26,13 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Tabs for Manager: 'today' | 'all'
-  const [managerTab, setManagerTab] = useState<'today' | 'all'>('today');
+  // Tabs for Manager: 'today' | 'all' | 'field'
+  const [managerTab, setManagerTab] = useState<'today' | 'all' | 'field'>('today');
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [reviewModalReport, setReviewModalReport] = useState<any | null>(null);
+  const [reviewComments, setReviewComments] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   // Create Report View State
   const [isCreatingReport, setIsCreatingReport] = useState(false);
@@ -216,6 +219,7 @@ ${dailyForm.recommendation}`;
         doc.saveGraphicsState();
         // @ts-ignore
         if (typeof doc.GState === 'function') {
+          // @ts-ignore
           doc.setGState(new doc.GState({ opacity: 0.04 }));
         }
         doc.setFontSize(52);
@@ -330,7 +334,34 @@ ${dailyForm.recommendation}`;
     currentY += 6;
 
     // Parse and render content sections
-      const content = report.content || 'No content provided for this session.';
+    let content = report.content || 'No content provided for this session.';
+    try {
+      if (typeof content === 'string' && content.trim().startsWith('{')) {
+        const parsed = JSON.parse(content);
+        content = `Title: Daily Field Report - ${parsed.marketer || 'Marketer'} (${parsed.reportDate || ''})
+Category: Field Operations
+Impact Level: Operational
+
+Details:
+• People approached: ${parsed.people || '0'}
+• Qualified prospects: ${parsed.qualified || '0'}
+• Follow-ups completed: ${parsed.followUps || '0'}
+• Accounts opened: ${parsed.accounts || '0'}
+• First transactions: ${parsed.transactions || '0'}
+• Evidence reference: ${parsed.evidence || 'None'}
+
+Tasks & Customer Feedback:
+${parsed.completed || 'None recorded'}
+
+Blockers & Support Needed:
+${parsed.blockers || 'None recorded'}
+
+Recommendation:
+Next Workday Priorities:
+${parsed.priorities || 'Continue scheduled territory route'}`;
+      }
+    } catch {}
+
     const sections = content.split('\n');
 
     const detailLines: string[] = [];
@@ -458,9 +489,9 @@ ${dailyForm.recommendation}`;
       };
 
       await renderAttachmentSection('expenses', 'COMPANY EXPENSES', 
-        async () => {
-          try { return await api.expenses(); } catch { return await apiRequest('/expenses'); }
-          },
+        (async () => {
+          try { return (await api.expenses()) as any; } catch { return (await apiRequest('/expenses')) as any; }
+        }) as any,
         (data) => {
             const total = data.reduce((sum, d) => sum + Number(d.amount || 0), 0);
           return `Summary: This month, the company recorded ${data.length} expense transactions amounting to ${fmt(total)}. This indicates a structured expenditure flow across operational categories.`;
@@ -738,12 +769,33 @@ ${dailyForm.recommendation}`;
         const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         filtered = filtered.filter(r => 
           new Date(r.date) >= oneWeekAgo && 
-          (r.type === 'WEEKLY' || r.type === 'DAILY')
+          (r.type === 'WEEKLY' || r.type === 'DAILY' || r.type === 'FIELD')
         );
+      } else if (managerTab === 'field') {
+        filtered = filtered.filter(r => r.type === 'FIELD');
       }
     }
 
     return filtered;
+  };
+
+  const handleReviewAction = async (status: 'VERIFIED' | 'RETURNED') => {
+    if (!reviewModalReport) return;
+    setIsSubmittingReview(true);
+    try {
+      await api.reviewDailyReport(reviewModalReport.id, {
+        status,
+        reviewerComments: reviewComments
+      });
+      toast.success(status === 'VERIFIED' ? 'Report successfully verified and approved' : 'Report returned to author for correction');
+      setReviewModalReport(null);
+      setReviewComments('');
+      load();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to review report');
+    } finally {
+      setIsSubmittingReview(false);
+    }
   };
 
   const displayedReports = getFilteredReports();
@@ -810,6 +862,12 @@ ${dailyForm.recommendation}`;
               >
                 All Stored Reports
               </button>
+              <button 
+                onClick={() => setManagerTab('field')} 
+                className={cn("px-4 py-1.5 rounded-md text-xs font-semibold transition-colors", managerTab === 'field' ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900")}
+              >
+                Field Marketer Reports
+              </button>
             </div>
           )}
 
@@ -851,24 +909,48 @@ ${dailyForm.recommendation}`;
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-semibold text-slate-900">{report.user?.fullName || 'Unknown'}</p>
                           {report.type === 'GENERAL' && <span className="bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">General</span>}
+                          {report.type === 'FIELD' && <span className="bg-cyan-50 text-cyan-800 border border-cyan-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Field Report</span>}
                           {report.status === 'DRAFT' && <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Draft</span>}
                           {report.status === 'SUBMITTED' && <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Submitted</span>}
+                          {report.status === 'VERIFIED' && <span className="bg-teal-50 text-teal-700 border border-teal-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Verified</span>}
+                          {report.status === 'RETURNED' && <span className="bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Returned</span>}
                         </div>
                         <p className="text-xs text-slate-500 mt-0.5">
                           {new Date(report.date).toLocaleDateString()} • {new Date(report.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {report.reviewer?.fullName && (
+                            <span className="ml-2 text-slate-600 font-medium">
+                              • Reviewed by {report.reviewer.fullName}
+                            </span>
+                          )}
                         </p>
+                        {report.reviewerComments && (
+                          <p className="text-[11px] text-amber-800 bg-amber-50/80 rounded px-2 py-0.5 mt-1 border border-amber-200/60 max-w-lg">
+                            <b>HOD Note:</b> {report.reviewerComments}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 self-end sm:self-auto">
+                      {isManager && (
+                        <button 
+                          onClick={() => {
+                            setReviewModalReport(report);
+                            setReviewComments(report.reviewerComments || '');
+                          }}
+                          className="py-1.5 px-3 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors text-xs font-semibold border border-blue-200"
+                        >
+                          {report.status === 'VERIFIED' ? 'Review Details' : 'Review / Verify'}
+                        </button>
+                      )}
                       {report.status === 'DRAFT' && report.userId === user?.id && (
-                <button 
+                        <button 
                           onClick={() => handleEditDraft(report)} 
                           className="py-1.5 px-3 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors text-xs font-semibold border border-amber-200"
                         >
                           Edit Draft
                         </button>
                       )}
-                <button 
+                      <button 
                         onClick={() => downloadDailyPdf(report)} 
                         className="py-1.5 px-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors text-xs font-semibold shadow-sm"
                       >
@@ -1062,6 +1144,157 @@ ${dailyForm.recommendation}`;
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* ── HOD REVIEW & VERIFICATION MODAL ── */}
+      {reviewModalReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200">
+            <div className="flex justify-between items-start border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  HOD Review • {reviewModalReport.type === 'FIELD' ? 'Daily Field Report' : 'Team Report'}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Submitted by <b>{reviewModalReport.user?.fullName}</b> ({reviewModalReport.user?.email}) on {new Date(reviewModalReport.date).toLocaleDateString()}
+                </p>
+              </div>
+              <button 
+                onClick={() => setReviewModalReport(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Report Content Details */}
+            <div className="bg-slate-50 rounded-lg p-4 text-xs space-y-3 border border-slate-200/80">
+              {(() => {
+                try {
+                  if (reviewModalReport.type === 'FIELD' && reviewModalReport.content?.trim().startsWith('{')) {
+                    const parsed = JSON.parse(reviewModalReport.content);
+                    return (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-white p-3 rounded-lg border border-slate-200">
+                          <div>
+                            <p className="text-[10px] uppercase font-bold text-slate-400">People approached</p>
+                            <p className="text-base font-bold text-[#002b70]">{parsed.people || '0'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase font-bold text-slate-400">Qualified prospects</p>
+                            <p className="text-base font-bold text-[#002b70]">{parsed.qualified || '0'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase font-bold text-slate-400">Follow-ups done</p>
+                            <p className="text-base font-bold text-[#002b70]">{parsed.followUps || '0'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase font-bold text-slate-400">Accounts opened</p>
+                            <p className="text-base font-bold text-[#002b70]">{parsed.accounts || '0'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase font-bold text-slate-400">First transactions</p>
+                            <p className="text-base font-bold text-[#002b70]">{parsed.transactions || '0'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase font-bold text-slate-400">Zone / Marketer</p>
+                            <p className="text-xs font-semibold text-slate-700 truncate">{parsed.marketer || 'General'}</p>
+                          </div>
+                        </div>
+
+                        {parsed.evidence && (
+                          <div>
+                            <p className="font-bold text-slate-700">Evidence / Account Reference IDs:</p>
+                            <p className="mt-0.5 text-slate-600 bg-white p-2 rounded border border-slate-200">{parsed.evidence}</p>
+                          </div>
+                        )}
+
+                        <div>
+                          <p className="font-bold text-slate-700">Completed Work & Feedback:</p>
+                          <p className="mt-0.5 text-slate-600 whitespace-pre-wrap">{parsed.completed || 'None recorded'}</p>
+                        </div>
+
+                        <div>
+                          <p className="font-bold text-slate-700">Blockers & Support Needed:</p>
+                          <p className="mt-0.5 text-slate-600 whitespace-pre-wrap">{parsed.blockers || 'None recorded'}</p>
+                        </div>
+
+                        <div>
+                          <p className="font-bold text-slate-700">Next Workday Priorities:</p>
+                          <p className="mt-0.5 text-slate-600 whitespace-pre-wrap">{parsed.priorities || 'None recorded'}</p>
+                        </div>
+                      </div>
+                    );
+                  }
+                } catch {}
+                return (
+                  <div className="whitespace-pre-wrap text-slate-700 font-mono text-[11px]">
+                    {reviewModalReport.content}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Current Status and Reviewer info */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-semibold text-slate-600">Current status:</span>
+              <span className={cn(
+                "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border",
+                reviewModalReport.status === 'VERIFIED' ? "bg-teal-50 text-teal-700 border-teal-200" :
+                reviewModalReport.status === 'RETURNED' ? "bg-rose-50 text-rose-700 border-rose-200" :
+                "bg-emerald-50 text-emerald-700 border-emerald-200"
+              )}>
+                {reviewModalReport.status}
+              </span>
+              {reviewModalReport.reviewer?.fullName && (
+                <span className="text-slate-500">
+                  • Last reviewed by {reviewModalReport.reviewer.fullName}
+                </span>
+              )}
+            </div>
+
+            {/* Reviewer Comments Form */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700">
+                HOD Reviewer Feedback / Verification Notes
+              </label>
+              <textarea
+                value={reviewComments}
+                onChange={(e) => setReviewComments(e.target.value)}
+                placeholder="Enter verification comments or details for required corrections..."
+                rows={3}
+                className="w-full rounded-lg border border-slate-300 p-2 text-xs outline-none focus:border-slate-500"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setReviewModalReport(null)}
+                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-50"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                disabled={isSubmittingReview}
+                onClick={() => handleReviewAction('RETURNED')}
+                className="px-4 py-2 bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+              >
+                {isSubmittingReview ? 'Saving...' : 'Return for Correction'}
+              </button>
+              <button
+                type="button"
+                disabled={isSubmittingReview}
+                onClick={() => handleReviewAction('VERIFIED')}
+                className="px-4 py-2 bg-[#001f5b] text-white hover:bg-[#001f5b]/90 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 shadow-sm"
+              >
+                {isSubmittingReview ? 'Verifying...' : 'Verify & Approve'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

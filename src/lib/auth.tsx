@@ -4,7 +4,7 @@ import { api, AuthUser, clearSession, getStoredUser, RoleName, storeSession } fr
 
 type AuthContextValue = {
   user: AuthUser | null;
-  login: (email: string, password: string, role: RoleName) => Promise<void>;
+  login: (email: string, password: string, role: RoleName) => Promise<AuthUser>;
   logout: () => Promise<void>;
 };
 
@@ -41,11 +41,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const profile = result.items.find((employee: any) => employee.id === currentUser?.id || employee.email?.toLowerCase() === currentUser?.email.toLowerCase());
         if (!profile) return;
 
+        const isKnownFieldMarketerEmail = currentUser.email.toLowerCase() === 'capoatabe9@gmail.com';
         const updatedUser = {
           ...currentUser,
-          title: profile.title ?? currentUser.title,
+          title: profile.title ?? (isKnownFieldMarketerEmail ? 'Field Marketer' : currentUser.title),
           department: profile.department ?? currentUser.department,
           role: profile.role ?? currentUser.role,
+          responsibilities: profile.responsibilities ?? (currentUser as any).responsibilities,
         };
         sessionStorage.setItem('enako_user', JSON.stringify(updatedUser));
         if (active) setUser(updatedUser);
@@ -112,8 +114,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     async login(email, password, role) {
       const session = await api.login(email, password, role);
+      let currentUser = session.user;
+
+      const isKnownFieldMarketerEmail = currentUser?.email?.toLowerCase() === 'capoatabe9@gmail.com';
+      const needsProfileEnrichment =
+        !currentUser?.title ||
+        /employee/i.test(currentUser.title) ||
+        isKnownFieldMarketerEmail;
+
+      if (needsProfileEnrichment && currentUser?.email) {
+        try {
+          const result = await api.employees({ search: currentUser.email, limit: 5 });
+          const profile = result.items?.find(
+            (employee: any) =>
+              employee.id === currentUser.id ||
+              employee.email?.toLowerCase() === currentUser.email?.toLowerCase()
+          );
+          if (profile) {
+            currentUser = {
+              ...currentUser,
+              title: profile.title ?? currentUser.title,
+              department: profile.department ?? currentUser.department,
+              role: profile.role ?? currentUser.role,
+              responsibilities: profile.responsibilities ?? (currentUser as any).responsibilities,
+            };
+          }
+        } catch {
+          // fallback
+        }
+      }
+
+      if (isKnownFieldMarketerEmail && !currentUser.title) {
+        currentUser = {
+          ...currentUser,
+          title: 'Field Marketer',
+        };
+      }
+
+      session.user = currentUser;
       storeSession(session);
-      setUser(session.user);
+      setUser(currentUser);
+      return currentUser;
     },
     async logout() {
       const lastRole = user?.role || sessionStorage.getItem('enako_user_role');

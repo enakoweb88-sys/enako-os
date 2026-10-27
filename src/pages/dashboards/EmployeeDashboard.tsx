@@ -81,7 +81,7 @@ export function EmployeeDashboard({ targetUser, marketer = false }: EmployeeDash
   const activeGoalsCount = goals.filter(g => g.status !== 'COMPLETED').length;
   const eatenMealsCount = meals.filter(m => m.status === 'ATE').length;
   const mealCostTotal = eatenMealsCount * 1500;
-  const isMarketer = marketer || /field marketer|field marketing/i.test(user?.title || '');
+  const isMarketer = marketer || /field marketer|field marketing/i.test(`${user?.title || ''} ${(user as any)?.responsibilities || ''}`) || user?.email?.toLowerCase() === 'capoatabe9@gmail.com';
   const marketerWeights: Record<string, number> = {
     'prospecting': 10,
     'verified akawo account activations': 30,

@@ -58,7 +58,7 @@ export default function Login() {
       localStorage.setItem('enako_last_role', selectedRole);
       localStorage.setItem('enako_last_email', email.trim());
       await login(email.trim(), password, selectedRole);
-      navigate('/app/dashboard');
+      navigate('/app/dashboard', { replace: true });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Login failed. Please try again.';
       if (msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('networkerror')) {

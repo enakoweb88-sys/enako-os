@@ -27,11 +27,13 @@ import { subscriptionsApi } from './subscriptions';
 import { reportsApi } from './reports';
 import { settingsApi } from './settings';
 import { cashCollectionsApi } from './cashCollections';
+import { marketerApi } from './marketer';
 
 export * from './core';
 export * from './roles';
 export * from './outreach';
 export * from './cashCollections';
+export * from './marketer';
 
 export const api = {
   ...subscriptionsApi,
@@ -61,5 +63,6 @@ export const api = {
   ...dashboardApi,
   ...auditLogsApi,
   ...investmentsApi,
+  ...marketerApi,
   settings: settingsApi,
 };

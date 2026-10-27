@@ -20,11 +20,17 @@ export default function Dashboard() {
   const title = (user?.title || '').toLowerCase();
   const isHead = (user?.ledDepartments?.length ?? 0) > 0;
 
+  const isMarketer =
+    title.includes('field marketer') ||
+    title.includes('field marketing') ||
+    /field marketer|field marketing/i.test((user as any)?.responsibilities || '') ||
+    user?.email?.toLowerCase() === 'capoatabe9@gmail.com';
+
   const activeDepartment = () => {
+    if (isMarketer) return 'marketer';
     if (role === 'ceo') return 'ceo';
     if (role === 'manager' || dept.includes('management') || dept.includes('executive') || dept.includes('strategy') || dept.includes('director')) return 'manager';
     if (role === 'outreach_manager') return 'outreach';
-    if (title.includes('field marketer') || title.includes('field marketing')) return 'marketer';
 
     if (role === 'engineering' || dept.includes('engineering') || dept.includes('software') || dept.includes('tech') || dept.includes('developer') || dept.includes('dev')) return 'engineering';
     if (role === 'finance' || dept.includes('finance') || dept.includes('account')) return 'finance';

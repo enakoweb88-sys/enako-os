@@ -47,7 +47,11 @@ interface RailCategory {
 export default function DashboardLayout() {
   const { user } = useAuth();
 
-  return /field marketer|field marketing/i.test(user?.title || '')
+  const isFieldMarketer =
+    /field marketer|field marketing/i.test(`${user?.title || ''} ${(user as any)?.responsibilities || ''}`) ||
+    user?.email?.toLowerCase() === 'capoatabe9@gmail.com';
+
+  return isFieldMarketer
     ? <FieldMarketerLayout />
     : <EnterpriseDashboardLayout />;
 }
