@@ -9,6 +9,7 @@ import {
 import { cn } from '../../lib/utils';
 import { api, outreachAPI } from '../../lib/api';
 import { TasksWidget } from '../../components/TasksWidget';
+import { MarketerDailyLeaderboard } from '../../components/MarketerDailyLeaderboard';
 
 export function ManagerDashboard() {
   const navigate = useNavigate();
@@ -134,6 +135,7 @@ export function ManagerDashboard() {
 
       {/* ── 3. OPERATIONAL WORKFLOW WIDGETS ── */}
       <div className="space-y-6">
+        <MarketerDailyLeaderboard />
         <TasksWidget />
       </div>
     </div>

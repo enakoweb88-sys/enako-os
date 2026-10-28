@@ -17,6 +17,7 @@ export default function Goals() {
   const [departments, setDepartments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', objectiveType: 'Financial', targetValue: '', unit: '', dueDate: '', scope: 'COMPANY', departmentId: '', ownerId: '' });
 
@@ -36,6 +37,12 @@ export default function Goals() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Employee operating KPIs have their own scorecard workspace. Keep this page
+  // focused on company, department and non-field strategic objectives.
+  const strategicGoals = goals.filter(goal => !goal.isKpi && !(
+    goal.scope === 'PERSONAL' && goal.owner?.title?.toLowerCase() === 'field marketer'
+  ));
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -52,7 +59,7 @@ export default function Goals() {
         targetUnit = '%';
       }
 
-      await api.createGoal({
+      const payload = {
         title: form.title,
         description: form.description || undefined,
         targetValue: targetVal,
@@ -61,8 +68,11 @@ export default function Goals() {
         scope: form.scope,
         departmentId: form.scope === 'DEPARTMENT' ? form.departmentId : undefined,
         ownerId: form.scope === 'PERSONAL' ? form.ownerId : undefined,
-      });
+      };
+      if (editingGoal) await api.updateGoal(editingGoal.id, payload);
+      else await api.createGoal(payload);
       setShowModal(false);
+      setEditingGoal(null);
       setForm({ title: '', description: '', objectiveType: 'Financial', targetValue: '', unit: '', dueDate: '', scope: 'COMPANY', departmentId: '', ownerId: '' });
       load();
     } catch (e: any) { alert(e.message); }
@@ -74,16 +84,16 @@ export default function Goals() {
     return Math.min(100, Math.round((Number(goal.currentValue) / Number(goal.targetValue)) * 100));
   };
 
-  const avgProgress = goals.length > 0 ? Math.round(goals.reduce((a, g) => a + getProgress(g), 0) / goals.length) : 0;
-  const completedGoals = goals.filter(g => getProgress(g) >= 100);
+  const avgProgress = strategicGoals.length > 0 ? Math.round(strategicGoals.reduce((a, g) => a + getProgress(g), 0) / strategicGoals.length) : 0;
+  const completedGoals = strategicGoals.filter(g => getProgress(g) >= 100);
 
   return (
     <div className="space-y-6 pb-20 font-sans">
-      <OrganizationHeaderCard subtitle="Executive Overview • Goals, Strategic Objectives & Enterprise KPIs" />
+      <OrganizationHeaderCard subtitle="Executive Overview • Strategic Goals & Company Objectives" />
 
       <WorkplaceStatCards
-        domainsCount={goals.length}
-        usersCount={goals.filter(g => g.scope === 'COMPANY').length}
+        domainsCount={strategicGoals.length}
+        usersCount={strategicGoals.filter(g => g.scope === 'COMPANY').length}
         groupsCount={completedGoals.length}
         licensesCount={`${avgProgress}%`}
         card1Label="TOTAL OBJECTIVES"
@@ -103,7 +113,7 @@ export default function Goals() {
             Strategic Objectives & Key Results (OKRs)
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Operational and financial KPIs aligned with executive company benchmarks.
+            Company and department outcomes tracked separately from employee KPIs.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -138,12 +148,12 @@ export default function Goals() {
           <div className="bg-white border border-slate-200/90 rounded-lg p-10 text-center shadow-2xs">
             <p className="text-slate-500 text-xs">Loading objectives…</p>
           </div>
-        ) : goals.length === 0 ? (
+        ) : strategicGoals.length === 0 ? (
           <div className="bg-white border border-slate-200/90 rounded-lg p-10 text-center space-y-2 shadow-2xs">
             <p className="text-slate-900 font-semibold text-sm">No active objectives found</p>
-            <p className="text-slate-500 text-xs">Initialize your first strategic KPI to begin tracking.</p>
+            <p className="text-slate-500 text-xs">Create your first strategic objective to begin tracking.</p>
           </div>
-        ) : goals.map((goal) => {
+        ) : strategicGoals.map((goal) => {
           const progress = getProgress(goal);
           return (
             <div
@@ -180,6 +190,7 @@ export default function Goals() {
                 <div className="text-right sm:self-center shrink-0">
                   <p className="text-lg font-bold font-mono text-slate-900">{progress}%</p>
                   <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Accomplished</p>
+                  {role !== 'employee' && <button type="button" onClick={() => { setEditingGoal(goal); setForm({ title: goal.title || '', description: goal.description || '', objectiveType: 'Quantitative', targetValue: String(goal.targetValue ?? ''), unit: goal.unit || '', dueDate: goal.dueDate ? new Date(goal.dueDate).toISOString().slice(0, 10) : '', scope: goal.scope, departmentId: goal.departmentId || '', ownerId: goal.ownerId || goal.owner?.id || '' }); setShowModal(true); }} className="mt-2 text-[11px] font-bold text-[#001f5b] hover:underline">Edit Goal</button>}
                 </div>
               </div>
 
@@ -207,8 +218,8 @@ export default function Goals() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs" />
             <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="relative w-full max-w-lg bg-white rounded-lg shadow-xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
               <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50 shrink-0">
-                <h3 className="text-sm font-semibold text-slate-900">Set Strategic Objective</h3>
-                <button type="button" onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 text-sm">✕</button>
+                <h3 className="text-sm font-semibold text-slate-900">{editingGoal ? 'Update Goal' : 'Set Strategic Objective'}</h3>
+                <button type="button" onClick={() => { setShowModal(false); setEditingGoal(null); }} className="text-slate-400 hover:text-slate-600 text-sm">✕</button>
               </div>
               <div className="p-5 overflow-y-auto">
                 <form onSubmit={handleCreate} className="space-y-3.5">
@@ -231,7 +242,7 @@ export default function Goals() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">Scope *</label>
-                    <select value={form.scope} onChange={e => setForm({ ...form, scope: e.target.value, departmentId: '', ownerId: '' })} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs outline-none focus:border-[#001f5b] text-slate-900">
+                    <select disabled={Boolean(editingGoal)} value={form.scope} onChange={e => setForm({ ...form, scope: e.target.value, departmentId: '', ownerId: '' })} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs outline-none focus:border-[#001f5b] text-slate-900 disabled:bg-slate-100">
                       <option value="COMPANY">Company</option>
                       <option value="DEPARTMENT">Department</option>
                       <option value="PERSONAL">Personal</option>
@@ -272,7 +283,7 @@ export default function Goals() {
                     <input type="date" value={form.dueDate} onChange={e => setForm({ ...form, dueDate: e.target.value })} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs outline-none focus:border-[#001f5b] text-slate-900" />
                   </div>
                   <button type="submit" disabled={submitting} className="w-full py-2.5 bg-[#001f5b] hover:bg-[#001f5b]/90 text-white rounded-lg text-xs font-semibold tracking-wide mt-3 transition-colors shadow-2xs disabled:opacity-60">
-                    {submitting ? 'Creating…' : 'Deploy Objective'}
+                    {submitting ? 'Saving…' : editingGoal ? 'Save Goal Changes' : 'Deploy Objective'}
                   </button>
                 </form>
               </div>

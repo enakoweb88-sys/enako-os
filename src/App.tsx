@@ -25,9 +25,9 @@ import Leads from './pages/Leads';
 import Tickets from './pages/Tickets';
 import Content from './pages/Content';
 import Leaves from './pages/Leaves';
-import ApiDocs from './pages/ApiDocs';
 import Help from './pages/Help';
 import Investments from './pages/Investments';
+import KpiManagement from './pages/KpiManagement';
 import DashboardLayout from './layouts/DashboardLayout';
 import WebsitesPage from './pages/WebsitesPage';
 
@@ -73,7 +73,6 @@ import UnreadMessagesPage from './pages/quick-views/UnreadMessagesPage';
 import OpenTicketsPage from './pages/quick-views/OpenTicketsPage';
 import CompanyBulletinsPage from './pages/quick-views/CompanyBulletinsPage';
 import KnowledgeBasePage from './pages/quick-views/KnowledgeBasePage';
-import ApiSpecsPage from './pages/quick-views/ApiSpecsPage';
 import SecurityBadgePage from './pages/quick-views/SecurityBadgePage';
 import SecuritySessionsPage from './pages/quick-views/SecuritySessionsPage';
 import SecurityAuditPage from './pages/quick-views/SecurityAuditPage';
@@ -120,8 +119,6 @@ export default function App() {
             <Route path="tickets/open" element={<OpenTicketsPage />} />
             <Route path="announcements/bulletins" element={<CompanyBulletinsPage />} />
             <Route path="help/knowledge-base" element={<KnowledgeBasePage />} />
-            <Route path="apis" element={<ApiSpecsPage />} />
-            <Route path="api" element={<Navigate to="/app/apis" replace />} />
             <Route path="security" element={<SecurityProfilePage />} />
             <Route path="security/badge" element={<SecurityBadgePage />} />
             <Route path="security/sessions" element={<SecuritySessionsPage />} />
@@ -186,6 +183,7 @@ export default function App() {
             <Route path="cash-collections" element={<CashCollectionsPage />} />
             <Route path="cash-collections/new" element={<CreateCashTaskPage />} />
             <Route path="goals" element={<Goals />} />
+            <Route path="kpis" element={<KpiManagement />} />
             <Route path="goals/new" element={<CreateGoalPage />} />
             <Route path="goals/track" element={<TrackGoalsPage />} />
             <Route path="chat" element={<Chat />} />
@@ -208,7 +206,6 @@ export default function App() {
             <Route path="marketing/campaigns" element={<MarketingCampaigns />} />
             <Route path="marketing/create-post" element={<CreatePostStudio />} />
             <Route path="leaves" element={<Leaves />} />
-            <Route path="docs" element={<ApiDocs />} />
             <Route path="help" element={<Help />} />
 
             {/* Outreach Routes - Redirect to Dedicated Website Pages */}

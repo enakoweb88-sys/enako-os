@@ -81,7 +81,7 @@ export function EmployeeDashboard({ targetUser, marketer = false }: EmployeeDash
   const activeGoalsCount = goals.filter(g => g.status !== 'COMPLETED').length;
   const eatenMealsCount = meals.filter(m => m.status === 'ATE').length;
   const mealCostTotal = eatenMealsCount * 1500;
-  const isMarketer = marketer || /field marketer|field marketing/i.test(`${user?.title || ''} ${(user as any)?.responsibilities || ''}`) || user?.email?.toLowerCase() === 'capoatabe9@gmail.com';
+  const isMarketer = marketer || /field marketer|field marketing/i.test(`${user?.title || ''} ${(user as any)?.responsibilities || ''}`);
   const marketerWeights: Record<string, number> = {
     'prospecting': 10,
     'verified akawo account activations': 30,
@@ -235,7 +235,7 @@ export function EmployeeDashboard({ targetUser, marketer = false }: EmployeeDash
                         <p className="font-bold text-xs text-slate-900">{g.title}</p>
                         {g.description && <p className="text-xs text-slate-500 mt-0.5">{g.description}</p>}
                       </div>
-                      <span className="font-mono text-xs font-bold text-slate-900">{current} / {target} {g.unit || ''}</span>
+                      <span className="font-mono text-xs font-bold text-slate-900">{current} / {g.targetLabel || `${target} ${g.unit || ''}`}</span>
                     </div>
 
                     <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
@@ -244,7 +244,7 @@ export function EmployeeDashboard({ targetUser, marketer = false }: EmployeeDash
 
                     <div className="flex justify-between text-[10px] text-slate-500 font-medium">
                       <span>Progress: {pct}%</span>
-                      {isMarketer && marketerWeights[g.title?.trim().toLowerCase()] && <span>Weight: {marketerWeights[g.title.trim().toLowerCase()]} points</span>}
+                      {isMarketer && Number(g.kpiWeight ?? marketerWeights[g.title?.trim().toLowerCase()] ?? 0) > 0 && <span>Weight: {Number(g.kpiWeight ?? marketerWeights[g.title.trim().toLowerCase()] ?? 0)} points</span>}
                       {g.dueDate && <span>Target Date: {new Date(g.dueDate).toLocaleDateString()}</span>}
                     </div>
                   </div>

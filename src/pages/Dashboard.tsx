@@ -23,8 +23,7 @@ export default function Dashboard() {
   const isMarketer =
     title.includes('field marketer') ||
     title.includes('field marketing') ||
-    /field marketer|field marketing/i.test((user as any)?.responsibilities || '') ||
-    user?.email?.toLowerCase() === 'capoatabe9@gmail.com';
+    /field marketer|field marketing/i.test((user as any)?.responsibilities || '');
 
   const activeDepartment = () => {
     if (isMarketer) return 'marketer';

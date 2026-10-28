@@ -41,10 +41,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const profile = result.items.find((employee: any) => employee.id === currentUser?.id || employee.email?.toLowerCase() === currentUser?.email.toLowerCase());
         if (!profile) return;
 
-        const isKnownFieldMarketerEmail = currentUser.email.toLowerCase() === 'capoatabe9@gmail.com';
         const updatedUser = {
           ...currentUser,
-          title: profile.title ?? (isKnownFieldMarketerEmail ? 'Field Marketer' : currentUser.title),
+          title: profile.title ?? currentUser.title,
           department: profile.department ?? currentUser.department,
           role: profile.role ?? currentUser.role,
           responsibilities: profile.responsibilities ?? (currentUser as any).responsibilities,
@@ -116,11 +115,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const session = await api.login(email, password, role);
       let currentUser = session.user;
 
-      const isKnownFieldMarketerEmail = currentUser?.email?.toLowerCase() === 'capoatabe9@gmail.com';
       const needsProfileEnrichment =
         !currentUser?.title ||
-        /employee/i.test(currentUser.title) ||
-        isKnownFieldMarketerEmail;
+        /employee/i.test(currentUser.title);
 
       if (needsProfileEnrichment && currentUser?.email) {
         try {
@@ -142,13 +139,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch {
           // fallback
         }
-      }
-
-      if (isKnownFieldMarketerEmail && !currentUser.title) {
-        currentUser = {
-          ...currentUser,
-          title: 'Field Marketer',
-        };
       }
 
       session.user = currentUser;

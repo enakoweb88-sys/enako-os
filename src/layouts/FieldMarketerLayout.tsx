@@ -77,7 +77,7 @@ export default function FieldMarketerLayout() {
   }
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-slate-50">
+    <div className="flex h-dvh overflow-hidden bg-white md:bg-slate-50">
 
       {/* DARK OVERLAY - MOBILE ONLY */}
       {menuOpen && (
@@ -185,7 +185,7 @@ export default function FieldMarketerLayout() {
       <div className="flex flex-1 min-w-0 min-h-0 flex-col">
 
         {/* MOBILE TOP BAR */}
-        <header className="md:hidden h-16 shrink-0 bg-[#001f5b] text-white flex items-center gap-3 px-4">
+        <header className="md:hidden h-14 shrink-0 bg-[#001f5b] text-white flex items-center gap-2 px-3 shadow-sm">
 
           <button
             type="button"
@@ -193,15 +193,15 @@ export default function FieldMarketerLayout() {
             aria-label="Open navigation menu"
             aria-expanded={menuOpen}
             aria-controls="marketer-navigation"
-            className="p-2 rounded-lg hover:bg-white/10"
+            className="p-2 rounded-lg active:bg-white/10"
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-5 h-5" />
           </button>
 
           <img
             src="/logo1.png"
             alt="ENAKO Logo"
-            className="w-9 h-9 object-contain"
+            className="w-8 h-8 object-contain"
           />
 
           <div className="leading-tight">
@@ -213,15 +213,21 @@ export default function FieldMarketerLayout() {
         </header>
 
         {/* SCROLLABLE DASHBOARD */}
-        <main className="flex-1 min-w-0 min-h-0 overflow-y-auto bg-[#f5f8fc]">
+        <main className="flex-1 min-w-0 min-h-0 overflow-y-auto bg-white md:bg-[#f5f8fc]">
 
-          <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto max-w-7xl px-4 pt-4 pb-24 sm:p-6 lg:p-8">
             <Outlet />
           </div>
 
         </main>
 
       </div>
+
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-slate-200 bg-white/95 px-1 pb-[max(.35rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_24px_rgba(15,23,42,.08)] backdrop-blur md:hidden">
+        {navigationItems.map(({ path, label, icon: Icon }) => <NavLink key={path} to={path} className={({ isActive }) => `flex min-w-0 flex-col items-center gap-1 rounded-lg py-1.5 text-[9px] font-semibold ${isActive ? 'text-[#001f5b]' : 'text-slate-400'}`}>
+          {({ isActive }) => <><Icon className={`h-5 w-5 ${isActive ? 'stroke-[2.5]' : ''}`} /><span className="w-full truncate text-center">{label.replace('My ', '')}</span></>}
+        </NavLink>)}
+      </nav>
     </div>
   );
 }

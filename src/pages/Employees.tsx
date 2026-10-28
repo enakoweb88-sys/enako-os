@@ -210,22 +210,6 @@ export default function Employees() {
     } catch (e: any) { alert(e.message); }
   };
 
-  const applyFieldMarketerTemplate = async () => {
-    if (!viewEmployee) return;
-    setSubmitting(true);
-    try {
-      const result = await api.applyFieldMarketerTemplate(viewEmployee.id);
-      toast.success(`Field Marketer KPI template applied: ${result.added} KPI${result.added === 1 ? '' : 's'} added.`);
-      const updated = await api.employee(viewEmployee.id);
-      setViewEmployee(updated);
-      load();
-    } catch (e: any) {
-      toast.error(e.message || 'Could not apply the Field Marketer KPI template.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!viewEmployee || !newPassword) return;
@@ -512,8 +496,8 @@ export default function Employees() {
 
             <section className="bg-slate-50 rounded-lg p-5 border border-slate-200">
               <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Assigned KPIs & Objectives</h4>
-              <p className="text-xs text-slate-600 leading-relaxed">KPIs are measurable objectives, not one overall score. Set and edit multiple employee KPIs from the Goals & KPIs workspace, then assign them to this employee.</p>
-              {(role === 'ceo' || role === 'manager') && <div className="flex items-center gap-4 mt-4"><Link to="/app/goals/new" className="text-xs font-bold text-[#001f5b] hover:underline">Set employee KPI objective →</Link><button type="button" onClick={applyFieldMarketerTemplate} disabled={submitting} className="text-xs font-bold text-[#001f5b] hover:underline disabled:opacity-50">Apply Field Marketer template</button></div>}
+              <p className="text-xs text-slate-600 leading-relaxed">Employee KPIs are managed separately from strategic goals. Open this employee’s KPI dashboard to set monthly targets and review their weighted score.</p>
+              {(role === 'ceo' || role === 'manager') && <div className="mt-4"><Link to={`/app/kpis?employeeId=${viewEmployee.id}`} className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#001f5b] px-4 text-xs font-bold text-white">Manage {viewEmployee.fullName?.split(' ')[0]}&apos;s KPIs →</Link></div>}
             </section>
 
             {/* HR & Payroll */}

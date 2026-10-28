@@ -93,17 +93,7 @@ export default function CreateEmployeePage() {
     responsibilities: '',
     goals: '',
   });
-  const [kpis, setKpis] = useState([{ title: '', description: '', targetValue: '', unit: '', dueDate: '' }]);
-
-  const fieldMarketerKpis = [
-    { title: 'Prospecting', description: '200 new verified prospects contacted; about 10 daily.', targetValue: '200', unit: 'verified prospects', dueDate: '' },
-    { title: 'Verified Akawo account activations', description: '40 verified Akawo accounts created.', targetValue: '40', unit: 'verified accounts', dueDate: '' },
-    { title: 'Landbanking accounts with first payment', description: '20 Landbanking accounts with a first payment.', targetValue: '20', unit: 'funded accounts', dueDate: '' },
-    { title: 'Customer follow-up within 48 hours', description: '20 interested prospects followed up within 48 hours.', targetValue: '20', unit: 'follow-ups', dueDate: '' },
-    { title: 'Customer retention: second payment within 30 days', description: 'At least 60% of new customers make a second confirmed payment.', targetValue: '60', unit: '%', dueDate: '' },
-    { title: 'Daily field reports and office check-ins', description: 'Daily reports and twice-weekly office check-ins.', targetValue: '100', unit: '%', dueDate: '' },
-    { title: 'Conduct and attendance', description: 'Punctuality, accurate information, and procedural compliance.', targetValue: '100', unit: '%', dueDate: '' },
-  ];
+  const isFieldMarketer = form.role === 'EMPLOYEE' && form.position === 'Field Marketer';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,12 +121,11 @@ export default function CreateEmployeePage() {
         hireDate: form.hireDate || undefined,
         responsibilities: form.responsibilities || undefined,
         goals: form.goals || undefined,
-        kpis: kpis.filter(kpi => kpi.title.trim()).map(kpi => ({ ...kpi, targetValue: kpi.targetValue ? Number(kpi.targetValue) : undefined, dueDate: kpi.dueDate || undefined })),
       };
 
-      await api.createEmployee(payload);
+      const created = await api.createEmployee(payload);
       toast.success(`Employee ${form.fullName} created successfully!`);
-      navigate('/app/employees');
+      navigate(`/app/employees/${created.id}`);
     } catch (err: any) {
       toast.error(err.message || 'Failed to create employee profile.');
     } finally {
@@ -396,6 +385,10 @@ export default function CreateEmployeePage() {
             <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100">
               4. Department & Position Assignment
             </h2>
+            <button type="button" onClick={() => setForm({ ...form, role: 'EMPLOYEE', department: 'Operations', position: 'Field Marketer', title: 'Field Marketer', responsibilities: form.responsibilities || 'Prospect customers, demonstrate ENAKO products, maintain lead follow-ups, collect verification evidence, and submit daily field reports.' })} className={cn('w-full rounded-xl border p-4 text-left transition-colors', isFieldMarketer ? 'border-[#00aeb5] bg-[#eafafa]' : 'border-slate-200 bg-white hover:border-[#00aeb5]')}>
+              <span className="block text-xs font-bold text-[#001f5b]">Field Marketer workspace</span>
+              <span className="mt-1 block text-[11px] leading-relaxed text-slate-600">Assigns the Operations department, Field Marketer title, mobile field dashboard, lead register, territory, scorecard and daily reporting.</span>
+            </button>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 mb-1 uppercase tracking-wider">
@@ -466,30 +459,6 @@ export default function CreateEmployeePage() {
                 />
               </div>
             </div>
-          </div>
-
-          {/* Section 6: Assigned KPIs */}
-          <div className="space-y-4">
-            <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100">
-              6. Assigned KPIs & Monthly Objectives
-            </h2>
-            <p className="text-xs text-slate-500 -mt-2">
-              Add each measurable responsibility separately. The employee will update progress against these targets during the month.
-            </p>
-            {form.position === 'Field Marketer' && (
-              <button type="button" onClick={() => setKpis(fieldMarketerKpis)} className="text-xs font-bold text-[#001f5b] border border-[#001f5b]/30 bg-[#001f5b]/5 rounded-lg px-3 py-2">
-                Apply Field Marketer monthly KPI template
-              </button>
-            )}
-            {kpis.map((kpi, index) => <div key={index} className="grid grid-cols-1 sm:grid-cols-5 gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
-              <input value={kpi.title} onChange={e => setKpis(kpis.map((item, i) => i === index ? { ...item, title: e.target.value } : item))} placeholder="KPI e.g. New followers" className="sm:col-span-2 bg-white border border-slate-200 rounded-lg p-2.5 text-xs" />
-              <input type="number" value={kpi.targetValue} onChange={e => setKpis(kpis.map((item, i) => i === index ? { ...item, targetValue: e.target.value } : item))} placeholder="Target" className="bg-white border border-slate-200 rounded-lg p-2.5 text-xs" />
-              <input value={kpi.unit} onChange={e => setKpis(kpis.map((item, i) => i === index ? { ...item, unit: e.target.value } : item))} placeholder="followers, enquiries" className="bg-white border border-slate-200 rounded-lg p-2.5 text-xs" />
-              <input type="date" value={kpi.dueDate} onChange={e => setKpis(kpis.map((item, i) => i === index ? { ...item, dueDate: e.target.value } : item))} className="bg-white border border-slate-200 rounded-lg p-2.5 text-xs" />
-              <textarea value={kpi.description} onChange={e => setKpis(kpis.map((item, i) => i === index ? { ...item, description: e.target.value } : item))} placeholder="What good performance looks like / evidence required" className="sm:col-span-4 bg-white border border-slate-200 rounded-lg p-2.5 text-xs" rows={2} />
-              <button type="button" disabled={kpis.length === 1} onClick={() => setKpis(kpis.filter((_, i) => i !== index))} className="text-xs font-bold text-rose-600 disabled:opacity-30">Remove</button>
-            </div>)}
-            <button type="button" onClick={() => setKpis([...kpis, { title: '', description: '', targetValue: '', unit: '', dueDate: '' }])} className="text-xs font-bold text-[#001f5b]">+ Add another KPI</button>
           </div>
 
           {/* Form Actions */}

@@ -49,6 +49,12 @@ export interface MarketerScorecard {
   measures: ScorecardMeasure[];
 }
 
+export interface MarketerDailyPlan {
+  date: string;
+  generatedFrom: 'ASSIGNED_KPIS_AND_ACTIVITY';
+  actions: { id: string; source: 'KPI' | 'FOLLOW_UP' | 'REPORT'; title: string; description: string; href: string }[];
+}
+
 export const marketerApi = {
   marketerLeads: (params?: { status?: string; zone?: string; marketerId?: string }) => {
     const q = new URLSearchParams();
@@ -74,6 +80,9 @@ export const marketerApi = {
     const qs = marketerId ? `?marketerId=${encodeURIComponent(marketerId)}` : '';
     return apiRequest<MarketerScorecard>(`/marketer/scorecard${qs}`);
   },
-  ensureMarketerKpis: () =>
-    apiRequest<any[]>('/marketer/ensure-kpis', { method: 'POST' }),
+  marketerDailyPlan: (marketerId?: string) => {
+    const qs = marketerId ? `?marketerId=${encodeURIComponent(marketerId)}` : '';
+    return apiRequest<MarketerDailyPlan>(`/marketer/daily-plan${qs}`);
+  },
+  marketerDailyLeaderboard: () => apiRequest<any[]>('/marketer/leaderboard/daily'),
 };

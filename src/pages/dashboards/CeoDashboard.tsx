@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { api, outreachAPI } from '../../lib/api';
 import { getDashboardData, subscribeToDashboard, fetchDashboardData } from '../../lib/dashboardStore';
+import { MarketerDailyLeaderboard } from '../../components/MarketerDailyLeaderboard';
 
 export function CEODashboard() {
   // Subscribe to the shared dashboard store instead of local state
@@ -272,6 +273,7 @@ export function CEODashboard() {
         </div>
       </div>
 
+      <MarketerDailyLeaderboard />
     </div>
   );
 }

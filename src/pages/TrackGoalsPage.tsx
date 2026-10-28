@@ -205,7 +205,7 @@ export default function TrackGoalsPage() {
             </Link>
             <span>/</span>
             <Link to="/app/goals" className="hover:text-slate-800 transition-colors">
-              Goals & KPIs
+              Strategic Goals
             </Link>
             <span>/</span>
             <span className="text-[#001f5b] font-bold">Track Goals</span>

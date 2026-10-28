@@ -17,24 +17,24 @@ import {
   RotateCcw,
   Sparkles,
 } from 'lucide-react';
-import { api, type MarketerLead, type MarketerTerritoryZone, type MarketerScorecard } from '../../lib/api';
+import { api, type MarketerLead, type MarketerTerritoryZone, type MarketerScorecard, type MarketerDailyPlan } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 
 type Metric = { title: string; current: number; target: number; unit?: string };
 
 const PageTitle = ({ title, subtitle }: { title: string; subtitle: string }) => (
   <div>
-    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#6481a8]">
+    <p className="hidden sm:block text-[10px] font-semibold uppercase tracking-wider text-[#6481a8]">
       ENAKO OS&nbsp; / &nbsp;MARKETING&nbsp; / &nbsp;FIELD WORKSPACE
     </p>
-    <h1 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-[#002b70]">{title}</h1>
-    <p className="mt-1 text-xs text-[#6681a8]">{subtitle}</p>
+    <h1 className="text-[22px] leading-tight sm:mt-2 sm:text-3xl font-bold tracking-tight text-[#002b70]">{title}</h1>
+    <p className="mt-1 text-[11px] leading-relaxed sm:text-xs text-[#6681a8]">{subtitle}</p>
   </div>
 );
 
 const Card = ({ children, className = '' }: { children: ReactNode; className?: string }) => (
   
-  <section className={`rounded-xl border border-[#d8e2ee] bg-white p-5 shadow-xs ${className}`}>
+  <section className={`-mx-4 border-y border-[#e1e8f0] bg-white p-4 sm:mx-0 sm:rounded-xl sm:border sm:p-5 sm:shadow-xs ${className}`}>
     {children}
   </section>
 );
@@ -52,7 +52,7 @@ const scoreWeights: Record<string, number> = {
 function MetricCard({ metric }: { metric: Metric; key?: any }) {
   const progress = metric.target ? Math.min(100, Math.round((metric.current / metric.target) * 100)) : 0;
   return (
-    <Card className="p-5 flex flex-col justify-between">
+    <Card className="p-5 hidden sm:flex flex-col justify-between">
       <div>
         <p className="text-xs font-bold text-[#002b70] leading-snug">{metric.title}</p>
         <div className="mt-3 flex items-baseline gap-1.5">
@@ -86,39 +86,28 @@ export function MarketerWorkspace() {
   const navigate = useNavigate();
   const [goals, setGoals] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [dailyPlan, setDailyPlan] = useState<MarketerDailyPlan | null>(null);
   const [territory, setTerritory] = useState<MarketerTerritoryZone[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [loadedGoals, loadedTasks, loadedTerritory] = await Promise.all([
+      const [loadedGoals, loadedTasks, loadedTerritory, loadedPlan] = await Promise.all([
         api.goals().catch(() => []),
         api.tasks().catch(() => []),
         api.marketerTerritory().catch(() => []),
+        api.marketerDailyPlan().catch(() => null),
       ]);
 
       let validGoals = Array.isArray(loadedGoals)
         ? loadedGoals.filter((goal: any) => Object.keys(scoreWeights).includes(goal.title?.trim().toLowerCase()))
         : [];
 
-      // If Anthony or field marketer has no goals assigned yet, auto-provision the official template
-      if (validGoals.length === 0) {
-        try {
-          const autoSeeded = await api.ensureMarketerKpis();
-          if (Array.isArray(autoSeeded) && autoSeeded.length > 0) {
-            validGoals = autoSeeded.filter((goal: any) =>
-              Object.keys(scoreWeights).includes(goal.title?.trim().toLowerCase()),
-            );
-          }
-        } catch {
-          // ignore auto-seed error
-        }
-      }
-
       setGoals(validGoals);
       setTasks(Array.isArray(loadedTasks) ? loadedTasks : []);
       setTerritory(Array.isArray(loadedTerritory) ? loadedTerritory : []);
+      setDailyPlan(loadedPlan);
     } finally {
       setLoading(false);
     }
@@ -137,23 +126,18 @@ export function MarketerWorkspace() {
         unit: goal.unit || undefined,
       }));
     }
-    return [
-      { title: 'Prospecting', current: 0, target: 200, unit: 'prospects' },
-      { title: 'Verified Akawo activations', current: 0, target: 40, unit: 'accounts' },
-      { title: 'Landbanking accounts', current: 0, target: 20, unit: 'accounts' },
-      { title: 'Customer follow-up', current: 0, target: 20, unit: 'follow-ups' },
-    ];
+    return [];
   }, [goals]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <PageTitle
         title={`Good morning, ${user?.fullName?.split(' ')[0] || 'Marketer'}.`}
         subtitle="Plan visits, record prospect follow-ups, and log verified account activations."
       />
 
       {/* Monthly KPI Overview Notice */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-lg bg-[#e7f9fa] border border-[#bce8ee] px-4 py-3 text-xs text-[#167891]">
+      <div className="-mx-4 sm:mx-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-y sm:rounded-lg bg-[#e7f9fa] border-[#bce8ee] px-4 py-3 text-[11px] sm:text-xs text-[#167891]">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-[#14bec7] shrink-0" />
           <span>
@@ -169,27 +153,39 @@ export function MarketerWorkspace() {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <MetricCard key={metric.title} metric={metric} />
-        ))}
-      </div>
+      {metrics.length > 0 ? <>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {metrics.map((metric) => <MetricCard key={metric.title} metric={metric} />)}
+        </div>
+        <div className="sm:hidden divide-y divide-[#e4ecf4] border-y border-[#d8e2ee] bg-white">
+          {metrics.map((metric) => {
+            const progress = metric.target ? Math.min(100, Math.round((metric.current / metric.target) * 100)) : 0;
+            return <div key={metric.title} className="py-4 flex items-center gap-4">
+              <div className="min-w-0 flex-1"><p className="text-sm font-bold text-[#002b70] truncate">{metric.title}</p><div className="mt-2 h-1.5 rounded-full bg-[#eaf0f6]"><div className="h-full rounded-full bg-[#14bec7]" style={{ width: `${progress}%` }} /></div></div>
+              <div className="text-right shrink-0"><p className="text-sm font-bold text-[#002b70]">{metric.current} / {metric.target}</p><p className="text-[10px] text-[#7087a8]">{progress}% complete</p></div>
+            </div>;
+          })}
+        </div>
+      </> : !loading && <div className="border-y border-[#d8e2ee] bg-white py-5 sm:rounded-xl sm:border sm:px-5">
+        <p className="text-sm font-bold text-[#002b70]">No monthly KPI has been assigned yet</p>
+        <p className="mt-1 text-xs text-[#6681a8]">Your CEO or manager can add your individual targets from Goals &amp; KPIs.</p>
+      </div>}
 
       {/* Main Grid: Priorities & Territory */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Today's Priorities */}
-        <Card className="lg:col-span-2 flex flex-col justify-between">
+        <Card className="lg:col-span-2 lg:flex lg:flex-col lg:justify-between">
           <div>
-            <div className="flex items-center justify-between">
-              <h2 className="font-bold text-[#002b70]">Today&apos;s Priorities & Action Plan</h2>
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-sm font-bold text-[#002b70]">Today&apos;s priorities</h2>
               <span className="text-[10px] font-semibold text-[#6a83a6] uppercase tracking-wider">
                 {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
               </span>
             </div>
 
             <div className="mt-4 space-y-3.5">
-              {tasks.length > 0 ? (
-                tasks.slice(0, 4).map((task: any) => (
+              {(dailyPlan?.actions.length || tasks.length > 0) ? (
+                (dailyPlan?.actions.length ? dailyPlan.actions : tasks.slice(0, 4)).map((task: any) => (
                   <div key={task.id || task.title} className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-slate-50 transition-colors">
                     <span className="mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-[#14bec7]" />
                     <div>
@@ -198,35 +194,20 @@ export function MarketerWorkspace() {
                     </div>
                   </div>
                 ))
-              ) : (
-                [
-                  ['Follow up high-priority prospects', 'Contact newly recorded prospects within 48 hours.'],
-                  ['Demonstrate Akawo & Land Banking', 'Present product benefits to shop owners and cooperatives.'],
-                  ['Collect verification evidence', 'Capture account reference numbers for completed registrations.'],
-                  ['Submit daily field report', 'Log daily activity metrics before 6:00 PM for HOD review.'],
-                ].map(([title, desc]) => (
-                  <div key={title} className="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-                    <span className="mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-[#14bec7]" />
-                    <div>
-                      <p className="text-xs font-bold text-[#002b70]">{title}</p>
-                      <p className="mt-0.5 text-xs text-[#6a83a6]">{desc}</p>
-                    </div>
-                  </div>
-                ))
-              )}
+              ) : <div className="py-8 text-center"><CheckCircle2 className="mx-auto h-6 w-6 text-[#14bec7]" /><p className="mt-2 text-xs font-bold text-[#002b70]">No action is due today</p><p className="mt-1 text-xs text-[#6a83a6]">Priorities appear automatically from assigned KPIs and due lead follow-ups.</p></div>}
             </div>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap gap-3">
+          <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:gap-3">
             <button
               onClick={() => navigate('/app/marketer/daily-report')}
-              className="rounded-lg bg-[#001f5b] hover:bg-[#001f5b]/90 px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-colors"
+              className="min-h-11 rounded-lg bg-[#001f5b] hover:bg-[#001f5b]/90 px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-colors"
             >
               PREPARE DAILY FIELD REPORT
             </button>
             <button
               onClick={() => navigate('/app/marketer/leads')}
-              className="rounded-lg border border-[#ccdbe8] bg-white px-4 py-2.5 text-xs font-bold text-[#002b70] hover:bg-slate-50 transition-colors"
+              className="min-h-11 rounded-lg border border-[#ccdbe8] bg-white px-4 py-2.5 text-xs font-bold text-[#002b70] hover:bg-slate-50 transition-colors"
             >
               OPEN LEAD REGISTER
             </button>
@@ -254,17 +235,17 @@ export function MarketerWorkspace() {
                       0{idx + 1}&nbsp; {zone.zoneName}
                     </p>
                     <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-semibold">
-                      {zone.region || 'Bonaberi'}
+                      {zone.region || 'Region not set'}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-[#6a83a6]">{zone.targetAudience || 'Market vendors & shops'}</p>
+                  {zone.targetAudience && <p className="mt-1 text-xs text-[#6a83a6]">{zone.targetAudience}</p>}
                   {zone.schedule && (
                     <p className="mt-1.5 text-[10px] font-semibold text-[#14bec7]">{zone.schedule}</p>
                   )}
                 </div>
               ))
             ) : (
-              <p className="text-xs text-slate-400 py-4">Loading assigned territory zones...</p>
+              <p className="text-xs text-slate-400 py-4">No territory has been assigned. Ask your manager to define your coverage area.</p>
             )}
           </div>
 
@@ -291,7 +272,7 @@ export function MarketerLeads() {
   const [newLead, setNewLead] = useState({
     prospectName: '',
     phone: '',
-    zone: 'Bonassama',
+    zone: '',
     product: 'Akawo / Savings',
     followUpDate: '',
     nextAction: '',
@@ -337,7 +318,7 @@ export function MarketerLeads() {
       setNewLead({
         prospectName: '',
         phone: '',
-        zone: 'Bonassama',
+        zone: '',
         product: 'Akawo / Savings',
         followUpDate: '',
         nextAction: '',
@@ -398,7 +379,7 @@ export function MarketerLeads() {
           </span>
         </div>
 
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 hidden sm:block overflow-x-auto">
           <table className="w-full min-w-[700px] text-left text-xs">
             <thead className="text-[10px] uppercase font-bold text-[#7187a8] border-b border-slate-100">
               <tr>
@@ -502,6 +483,14 @@ export function MarketerLeads() {
             </tbody>
           </table>
         </div>
+        <div className="mt-3 divide-y divide-slate-100 sm:hidden">
+          {!loading && leads.map((lead) => <article key={lead.id} className="py-4 first:pt-1">
+            <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-sm font-bold text-[#002b70] truncate">{lead.prospectName}</p><p className="mt-1 text-[11px] text-slate-500">{lead.zone || 'No zone'} · {lead.product || 'No product'}</p></div><button onClick={() => { setEditingLead(lead); setEditStatus(lead.status); setEditOutcome(lead.outcome || ''); setEditEvidence(lead.evidenceRef || ''); }} className="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-[11px] font-bold text-[#002b70]">Update</button></div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px]"><span className="rounded-full bg-slate-100 px-2 py-1 font-bold text-slate-600">{lead.status.replace(/_/g, ' ')}</span>{lead.phone && <span className="text-slate-500">{lead.phone}</span>}{lead.followUpDate && <span className="text-slate-500">Due {new Date(lead.followUpDate).toLocaleDateString()}</span>}</div>
+            {lead.nextAction && <p className="mt-2 text-xs text-slate-600">{lead.nextAction}</p>}
+          </article>)}
+          {!loading && leads.length === 0 && <p className="py-8 text-center text-xs text-slate-500">No prospects recorded yet.</p>}
+        </div>
       </Card>
 
       {/* Bottom Grid: Live Weekly Scorecard & Verification Policy */}
@@ -520,20 +509,13 @@ export function MarketerLeads() {
             </span>
           </div>
 
-          <div className="mt-4 grid grid-cols-[1fr_80px_80px_100px] gap-y-3.5 text-xs items-center">
+          <div className="mt-4 grid grid-cols-[1fr_48px_48px_72px] sm:grid-cols-[1fr_80px_80px_100px] gap-y-3.5 text-[11px] sm:text-xs items-center">
             <p className="text-[10px] font-bold uppercase text-[#7187a8]">Measure</p>
             <p className="text-[10px] font-bold uppercase text-[#7187a8] text-center">Actual</p>
             <p className="text-[10px] font-bold uppercase text-[#7187a8] text-center">Target</p>
             <p className="text-[10px] font-bold uppercase text-[#7187a8] text-right">Progress</p>
 
-            {(scorecard?.measures || [
-              { label: 'People approached', actual: 0, target: 100 },
-              { label: 'Qualified prospects', actual: 0, target: 40 },
-              { label: 'Verified accounts', actual: 0, target: 15 },
-              { label: 'First transactions', actual: 0, target: 8 },
-              { label: 'Follow-ups completed', actual: 0, target: 25 },
-              { label: 'Daily reports', actual: 0, target: 5 },
-            ]).map((measure) => {
+            {(scorecard?.measures || []).map((measure) => {
               const pct = measure.target ? Math.min(100, Math.round((measure.actual / measure.target) * 100)) : 0;
               return (
                 <div key={measure.label} className="contents">
@@ -553,6 +535,7 @@ export function MarketerLeads() {
               );
             })}
           </div>
+          {!loading && !scorecard?.measures?.length && <p className="py-8 text-center text-xs text-slate-500">No weekly targets are available until management assigns monthly KPIs.</p>}
         </Card>
 
         {/* Verification Policy Card */}
@@ -580,7 +563,7 @@ export function MarketerLeads() {
       {/* ── MODAL: CREATE LEAD ── */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-200">
+          <div className="max-h-[92dvh] overflow-y-auto bg-white rounded-2xl sm:rounded-xl max-w-lg w-full p-4 sm:p-6 space-y-4 shadow-xl border border-slate-200">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h3 className="font-bold text-base text-[#002b70]">Add New Prospect Lead</h3>
               <button
@@ -604,7 +587,7 @@ export function MarketerLeads() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-[#002b70] mb-1">Phone / WhatsApp</label>
                   <input
@@ -627,7 +610,7 @@ export function MarketerLeads() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-[#002b70] mb-1">Product Interested In</label>
                   <select
@@ -710,7 +693,7 @@ export function MarketerLeads() {
       {/* ── MODAL: UPDATE LEAD / OUTCOME ── */}
       {editingLead && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-200">
+          <div className="max-h-[92dvh] overflow-y-auto bg-white rounded-2xl sm:rounded-xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-xl border border-slate-200">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <div>
                 <h3 className="font-bold text-base text-[#002b70]">Update Prospect Outcome</h3>
@@ -813,15 +796,15 @@ export function MarketerTerritory() {
         subtitle="Your assigned visit zones, target groups, and planned daily field routes."
       />
 
-      <Card>
+      <Card className="sm:overflow-hidden">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <h2 className="font-bold text-[#002b70]">Territory Plan • Bonaberi Region</h2>
+          <h2 className="font-bold text-[#002b70]">Territory plan</h2>
           <span className="text-xs font-semibold text-[#14bec7]">
             {territory.length} Assigned {territory.length === 1 ? 'Zone' : 'Zones'}
           </span>
         </div>
 
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-3 divide-y divide-slate-100 sm:mt-5 sm:grid sm:gap-4 sm:divide-y-0 sm:grid-cols-2 lg:grid-cols-3">
           {loading ? (
             <div className="py-8 text-center text-slate-400 col-span-3">Loading assigned territory...</div>
           ) : territory.length === 0 ? (
@@ -830,18 +813,18 @@ export function MarketerTerritory() {
             territory.map((zone, index) => (
               <div
                 key={zone.id || zone.zoneName}
-                className="rounded-xl border border-[#d8e2ee] bg-[#fbfdff] p-5 shadow-2xs hover:border-[#14bec7] transition-colors"
+                className="border-0 bg-white px-0 py-4 sm:rounded-xl sm:border sm:border-[#d8e2ee] sm:bg-[#fbfdff] sm:p-5 sm:shadow-2xs hover:border-[#14bec7] transition-colors"
               >
                 <div className="flex items-center justify-between">
                   <p className="font-bold text-sm text-[#002b70]">
                     0{index + 1}&nbsp; {zone.zoneName}
                   </p>
                   <span className="text-[10px] font-bold text-slate-600 bg-slate-200/60 px-2 py-0.5 rounded">
-                    {zone.region || 'Bonaberi'}
+                    {zone.region || 'Region not set'}
                   </span>
                 </div>
                 <p className="mt-3 text-xs text-[#6681a8] leading-relaxed">
-                  {zone.targetAudience || 'Market vendors, commercial shops and local community groups'}
+                  {zone.targetAudience || 'No target group specified'}
                 </p>
                 <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px]">
                   <span className="font-bold text-[#14bec7]">{zone.schedule || 'Scheduled Visit'}</span>
@@ -878,15 +861,9 @@ export function MarketerPerformance() {
       api.marketerScorecard().catch(() => null),
     ]).then(([gRes, scRes]) => {
       let valid = Array.isArray(gRes)
-        ? gRes.filter((g: any) => Object.keys(scoreWeights).includes(g.title?.trim().toLowerCase()))
+        ? gRes.filter((g: any) => g.isKpi || Object.keys(scoreWeights).includes(g.title?.trim().toLowerCase()))
         : [];
-      if (valid.length === 0) {
-        api.ensureMarketerKpis().then((res) => {
-          if (Array.isArray(res)) setGoals(res);
-        }).catch(() => undefined);
-      } else {
-        setGoals(valid);
-      }
+      setGoals(valid);
       setScorecard(scRes);
       setLoading(false);
     });
@@ -894,7 +871,7 @@ export function MarketerPerformance() {
 
   const monthlyScore = Math.round(
     goals.reduce((score, goal) => {
-      const weight = scoreWeights[goal.title?.trim().toLowerCase()] || 0;
+      const weight = Number(goal.kpiWeight ?? scoreWeights[goal.title?.trim().toLowerCase()] ?? 0);
       const target = Number(goal.targetValue || 0);
       const progress = target > 0 ? Math.min(Number(goal.currentValue || 0) / target, 1) : 0;
       return score + weight * progress;
@@ -918,7 +895,7 @@ export function MarketerPerformance() {
       />
 
       {/* Monthly Weighted Rating Banner */}
-      <div className="rounded-xl bg-[#001f5b] text-white p-6 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="-mx-4 border-y border-[#173d76] bg-[#001f5b] text-white px-4 py-5 sm:mx-0 sm:rounded-xl sm:border-0 sm:p-6 sm:shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-300">
             Monthly Field Marketer Score
@@ -936,19 +913,19 @@ export function MarketerPerformance() {
           <p>
             Evaluation Period: <b>{new Date().toLocaleString('en-GB', { month: 'long', year: 'numeric' })}</b>
           </p>
-          <p>Weighted across 7 performance pillars</p>
+          <p>Weighted across {goals.length} assigned performance {goals.length === 1 ? 'pillar' : 'pillars'}</p>
         </div>
       </div>
 
       {/* 7 KPI Dimensions Breakdown */}
       <Card>
         <h2 className="font-bold text-[#002b70] border-b border-slate-100 pb-3">
-          7 Official Field Marketer KPI Dimensions
+          Assigned Field Marketer KPI Dimensions
         </h2>
 
         <div className="mt-4 divide-y divide-slate-100">
           {goals.map((goal) => {
-            const weight = scoreWeights[goal.title?.trim().toLowerCase()] || 0;
+            const weight = Number(goal.kpiWeight ?? scoreWeights[goal.title?.trim().toLowerCase()] ?? 0);
             const target = Number(goal.targetValue || 0);
             const current = Number(goal.currentValue || 0);
             const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
@@ -970,7 +947,7 @@ export function MarketerPerformance() {
                 <div className="flex items-center gap-4 self-end sm:self-auto shrink-0">
                   <div className="text-right">
                     <span className="text-sm font-bold text-[#002b70]">{current}</span>
-                    <span className="text-xs text-slate-400"> / {target} {goal.unit || ''}</span>
+                    <span className="text-xs text-slate-400"> / {goal.targetLabel || `${target} ${goal.unit || ''}`}</span>
                   </div>
                   <div className="w-20 h-2 rounded-full bg-slate-100 overflow-hidden">
                     <div className="h-full rounded-full bg-[#14bec7]" style={{ width: `${pct}%` }} />
@@ -980,6 +957,7 @@ export function MarketerPerformance() {
               </div>
             );
           })}
+          {!loading && goals.length === 0 && <div className="py-10 text-center"><p className="text-sm font-bold text-[#002b70]">No KPI has been assigned</p><p className="mt-1 text-xs text-slate-500">Your CEO or manager must set your monthly targets before performance can be calculated.</p></div>}
         </div>
       </Card>
     </div>
@@ -992,6 +970,8 @@ export function MarketerPerformance() {
 
 export function MarketerDailyReport() {
   const { user } = useAuth();
+  const [assignedKpis, setAssignedKpis] = useState<any[]>([]);
+  const [kpiResults, setKpiResults] = useState<Record<string, string>>({});
   const [form, setForm] = useState<Record<string, string>>({
     reportDate: new Date().toISOString().slice(0, 10),
     marketer: `${user?.fullName || ''}`,
@@ -1009,6 +989,7 @@ export function MarketerDailyReport() {
   const [history, setHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [editingReportId, setEditingReportId] = useState<string | null>(null);
 
   const loadHistory = async () => {
     setLoadingHistory(true);
@@ -1024,22 +1005,34 @@ export function MarketerDailyReport() {
 
   useEffect(() => {
     loadHistory();
+    api.goals().then((items) => {
+      const kpis = (Array.isArray(items) ? items : []).filter((goal: any) => goal.isKpi || Object.keys(scoreWeights).includes(goal.title?.trim().toLowerCase()));
+      setAssignedKpis(kpis);
+    }).catch(() => setAssignedKpis([]));
   }, []);
 
   const update = (key: string, value: string) => setForm((curr) => ({ ...curr, [key]: value }));
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!form.reportDate || !form.marketer.trim() || !form.completed.trim()) {
+      toast.error('Report date, marketer name and completed work are required.');
+      return;
+    }
     setSubmitting(true);
     try {
-      await api.createDailyReport({
-        type: 'FIELD',
-        content: JSON.stringify({
-          ...form,
-          submittedAt: new Date().toISOString(),
-        }),
+      const legacyValues: Record<string, string> = {};
+      const legacyKeys: Record<string, string> = { prospecting: 'people', 'verified akawo account activations': 'accounts', 'landbanking accounts with first payment': 'transactions', 'customer follow-up within 48 hours': 'followUps' };
+      assignedKpis.forEach((goal) => {
+        const key = legacyKeys[goal.title?.trim().toLowerCase()];
+        if (key) legacyValues[key] = kpiResults[goal.id] || '';
       });
-      toast.success('Daily field report submitted for HOD review.');
+      const content = JSON.stringify({ ...form, ...legacyValues, kpiResults, submittedAt: new Date().toISOString() });
+      if (editingReportId) await api.updateDailyReport(editingReportId, { type: 'FIELD', content, status: 'SUBMITTED' });
+      else await api.createDailyReport({ type: 'FIELD', content });
+      toast.success(editingReportId ? 'Corrected report resubmitted successfully.' : 'Daily field report submitted for HOD review.');
+      setEditingReportId(null);
+      setKpiResults({});
       setForm((curr) => ({
         ...curr,
         people: '',
@@ -1076,6 +1069,8 @@ export function MarketerDailyReport() {
         blockers: parsed.blockers || '',
         priorities: parsed.priorities || '',
       });
+      setEditingReportId(report.id);
+      setKpiResults(parsed.kpiResults || {});
       toast.info('Report loaded into form for correction & re-submission.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch {
@@ -1117,7 +1112,7 @@ export function MarketerDailyReport() {
       />
 
       {/* Main Submission Form */}
-      <form onSubmit={submit} className="space-y-6">
+      <form onSubmit={submit} className="space-y-6" noValidate>
         <Card>
           <div className="border-b border-slate-100 pb-3">
             <h2 className="font-bold text-[#002b70]">Activity, Results & Supporting Evidence</h2>
@@ -1126,15 +1121,17 @@ export function MarketerDailyReport() {
             </p>
           </div>
 
-          <div className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+          {editingReportId && <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-900">You are correcting a returned report. Submitting will update the original report and send it back for review.</div>}
+          <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2">
             {input('reportDate', 'Report date *', 'date')}
             {input('marketer', 'Marketer name / Assigned zone *', 'text', 'Anthony - Bonassama')}
-            {input('people', 'People approached today', 'number', 'e.g. 15')}
-            {input('qualified', 'Qualified prospects identified', 'number', 'e.g. 6')}
-            {input('followUps', 'Follow-ups completed', 'number', 'e.g. 4')}
-            {input('accounts', 'Accounts opened (pending verification)', 'number', 'e.g. 2')}
-            {input('transactions', 'First transactions completed', 'number', 'e.g. 1')}
             {input('evidence', 'Evidence / Account Reference IDs', 'text', 'ACC-2026-081, TX-9921')}
+          </div>
+
+          <div className="mt-6 border-t border-slate-100 pt-4">
+            <h3 className="text-xs font-bold uppercase tracking-wide text-[#002b70]">Today&apos;s results against assigned KPIs</h3>
+            <p className="mt-1 text-[11px] text-[#7189aa]">These fields come directly from the scorecard assigned by your CEO or manager.</p>
+            {assignedKpis.length > 0 ? <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">{assignedKpis.map((goal, index) => <label key={goal.id} className="text-xs font-bold text-[#002b70]"><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#001f5b] text-[10px] text-white">{index + 1}</span>{goal.title}<input type="number" min="0" step="any" value={kpiResults[goal.id] || ''} onChange={event => setKpiResults(current => ({ ...current, [goal.id]: event.target.value }))} placeholder={`Today's result (${goal.unit || 'value'})`} className="mt-1.5 h-11 w-full rounded-md border border-[#d9e4ef] bg-[#fbfdff] px-3 text-xs font-normal outline-none focus:border-[#14bec7]"/><span className="mt-1 block text-[10px] font-normal text-[#7189aa]">Monthly target: {goal.targetLabel || `${goal.targetValue || 0} ${goal.unit || ''}`}</span></label>)}</div> : <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">No KPI scorecard has been assigned yet. Contact your CEO or manager before submitting performance results.</div>}
           </div>
 
           <div className="mt-6 space-y-4 pt-4 border-t border-slate-100">
@@ -1143,16 +1140,16 @@ export function MarketerDailyReport() {
             {textArea('priorities', 'Next workday priorities', 'Specific prospects to revisit tomorrow and targeted zone...')}
           </div>
 
-          <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+          <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[11px] text-[#7189aa]">
               Reports submitted are routed directly to your Head of Department for verification.
             </p>
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-lg bg-[#001f5b] hover:bg-[#001f5b]/90 px-5 py-2.5 text-xs font-bold text-white shadow-xs transition-colors disabled:opacity-50"
+              className="w-full sm:w-auto rounded-lg bg-[#001f5b] hover:bg-[#001f5b]/90 px-5 py-3 text-xs font-bold text-white shadow-xs transition-colors disabled:opacity-50"
             >
-              {submitting ? 'SUBMITTING...' : 'SUBMIT FOR HOD REVIEW'}
+              {submitting ? 'SUBMITTING...' : editingReportId ? 'RESUBMIT CORRECTED REPORT' : 'SUBMIT FOR HOD REVIEW'}
             </button>
           </div>
         </Card>

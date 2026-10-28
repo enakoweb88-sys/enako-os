@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Target, TrendingUp, Award, Layers } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -15,6 +15,7 @@ const OBJECTIVE_TYPES = [
 
 export default function CreateGoalPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
 
   const [title, setTitle] = useState('');
@@ -23,9 +24,9 @@ export default function CreateGoalPage() {
   const [targetValue, setTargetValue] = useState('');
   const [unit, setUnit] = useState('XAF');
   const [dueDate, setDueDate] = useState('');
-  const [scope, setScope] = useState<'COMPANY' | 'DEPARTMENT' | 'PERSONAL'>('COMPANY');
+  const [scope, setScope] = useState<'COMPANY' | 'DEPARTMENT' | 'PERSONAL'>(() => searchParams.get('scope') === 'PERSONAL' ? 'PERSONAL' : 'COMPANY');
   const [departmentId, setDepartmentId] = useState('');
-  const [ownerId, setOwnerId] = useState(user?.id || '');
+  const [ownerId, setOwnerId] = useState(searchParams.get('ownerId') || user?.id || '');
 
   const [departments, setDepartments] = useState<any[]>([]);
   const [usersList, setUsersList] = useState<any[]>([]);
@@ -163,7 +164,7 @@ export default function CreateGoalPage() {
             </Link>
             <span>/</span>
             <Link to="/app/goals" className="hover:text-slate-800 transition-colors">
-              Goals & KPIs
+              Strategic Goals
             </Link>
             <span>/</span>
             <span className="text-[#001f5b] font-bold">New Objective</span>
@@ -181,7 +182,7 @@ export default function CreateGoalPage() {
           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors self-start sm:self-auto"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          Back to Goals & KPIs
+          Back to Strategic Goals
         </Link>
       </div>
 

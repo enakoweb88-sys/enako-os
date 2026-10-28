@@ -10,7 +10,7 @@ import {
   Mail, HelpCircle, Settings, LogOut, Search, Menu,
   ChevronLeft, ChevronRight, ChevronDown, Plus, X, Home,
   SlidersHorizontal, CheckSquare, Eye, Loader2, UserCheck, Clock,
-  Code, Lock, Layers, HeartHandshake, Coins, Code2, History
+  Lock, Layers, HeartHandshake, Coins, Code2, History, Activity
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
@@ -48,8 +48,7 @@ export default function DashboardLayout() {
   const { user } = useAuth();
 
   const isFieldMarketer =
-    /field marketer|field marketing/i.test(`${user?.title || ''} ${(user as any)?.responsibilities || ''}`) ||
-    user?.email?.toLowerCase() === 'capoatabe9@gmail.com';
+    /field marketer|field marketing/i.test(`${user?.title || ''} ${(user as any)?.responsibilities || ''}`);
 
   return isFieldMarketer
     ? <FieldMarketerLayout />
@@ -125,6 +124,7 @@ function EnterpriseDashboardLayout() {
     if (
       path.startsWith('/app/tasks') ||
       path.startsWith('/app/goals') ||
+      path.startsWith('/app/kpis') ||
       path.startsWith('/app/meals') ||
       path.startsWith('/app/staff-meals')
     ) {
@@ -153,9 +153,6 @@ function EnterpriseDashboardLayout() {
     }
     if (path.startsWith('/app/websites') || path.startsWith('/app/outreach')) {
       return 'websites';
-    }
-    if (path.startsWith('/app/apis') || path.startsWith('/app/api') || path.startsWith('/app/docs')) {
-      return 'apis';
     }
     if (path.startsWith('/app/security')) {
       return 'security';
@@ -354,7 +351,8 @@ function EnterpriseDashboardLayout() {
           items: [
             { label: 'Tasks', path: '/app/tasks', icon: ClipboardList, roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
             { label: 'Staff Meals', path: '/app/meals', icon: UtensilsCrossed, roles: ['ceo', 'manager', 'admin', 'employee', 'finance'] },
-            { label: 'Goals & KPIs', path: '/app/goals', icon: Target, roles: ['ceo', 'manager', 'bd', 'digital', 'employee'] },
+            { label: 'Strategic Goals', path: '/app/goals', icon: Target, roles: ['ceo', 'manager', 'bd', 'digital', 'employee'] },
+            { label: 'Employee KPIs', path: '/app/kpis', icon: Activity, roles: ['ceo', 'manager'] },
           ]
         }
       ],
@@ -515,46 +513,13 @@ function EnterpriseDashboardLayout() {
           title: 'RESOURCES & SYSTEM',
           items: [
             { label: 'Help & Support', path: '/app/help', icon: HelpCircle, roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
-            { label: 'API Docs', path: '/app/docs', icon: FileText, roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
             { label: 'Settings', path: '/app/settings', icon: Settings, roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
           ]
         }
       ],
       views: [
         { label: 'Knowledge Base', path: '/app/help/knowledge-base' },
-        { label: 'API Specifications', path: '/app/apis' },
         { label: 'Account Preferences', path: '/app/settings/preferences' }
-      ]
-    },
-    {
-      id: 'apis',
-      label: "API's",
-      icon: Code,
-      landingPath: '/app/apis',
-      actionButton: { label: '+ Core Endpoints', path: '/app/apis' },
-      roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'],
-      sections: [
-        {
-          title: 'DEVELOPER & API PORTAL',
-          items: [
-            { label: 'API Specifications', path: '/app/apis', icon: Code, roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
-            { label: 'API Documentation', path: '/app/docs', icon: FileText, roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
-          ]
-        }
-      ],
-      views: location.pathname.startsWith('/app/docs')
-        ? [
-            { label: 'Overview & Architecture', subtitle: 'REST principles & base URLs', path: '/app/docs#overview' },
-            { label: 'Authentication & Tokens', subtitle: 'Bearer JWT & header format', path: '/app/docs#authentication' },
-            { label: 'Rate Limits & Quotas', subtitle: 'Tiered thresholds & 429 backoff', path: '/app/docs#rate-limits' },
-            { label: 'Error Codes & Handling', subtitle: 'RFC 7807 machine-readable codes', path: '/app/docs#error-handling' },
-            { label: 'Webhooks & Event Delivery', subtitle: 'HMAC SHA-256 signed events', path: '/app/docs#webhooks' },
-      ]
-        : [
-            { label: 'Transactions API', subtitle: 'Ledger, rates & exchange ops', path: '/app/apis#transactions' },
-            { label: 'KYC & Verification API', subtitle: 'Submissions & compliance audit', path: '/app/apis#kyc' },
-            { label: 'Employees & Roster API', subtitle: 'Operative profiles & clearance', path: '/app/apis#employees' },
-            { label: 'System & Health API', subtitle: 'Gateway uptime & latency telemetry', path: '/app/apis#system' },
       ]
     },
     {
@@ -720,7 +685,7 @@ function EnterpriseDashboardLayout() {
       {/* ── TIER 1: PRIMARY RAIL (Pure White, 88px width) ── */}
       <aside
         className={cn(
-          "fixed left-0 top-0 bottom-0 w-[88px] bg-white border-r border-slate-200/90 z-50 flex flex-col items-center py-3 transition-transform duration-200 shadow-[1px_0_6px_rgba(0,0,0,0.02)]",
+          "fixed left-0 top-0 bottom-0 w-[72px] md:w-[88px] bg-white border-r border-slate-200/90 z-50 flex flex-col items-center py-3 transition-transform duration-200 shadow-[1px_0_6px_rgba(0,0,0,0.02)]",
           mobileDrawerOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
       >
@@ -823,8 +788,8 @@ function EnterpriseDashboardLayout() {
       {/* ── TIER 2: SECONDARY SUB-SIDEBAR (Clean White Panel, 240px width) ── */}
       <aside
         className={cn(
-          "fixed top-0 bottom-0 w-[240px] bg-[#FCFDFE] border-r border-slate-200/90 z-40 flex flex-col transition-all duration-200 shadow-[1px_0_4px_rgba(0,0,0,0.02)]",
-          subSidebarOpen ? "left-[88px] translate-x-0" : "left-[88px] -translate-x-[240px] pointer-events-none opacity-0 md:opacity-0",
+          "fixed left-[72px] md:left-[88px] top-0 bottom-0 w-[240px] bg-[#FCFDFE] border-r border-slate-200/90 z-40 flex flex-col transition-all duration-200 shadow-[1px_0_4px_rgba(0,0,0,0.02)] -translate-x-[312px] md:translate-x-0",
+          subSidebarOpen ? "md:translate-x-0" : "md:-translate-x-[240px] pointer-events-none opacity-0",
           mobileDrawerOpen && subSidebarOpen ? "translate-x-0" : ""
         )}
       >
@@ -1266,7 +1231,7 @@ function EnterpriseDashboardLayout() {
         </div>
 
         {/* ── TOP HEADER (Clean White, Quick Access | Search, Support, Notifications, Profile) ── */}
-        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 py-2.5 flex items-center justify-between gap-4 shadow-2xs">
+        <header className="sticky top-0 z-30 h-14 sm:h-auto bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-3 sm:gap-4 shadow-2xs">
           {/* Left section: Hamburger & Breadcrumb */}
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <button
@@ -1284,14 +1249,14 @@ function EnterpriseDashboardLayout() {
             </button>
 
             {/* Title / Active Module */}
-            <h1 className="text-base font-bold text-slate-900 tracking-tight capitalize">
+            <h1 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight capitalize truncate">
               {currentCategory.label}
             </h1>
           </div>
 
           {/* Center/Right section: Quick Access Search Bar */}
           <div className="flex items-center gap-3 shrink-0">
-            <div className="relative w-52 sm:w-72" ref={searchRef}>
+            <div className="relative hidden sm:block w-52 sm:w-72" ref={searchRef}>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
               <input
                 type="text"
@@ -1350,7 +1315,7 @@ function EnterpriseDashboardLayout() {
             {/* Headset / Support Icon */}
             <button
               onClick={() => navigate('/app/tickets')}
-              className="p-1.5 text-slate-500 hover:text-[#001f5b] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              className="hidden sm:block p-1.5 text-slate-500 hover:text-[#001f5b] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
               title="Help & Support Desk"
             >
               <Headphones className="w-4 h-4" />
@@ -1424,7 +1389,7 @@ function EnterpriseDashboardLayout() {
             {/* Home Icon */}
             <Link
               to="/app/dashboard"
-              className="p-1.5 text-slate-500 hover:text-[#001f5b] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              className="hidden sm:block p-1.5 text-slate-500 hover:text-[#001f5b] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
               title="Dashboard Home"
             >
               <Home className="w-4 h-4" />
@@ -1444,7 +1409,7 @@ function EnterpriseDashboardLayout() {
         </header>
 
         {/* ── PAGE OUTLET ── */}
-        <div className="flex-1 p-4 sm:p-6 lg:p-7">
+        <div className="enako-mobile-content flex-1 px-4 pt-4 pb-24 sm:p-6 lg:p-7">
           <motion.div
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1455,19 +1420,27 @@ function EnterpriseDashboardLayout() {
         </div>
 
         {/* ── ENTERPRISE FOOTER ── */}
-        <footer className="bg-white border-t border-slate-200/80 px-6 py-3.5 flex flex-col sm:flex-row justify-between items-center gap-2 mt-auto">
+        <footer className="hidden sm:flex bg-white border-t border-slate-200/80 px-6 py-3.5 flex-col sm:flex-row justify-between items-center gap-2 mt-auto">
           <p className="text-[11px] font-medium text-slate-500">
             © 2026 ENAKO COMPANY PLC. All rights reserved.
           </p>
           <div className="flex items-center gap-5">
-            <Link to="/app/docs" className="text-[11px] font-semibold text-slate-500 hover:text-[#001f5b] transition-colors">
-              Documentation
-            </Link>
             <Link to="/app/help" className="text-[11px] font-semibold text-slate-500 hover:text-[#001f5b] transition-colors">
               System Support
             </Link>
           </div>
         </footer>
+
+        <nav className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-slate-200 bg-white/95 px-1 pb-[max(.35rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_24px_rgba(15,23,42,.08)] backdrop-blur md:hidden">
+          {accessibleCategories.map((cat) => {
+            const Icon = cat.icon;
+            const active = activeCategory === cat.id;
+            return <button key={cat.id} onClick={() => handleRailClick(cat)} className={cn('flex min-w-[72px] flex-1 flex-col items-center gap-1 rounded-lg py-1.5 text-[9px] font-semibold', active ? 'text-[#001f5b]' : 'text-slate-400')}>
+              <Icon className={cn('h-5 w-5', active && 'stroke-[2.5]')} />
+              <span className="max-w-[70px] truncate">{cat.label}</span>
+            </button>;
+          })}
+        </nav>
       </main>
     </div>
   );
