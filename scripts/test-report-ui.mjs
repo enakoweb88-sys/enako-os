@@ -12,6 +12,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider } from './src/lib/auth';
 import Reports from './src/pages/Reports';
 import WorkReportViewer from './src/components/WorkReportViewer';
+import { canReviewWorkReport } from './src/lib/work-report';
 for (const role of ['EMPLOYEE', 'MANAGER', 'CEO']) {
   const user = { id: 'self', role, fullName: 'Test Engineer', email: 'test@example.test' };
   Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: { getItem: key => key === 'enako_user' ? JSON.stringify(user) : null } });
@@ -42,6 +43,15 @@ assert.ok(uploaded.includes('Engineering.docx'));
 assert.ok(uploaded.includes('Download original'));
 assert.ok(uploaded.includes('View'));
 console.log('Uploaded documents have per-file View and Download original actions');
+const employeeReport = { id: 'employee-report', userId: 'staff', type: 'DAILY', status: 'VERIFIED', content: 'Title: Employee work', date: '2026-11-02T13:00:00Z', user: { role: { name: 'EMPLOYEE' } } };
+for (const role of ['MANAGER', 'CEO']) {
+  const html = renderToString(React.createElement(WorkReportViewer, {
+    report: employeeReport, onClose: () => {}, onDownload: () => {}, downloading: false,
+    canReview: canReviewWorkReport({ id: 'viewer', role }, employeeReport), onReview: () => {},
+  }));
+  assert.equal(html.includes('Accept &amp; Forward to CEO'), role === 'MANAGER');
+}
+console.log('Manager acceptance forwards to CEO; CEO staff-report view is read-only');
 `;
 const result = await build({ stdin: { contents: source, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, write: false, platform: 'node', format: 'cjs', packages: 'external', jsx: 'automatic', define: { 'import.meta.env': '{}' } });
 const filename = path.join(process.cwd(), 'report-ui-test.cjs');

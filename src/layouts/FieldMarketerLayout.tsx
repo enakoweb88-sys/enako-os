@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '../lib/auth';
+import NotificationBell from '../components/NotificationBell';
 
 const marketerPaths = [
   '/app',
@@ -213,6 +214,8 @@ export default function FieldMarketerLayout() {
             </p>
           </div>
         </header>
+
+        <div className="flex justify-end border-b border-slate-100 bg-white px-4 py-2"><NotificationBell /></div>
 
         {/* SCROLLABLE DASHBOARD */}
         <main className="flex-1 min-w-0 min-h-0 overflow-y-auto bg-white md:bg-[#f5f8fc]">

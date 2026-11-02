@@ -310,7 +310,7 @@ export default function Profile() {
               </div>
 
               <div className="p-3.5 bg-slate-50/70 border border-slate-200/70 rounded-lg">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Personal Email</p>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Contact / Notification Email</p>
                 <p className="text-sm font-semibold text-slate-900 mt-1">{user?.personalEmail || '—'}</p>
               </div>
 
@@ -429,7 +429,7 @@ export default function Profile() {
                     <input type="date" value={editDateOfBirth} onChange={e => setEditDateOfBirth(e.target.value)} className="w-full bg-slate-50/70 border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b]" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-600 mb-1 uppercase tracking-wider">Personal Email</label>
+                    <label className="block text-[10px] font-bold text-slate-600 mb-1 uppercase tracking-wider">Contact / Notification Email</label>
                     <input type="email" value={editPersonalEmail} onChange={e => setEditPersonalEmail(e.target.value)} className="w-full bg-slate-50/70 border border-slate-200/90 rounded-lg p-2.5 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-[#001f5b]" />
                   </div>
                   <div className="col-span-2">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { ArrowRight, Mail, Lock, Eye, EyeOff, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useAuth } from '../lib/auth';
@@ -40,6 +40,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   const handleRoleChange = (role: Role) => {
@@ -58,7 +59,11 @@ export default function Login() {
       localStorage.setItem('enako_last_role', selectedRole);
       localStorage.setItem('enako_last_email', email.trim());
       await login(email.trim(), password, selectedRole);
-      navigate('/app/dashboard', { replace: true });
+      const destination = location.state?.from;
+      const next = destination?.pathname?.startsWith('/app/')
+        ? `${destination.pathname}${destination.search || ''}${destination.hash || ''}`
+        : '/app/dashboard';
+      navigate(next, { replace: true });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Login failed. Please try again.';
       if (msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('networkerror')) {

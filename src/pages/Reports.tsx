@@ -4,7 +4,12 @@ import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { exportTablePdf } from '../lib/pdf-export';
-import { workReportTitle, workReportPdfRows } from '../lib/work-report';
+import {
+  workReportTitle,
+  workReportPdfRows,
+  workReportStatus,
+  canReviewWorkReport,
+} from '../lib/work-report';
 import WorkReportViewer from '../components/WorkReportViewer';
 
 const MAX_FILES = 5;
@@ -216,7 +221,9 @@ export default function Reports() {
       toast.success(
         status === 'DRAFT'
           ? 'Draft and documents saved'
-          : 'Report and documents submitted to management',
+          : ['MANAGER', 'OUTREACH_MANAGER'].includes(user?.role || '')
+            ? 'Report submitted to the CEO'
+            : 'Report submitted to your manager. Acceptance will forward it to the CEO.',
       );
       await load();
     } catch (error: any) {
@@ -238,7 +245,13 @@ export default function Reports() {
       await api.reviewDailyReport(viewed.id, { status, reviewerComments: comments });
       setViewed(await api.getDailyReport(viewed.id));
       await load();
-      toast.success(status === 'VERIFIED' ? 'Report verified' : 'Report returned for correction');
+      toast.success(
+        status === 'VERIFIED'
+          ? user?.role === 'CEO'
+            ? 'Report accepted'
+            : 'Report accepted and forwarded to the CEO'
+          : 'Report returned for correction',
+      );
     } catch (error: any) {
       toast.error(error.message || 'Could not save review');
     } finally {
@@ -267,7 +280,11 @@ export default function Reports() {
           <p className="mt-1 text-xs text-slate-500">
             {creating
               ? 'Add a title, attach your documents, and submit.'
-              : 'View original documents, download files, and track report feedback.'}
+              : user?.role === 'CEO'
+                ? 'View manager-approved staff reports and reports submitted by management.'
+                : canReview
+                  ? 'Review employee submissions. Accepting a report automatically forwards it to the CEO.'
+                  : 'Submit to your manager first. Accepted reports are automatically forwarded to the CEO.'}
           </p>
         </div>
         {!creating && (
@@ -451,7 +468,7 @@ export default function Reports() {
                     {workReportTitle(report)}
                   </h2>
                   <p className="mt-1 text-xs text-slate-500">
-                    {report.user?.fullName} · {report.type} · {report.status} ·{' '}
+                    {report.user?.fullName} · {report.type} · {workReportStatus(report)} ·{' '}
                     {report.documents?.length || 0} documents
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
@@ -480,7 +497,7 @@ export default function Reports() {
                   >
                     Download
                   </button>
-                  {canReview && report.userId !== user?.id && report.status !== 'DRAFT' && (
+                  {canReviewWorkReport(user, report) && (
                     <button
                       onClick={() => openReport(report.id, false)}
                       className="rounded-lg border border-slate-200 px-3 py-2 text-xs"
@@ -526,7 +543,8 @@ export default function Reports() {
           onViewDocument={(document) => showDocument(viewed, document)}
           onDownloadDocument={(document) => downloadDocument(viewed, document)}
           busyDocument={busyDocument}
-          canReview={canReview && viewed.userId !== user?.id && viewed.status !== 'DRAFT'}
+          canReview={canReviewWorkReport(user, viewed)}
+          acceptLabel={user?.role === 'CEO' ? 'Accept report' : 'Accept & Forward to CEO'}
           onReview={review}
           reviewing={reviewing}
         />

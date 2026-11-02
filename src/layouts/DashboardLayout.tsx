@@ -588,25 +588,24 @@ function EnterpriseDashboardLayout() {
     }
   };
 
-  // Global search & notifications listeners
+  // Refresh inbox alerts while the dashboard stays open, and when returning to it.
   useEffect(() => {
-    api.notifications()
-      .then(notifs => {
-        const arr = Array.isArray(notifs) ? notifs : [];
-        setNotifications(arr);
-        setUnreadCount(arr.filter((n: any) => !n.readAt).length);
-      })
-      .catch(() => { });
-
-    api.announcements()
-      .then(anns => {
-        const activeAnns = Array.isArray(anns) ? anns : [];
-        if (activeAnns.length > 0) {
-          setAnnouncement(activeAnns[0]);
-        }
-      })
-      .catch(() => { });
-  }, [location.pathname]);
+    let active = true;
+    const refresh = async () => {
+      try {
+        const result = await api.notifications();
+        if (!active) return;
+        const items = Array.isArray(result) ? result : [];
+        setNotifications(items);
+        setUnreadCount(items.filter(item => !item.readAt).length);
+      } catch { /* Retry on the next poll without interrupting work. */ }
+    };
+    void refresh();
+    const timer = window.setInterval(refresh, 15_000);
+    window.addEventListener('focus', refresh);
+    api.announcements().then(items => { if (active && Array.isArray(items) && items.length) setAnnouncement(items[0]); }).catch(() => {});
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener('focus', refresh); };
+  }, [location.pathname, user?.id]);
 
   // Search debouncing
   useEffect(() => {
@@ -655,10 +654,17 @@ function EnterpriseDashboardLayout() {
     navigate('/select-role');
   };
 
-  const markAllRead = () => {
+  const markAllRead = async () => {
+    try { await api.markAllNotificationsRead(); } catch { return; }
     setNotifications(prev => prev.map(n => ({ ...n, readAt: new Date().toISOString() })));
     setUnreadCount(0);
     setShowNotif(false);
+  };
+
+  const openNotification = async (notification: any) => {
+    try { if (!notification.readAt) await api.markNotificationRead(notification.id); } catch { /* The report can still be opened. */ }
+    setShowNotif(false);
+    if (notification.link) navigate(notification.link);
   };
 
   // Close search dropdown on click outside
@@ -1358,14 +1364,18 @@ function EnterpriseDashboardLayout() {
                       {notifications.length > 0 ? (
                         notifications.map((n, i) => (
                           <div
-                            key={i}
+                            key={n.id || i}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => openNotification(n)}
+                            onKeyDown={event => { if (event.key === 'Enter') openNotification(n); }}
                             className={cn(
                               "p-3 hover:bg-slate-50 transition-colors",
                               !n.readAt && "bg-slate-50"
                             )}
                           >
                             <p className="text-xs font-bold text-slate-900">{n.title || 'System Notification'}</p>
-                            <p className="text-xs text-slate-600 mt-0.5">{n.content || 'Please check your dashboard.'}</p>
+                            <p className="text-xs text-slate-600 mt-0.5">{n.body || n.content || 'Please check your dashboard.'}</p>
                             <p className="text-[9px] text-slate-400 mt-1 uppercase tracking-wider">
                               {n.createdAt ? new Date(n.createdAt).toLocaleTimeString() : 'Just now'}
                             </p>

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { workReportTitle, workReportContent, workReportPdfRows } from './work-report';
+import { workReportTitle, workReportContent, workReportPdfRows, canReviewWorkReport, workReportStatus } from './work-report';
 
 test('download rows include full submitted contents, author and review feedback', () => {
   const content = 'Title: Engineering delivery\nDetails:\n' + 'Release details '.repeat(2000);
@@ -16,4 +16,20 @@ test('field reports show all stored metrics and work notes in view and download'
   const content = JSON.stringify({ completed: 'Visited customers', people: 12, kpiResults: { target: 4 } });
   const rendered = workReportContent(content);
   assert.ok(rendered.includes('Visited customers')); assert.ok(rendered.includes('12')); assert.ok(rendered.includes('target'));
+});
+
+test('employee status explains manager review and automatic forwarding', () => {
+  assert.equal(workReportStatus({ status: 'SUBMITTED' }), 'Awaiting manager review');
+  assert.equal(workReportStatus({ status: 'VERIFIED' }), 'Accepted · Forwarded to CEO');
+  assert.equal(workReportStatus({ status: 'RETURNED' }), 'Returned for correction');
+});
+test('only managers accept employee reports; CEO can review management submissions', () => {
+  const report = { userId: 'employee', status: 'SUBMITTED', user: { role: { name: 'EMPLOYEE' } } };
+  assert.equal(canReviewWorkReport({ id: 'manager', role: 'MANAGER' }, report), true);
+  assert.equal(canReviewWorkReport({ id: 'ceo', role: 'CEO' }, report), false);
+  assert.equal(canReviewWorkReport({ id: 'employee', role: 'EMPLOYEE' }, report), false);
+  const management = { ...report, userId: 'manager', user: { role: { name: 'MANAGER' } } };
+  assert.equal(canReviewWorkReport({ id: 'ceo', role: 'CEO' }, management), true);
+  assert.equal(canReviewWorkReport({ id: 'manager', role: 'MANAGER' }, management), false);
+  assert.equal(workReportStatus(management), 'Awaiting CEO review');
 });

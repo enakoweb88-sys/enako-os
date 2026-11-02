@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { workReportTitle, workReportContent } from '../lib/work-report';
+import { workReportTitle, workReportContent, workReportStatus } from '../lib/work-report';
 
 export default function WorkReportViewer({
   report,
@@ -12,6 +12,7 @@ export default function WorkReportViewer({
   canReview = false,
   onReview,
   reviewing = false,
+  acceptLabel = 'Accept & Forward to CEO',
 }: {
   report: any;
   onClose: () => void;
@@ -23,6 +24,7 @@ export default function WorkReportViewer({
   canReview?: boolean;
   onReview?: (status: 'VERIFIED' | 'RETURNED', comments: string) => void;
   reviewing?: boolean;
+  acceptLabel?: string;
 }) {
   const [comments, setComments] = useState(report.reviewerComments || '');
   useEffect(() => setComments(report.reviewerComments || ''), [report.id, report.reviewerComments]);
@@ -41,7 +43,7 @@ export default function WorkReportViewer({
               {workReportTitle(report)}
             </h2>
             <p className="mt-1 text-xs text-slate-500">
-              {report.user?.fullName} · {report.type} · {report.status}
+              {report.user?.fullName} · {report.type} · {workReportStatus(report)}
             </p>
             <p className="mt-1 text-xs text-slate-500">
               {new Date(report.date || report.createdAt).toLocaleString('en-GB', {
@@ -126,7 +128,7 @@ export default function WorkReportViewer({
                   onClick={() => onReview?.('VERIFIED', comments)}
                   className="rounded-lg bg-[#001f5b] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
                 >
-                  {reviewing ? 'Saving...' : 'Verify report'}
+                  {reviewing ? 'Saving...' : acceptLabel}
                 </button>
               </div>
             </div>
