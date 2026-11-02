@@ -4,24 +4,19 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Plus, 
   RefreshCw, 
-  FileText, 
   UtensilsCrossed, 
   Clock, 
   Users, 
   Wallet, 
-  CheckCircle2, 
   AlertCircle,
   Download
 } from 'lucide-react';
 import { toast } from 'sonner';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { ENAKO_LOGO_BASE64 } from '../lib/logo-base64';
-import { exportTablePdf } from '../lib/pdf-export';
 import ExportLedgerModal from '../components/ExportLedgerModal';
+import { mealDay, mealDate, monthlyMealSummary, reconcileMealCache } from '../lib/meal-utils';
 
 function fmt(val: string | number | null | undefined) {
   return `${Number(val ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 })} FCFA`;
@@ -30,13 +25,11 @@ function fmt(val: string | number | null | undefined) {
 export default function StaffMeals() {
   const { user } = useAuth();
   const role = user?.role?.toLowerCase() ?? 'employee';
-  const isManager = role === 'ceo' || role === 'manager' || role === 'outreach_manager';
+  const isManager = role === 'ceo' || role === 'manager';
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [items, setItems] = useState<any[]>([]);
-  const [totals, setTotals] = useState<any>(null);
-  const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showExportMenu, setShowExportMenu] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [search, setSearch] = useState('');
   const [disputeId, setDisputeId] = useState<string | null>(null);
@@ -46,58 +39,49 @@ export default function StaffMeals() {
     setLoading(true);
     try {
       let remoteMeals: any = { items: [], totals: null };
-      let remoteEmps: any = { items: [] };
-
       try {
-        const [mealsRes, empRes] = await Promise.all([
-          api.meals(),
-          api.employees({ limit: 100 })
-        ]);
-        remoteMeals = mealsRes;
-        remoteEmps = empRes;
+        remoteMeals = await api.meals();
       } catch (err) {
-        console.warn('Backend meals API deferred:', err);
+        toast.error('Could not load saved meals. Please refresh before relying on these totals.');
       }
 
       // Merge local storage cached meals
       const localRaw = localStorage.getItem('enako_meals_cache');
-      const localMeals: any[] = localRaw ? JSON.parse(localRaw) : [];
+      const cached: any[] = localRaw ? JSON.parse(localRaw) : [];
+      const localMeals = reconcileMealCache(remoteMeals?.items || [], cached);
+      localStorage.setItem('enako_meals_cache', JSON.stringify(localMeals));
 
       const combinedMap = new Map<string, any>();
       (remoteMeals?.items || []).forEach((m: any) => combinedMap.set(m.id, m));
       localMeals.forEach(m => combinedMap.set(m.id, m));
 
-      const merged = Array.from(combinedMap.values());
+      const merged = Array.from(combinedMap.values()).filter(m => role !== 'employee' || m.employeeId === user?.id);
       // Sort newest first
       merged.sort((a, b) => new Date(b.date || b.createdAt || 0).getTime() - new Date(a.date || a.createdAt || 0).getTime());
       setItems(merged);
-
-      // Recalculate totals
-      let compSum = 0;
-      let empSum = 0;
-      let totalCount = merged.length;
-      merged.forEach(m => {
-        if (m.status === 'ATE') {
-          compSum += Number(m.companyAmount || 500);
-          empSum += Number(m.employeeAmount || 500);
-        }
-      });
-
-      setTotals({
-        _count: totalCount,
-        _sum: {
-          companyAmount: compSum,
-          employeeAmount: empSum
-        }
-      });
-
-      setEmployees(remoteEmps?.items || []);
     } catch (e: any) {
-      console.error(e); 
+      toast.error(e.message || 'Could not load meal records');
     } finally { 
       setLoading(false); 
     }
-  }, []);
+  }, [role, user?.id]);
+
+  const handleDelete = async (meal: any) => {
+    if (!isManager || deletingId) return;
+    if (!window.confirm(`Delete this meal entry for ${meal.employee?.fullName || 'this employee'} on ${mealDate(meal)}?`)) return;
+    setDeletingId(meal.id);
+    try {
+      if (!meal.id.startsWith('MEAL-')) await api.deleteMeal(meal.id);
+      const cached = JSON.parse(localStorage.getItem('enako_meals_cache') || '[]');
+      localStorage.setItem('enako_meals_cache', JSON.stringify(cached.filter(m => m.id !== meal.id)));
+      toast.success('Meal entry deleted');
+      await load();
+    } catch (error: any) {
+      toast.error(error.message || 'Could not delete meal entry');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   useEffect(() => { 
     load(); 
@@ -117,63 +101,8 @@ export default function StaffMeals() {
     }
   };
 
-  const downloadMealReportPdf = async (period: '7 Days' | '28 Days' | '3 Months' | '6 Months' | '1 Year') => {
-    try {
-      const now = new Date();
-      let startDate = new Date();
-      if (period === '7 Days') startDate.setDate(now.getDate() - 7);
-      else if (period === '28 Days') startDate.setDate(now.getDate() - 28);
-      else if (period === '3 Months') startDate.setMonth(now.getMonth() - 3);
-      else if (period === '6 Months') startDate.setMonth(now.getMonth() - 6);
-      else if (period === '1 Year') startDate.setFullYear(now.getFullYear() - 1);
-
-      let targetMeals = items.filter(m => {
-        if (!m.date) return false;
-        const d = new Date(m.date);
-        return !isNaN(d.getTime()) && d >= startDate && d <= now;
-      });
-
-      // If no records in exact window, fall back to all loaded items
-      if (targetMeals.length === 0) {
-        targetMeals = items;
-      }
-
-      const rows = targetMeals.map(m => {
-        const d = m.date ? new Date(m.date) : new Date();
-        const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString() : 'N/A';
-        return [
-          dateStr,
-          m.employee?.fullName || m.userName || 'Staff Member',
-          m.status === 'ATE' ? 'Consumed' : 'Did Not Eat',
-          m.mealName || 'Standard Lunch',
-          m.status === 'ATE' ? fmt(m.price || 1000) : '0 FCFA',
-          m.status === 'ATE' ? fmt(m.companyAmount || 500) : '0 FCFA',
-          m.status === 'ATE' ? fmt(m.employeeAmount || 500) : '0 FCFA'
-        ];
-      });
-
-      const success = exportTablePdf({
-        title: 'STAFF WELFARE & MEALS REPORT',
-        subtitle: `Period: Last ${period} • Total Records: ${targetMeals.length}`,
-        headers: ['Date', 'Employee', 'Status', 'Menu Option', 'Total', 'Company Pays', 'Employee Pays'],
-        rows,
-        fileName: `Enako_Staff_Meals_${period.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
-      });
-
-      setShowExportMenu(false);
-      if (success) {
-        toast.success(`Downloaded meals report for last ${period}`);
-      } else {
-        toast.error('Failed to download PDF');
-      }
-    } catch (e: any) {
-      console.error('Failed to generate meals PDF:', e);
-      toast.error('Failed to generate PDF');
-    }
-  };
-
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayMeals = items.filter(m => m.date?.startsWith(todayStr) && m.status === 'ATE');
+  const todayStr = mealDay();
+  const todayMeals = items.filter(m => mealDate(m) === todayStr && m.status === 'ATE');
 
   const filteredItems = items.filter(m => {
     if (!search) return true;
@@ -185,10 +114,11 @@ export default function StaffMeals() {
     );
   });
 
-  const companyTotalSpend = totals?._sum?.companyAmount ?? 0;
-  const employeeTotalSpend = totals?._sum?.employeeAmount ?? 0;
-  const totalMealsEaten = items.filter(m => m.status === 'ATE').length;
-  const uniqueEmployeesCount = new Set(items.map(m => m.employeeId).filter(Boolean)).size;
+  const monthly = monthlyMealSummary(items);
+  const companyTotalSpend = monthly.companyAmount;
+  const employeeTotalSpend = monthly.employeeAmount;
+  const totalMealsEaten = monthly.count;
+  const uniqueEmployeesCount = monthly.beneficiaries;
 
   return (
     <div className="space-y-6 sm:space-y-8 pb-20 font-sans">
@@ -244,7 +174,7 @@ export default function StaffMeals() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Staff Welfare • Company Contribution
+                Staff Welfare • Company Contribution • {todayStr.slice(0, 7)}
               </span>
               <div className="w-10 h-10 rounded-xl bg-[#001f5b]/10 text-[#001f5b] flex items-center justify-center">
                 <UtensilsCrossed className="w-5 h-5" />
@@ -307,7 +237,7 @@ export default function StaffMeals() {
             </div>
             <div className="flex items-baseline justify-between mt-1">
               <h4 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                {uniqueEmployeesCount || employees.length || 0} Operatives
+                {uniqueEmployeesCount} Operatives
               </h4>
               <span className="text-xs text-slate-500">Enrolled in welfare</span>
             </div>
@@ -393,18 +323,23 @@ export default function StaffMeals() {
                       </td>
 
                       <td className="px-5 py-3.5 text-xs font-bold text-slate-900">
-                        {m.status === 'ATE' ? fmt(m.price || 1000) : '0 FCFA'}
+                        {m.status === 'ATE' ? fmt(m.price ?? m.totalAmount ?? 1000) : '0 FCFA'}
                       </td>
 
                       <td className="px-5 py-3.5 text-xs font-bold text-emerald-700">
-                        {m.status === 'ATE' ? fmt(m.companyAmount || 500) : '0 FCFA'}
+                        {m.status === 'ATE' ? fmt(m.companyAmount ?? 500) : '0 FCFA'}
                       </td>
 
                       <td className="px-5 py-3.5 text-xs font-bold text-blue-700">
-                        {m.status === 'ATE' ? fmt(m.employeeAmount || 500) : '0 FCFA'}
+                        {m.status === 'ATE' ? fmt(m.employeeAmount ?? 500) : '0 FCFA'}
                       </td>
 
                       <td className="px-5 py-3.5 text-right">
+                        {isManager && (
+                          <button onClick={() => handleDelete(m)} disabled={!!deletingId} className="mr-3 text-xs font-semibold text-red-600 hover:underline disabled:opacity-50">
+                            {deletingId === m.id ? 'Deleting...' : 'Delete'}
+                          </button>
+                        )}
                         {m.status === 'ATE' ? (
                           <button
                             onClick={() => setDisputeId(m.id)}
@@ -464,6 +399,7 @@ export default function StaffMeals() {
         onClose={() => setShowExportModal(false)}
         title="ENAKO OS • STAFF WELFARE & MEALS REPORT"
         defaultFileName="Enako_Staff_Meals"
+        monthPicker
         headers={['Date', 'Employee', 'Status', 'Menu Option', 'Total Price', 'Company Co-Pay', 'Employee Co-Pay']}
         items={items}
         getDateStr={(m: any) => m.effectiveDate || m.date || m.createdAt}
@@ -472,9 +408,9 @@ export default function StaffMeals() {
           m.employee?.fullName || m.userName || 'Staff Member',
           m.status === 'ATE' ? 'Consumed' : 'Did Not Eat',
           m.mealName || 'Standard Lunch',
-          m.status === 'ATE' ? fmt(m.price || 1000) : '0 FCFA',
-          m.status === 'ATE' ? fmt(m.companyAmount || 500) : '0 FCFA',
-          m.status === 'ATE' ? fmt(m.employeeAmount || 500) : '0 FCFA'
+          m.status === 'ATE' ? fmt(m.price ?? m.totalAmount ?? 1000) : '0 FCFA',
+          m.status === 'ATE' ? fmt(m.companyAmount ?? 500) : '0 FCFA',
+          m.status === 'ATE' ? fmt(m.employeeAmount ?? 500) : '0 FCFA'
         ]}
       />
     </div>

@@ -14,28 +14,24 @@ export function EngineeringDashboard() {
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadData = () => {
+  const loadData = async () => {
     setRefreshing(true);
-    Promise.all([
-      api.engineeringKpis().catch(() => ({})),
-      api.systemIntegrations().catch(() => []),
-      api.deployments().catch(() => []),
-      api.tasks().catch(() => []),
-      api.auditLogs().catch(() => []),
-    ])
-      .then(([kpiData, integ, deps, tList, logs]) => {
-        setKpis(kpiData);
-        setIntegrations(integ);
-        setDeployments(deps);
-        setTasks(Array.isArray(tList) ? tList.slice(0, 6) : []);
-        setAuditLogs(Array.isArray(logs) ? logs.slice(0, 5) : []);
-      })
-      .catch(console.error)
-      .finally(() => {
-        setLoading(false);
-        setRefreshing(false);
-      });
+    setError(null);
+    try {
+      const overview = await api.engineeringOverview();
+      setKpis(overview?.kpis ?? {});
+      setIntegrations(Array.isArray(overview?.integrations) ? overview.integrations : []);
+      setDeployments(Array.isArray(overview?.deployments) ? overview.deployments : []);
+      setTasks(Array.isArray(overview?.tasks) ? overview.tasks.slice(0, 6) : []);
+      setAuditLogs(Array.isArray(overview?.auditLogs) ? overview.auditLogs.slice(0, 5) : []);
+    } catch {
+      setError('Engineering telemetry could not be loaded. Please try again.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
   useEffect(() => {
@@ -54,6 +50,12 @@ export function EngineeringDashboard() {
     <div className="space-y-6 pb-20 font-sans">
       {/* Reference Screenshot Top Header Card */}
       <OrganizationHeaderCard />
+
+      {error && (
+        <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          {error}
+        </div>
+      )}
 
       {/* Reference Screenshot 4 Top Stat Cards */}
       <WorkplaceStatCards
@@ -88,6 +90,9 @@ export function EngineeringDashboard() {
         >
           {refreshing ? 'Refreshing...' : 'Refresh Telemetry'}
         </button>
+        <Link to="/app/reports?new=1" className="rounded-lg bg-[#001f5b] px-4 py-2 text-xs font-semibold text-white hover:bg-[#001f5b]/90">
+          Submit Work Report
+        </Link>
       </div>
 
       {/* Main Grid Section */}
@@ -188,7 +193,7 @@ export function EngineeringDashboard() {
                     t.status === 'DONE' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
                     t.status === 'IN_PROGRESS' ? "bg-slate-100 text-slate-700 border-slate-200" : "bg-amber-50 text-amber-700 border-amber-200"
                   )}>
-                    {t.status.replace('_', ' ')}
+                    {(t.status || 'TODO').replaceAll('_', ' ')}
                   </span>
                 </div>
               ))

@@ -29,25 +29,7 @@ export default function Tasks() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      let remoteTasks: any[] = [];
-      try {
-        remoteTasks = await api.tasks();
-      } catch (err) {
-        console.warn('Backend tasks API deferred:', err);
-      }
-
-      // Merge local storage cached tasks
-      const localRaw = localStorage.getItem('enako_tasks_cache');
-      const localTasks: any[] = localRaw ? JSON.parse(localRaw) : [];
-
-      const combinedMap = new Map<string, any>();
-      (remoteTasks || []).forEach((t: any) => combinedMap.set(t.id, t));
-      localTasks.forEach(t => combinedMap.set(t.id, t));
-
-      const merged = Array.from(combinedMap.values());
-      // Sort newest first
-      merged.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-      setTasks(merged);
+      setTasks(await api.tasks());
     } catch (e) {
       console.error(e);
       toast.error('Failed to load tasks');
@@ -62,17 +44,7 @@ export default function Tasks() {
 
   const handleUpdateStatus = async (taskId: string, status: string) => {
     try {
-      try {
-        await api.setTaskStatus(taskId, status);
-      } catch (e) {}
-
-      // Update in local cache
-      const localRaw = localStorage.getItem('enako_tasks_cache');
-      if (localRaw) {
-        const localTasks: any[] = JSON.parse(localRaw);
-        const updated = localTasks.map(t => t.id === taskId ? { ...t, status } : t);
-        localStorage.setItem('enako_tasks_cache', JSON.stringify(updated));
-      }
+      await api.setTaskStatus(taskId, status);
 
       setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status } : t));
       if (selectedTask && selectedTask.id === taskId) {

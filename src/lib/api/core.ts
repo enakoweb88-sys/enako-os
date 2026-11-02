@@ -47,7 +47,7 @@ export function clearSession() {
     .forEach(k => sessionStorage.removeItem(k));
 }
 
-export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function apiRequest<T>(path: string, options: RequestInit = {}, responseType: 'json' | 'blob' = 'json', timeoutMs = 15_000): Promise<T> {
   const headers = new Headers(options.headers);
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
@@ -56,7 +56,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 15_000);
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers, signal: options.signal ?? controller.signal });
@@ -82,6 +82,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
         const retry = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
         if (retry.ok) {
           if (retry.status === 204) return undefined as T;
+          if (responseType === 'blob') return await retry.blob() as T;
           return retry.json();
         }
       }
@@ -97,6 +98,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     throw new Error(Array.isArray(msg) ? msg.join(', ') : msg);
   }
   if (response.status === 204) return undefined as T;
+  if (responseType === 'blob') return await response.blob() as T;
   const text = await response.text();
   try {
     return JSON.parse(text);

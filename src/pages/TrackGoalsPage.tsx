@@ -24,9 +24,13 @@ import { cn } from '../lib/utils';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { toast } from 'sonner';
+import ObjectiveReportModal from '../components/ObjectiveReportModal';
 
 export default function TrackGoalsPage() {
   const { user } = useAuth();
+  const canAssign = ['CEO', 'MANAGER'].includes(user?.role || '');
+  const [showReport, setShowReport] = useState(false);
+  const [cadenceFilter, setCadenceFilter] = useState('ALL');
   const [goals, setGoals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -41,29 +45,8 @@ export default function TrackGoalsPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      let remoteGoals: any[] = [];
-      try {
-        const res = await api.goals();
-        remoteGoals = Array.isArray(res) ? res : res?.items || [];
-      } catch (err) {
-        console.warn('Backend goals API deferred, loading cache:', err);
-      }
-
-      // Merge local storage cached goals
-      const localRaw = localStorage.getItem('enako_goals_cache');
-      const localGoals: any[] = localRaw ? JSON.parse(localRaw) : [];
-
-      const combinedMap = new Map<string, any>();
-      remoteGoals.forEach((g: any) => combinedMap.set(g.id, g));
-      localGoals.forEach((g: any) => {
-        if (!combinedMap.has(g.id)) {
-          combinedMap.set(g.id, g);
-        }
-      });
-
-      const merged = Array.from(combinedMap.values());
-      merged.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-      setGoals(merged);
+      const remoteGoals = await api.goals({ limit: 1000 });
+      setGoals(remoteGoals);
     } catch (e: any) {
       console.error(e);
       toast.error('Failed to load strategic goals');
@@ -85,7 +68,7 @@ export default function TrackGoalsPage() {
   };
 
   const handleUpdateProgress = async (goalId: string) => {
-    if (!newProgressValue || isNaN(Number(newProgressValue))) {
+    if (!newProgressValue || !Number.isFinite(Number(newProgressValue)) || Number(newProgressValue) < 0) {
       toast.error('Please enter a valid numeric progress value');
       return;
     }
@@ -94,47 +77,9 @@ export default function TrackGoalsPage() {
     const numericVal = Number(newProgressValue);
 
     try {
-      try {
-        await api.updateProgress(goalId, numericVal);
-      } catch (err) {
-        console.warn('Backend update progress deferred:', err);
-      }
-
-      // Update in state
-      setGoals(prev => prev.map(g => {
-        if (g.id === goalId) {
-          const isComplete = g.targetValue && numericVal >= Number(g.targetValue);
-          return {
-            ...g,
-            currentValue: numericVal,
-            status: isComplete ? 'COMPLETED' : g.status
-          };
-        }
-        return g;
-      }));
-
-      // Update in local cache
-      const localRaw = localStorage.getItem('enako_goals_cache');
-      if (localRaw) {
-        const cached = JSON.parse(localRaw);
-        const updated = cached.map((g: any) => {
-          if (g.id === goalId) {
-            const isComplete = g.targetValue && numericVal >= Number(g.targetValue);
-            return { ...g, currentValue: numericVal, status: isComplete ? 'COMPLETED' : g.status };
-          }
-          return g;
-        });
-        localStorage.setItem('enako_goals_cache', JSON.stringify(updated));
-      }
-
-      if (selectedGoal && selectedGoal.id === goalId) {
-        const isComplete = selectedGoal.targetValue && numericVal >= Number(selectedGoal.targetValue);
-        setSelectedGoal((prev: any) => ({
-          ...prev,
-          currentValue: numericVal,
-          status: isComplete ? 'COMPLETED' : prev.status
-        }));
-      }
+      const updated = await api.updateProgress(goalId, numericVal);
+      setGoals(prev => prev.map(g => g.id === goalId ? updated : g));
+      setSelectedGoal(updated);
 
       toast.success('Objective progress updated successfully');
       setNewProgressValue('');
@@ -146,29 +91,18 @@ export default function TrackGoalsPage() {
   };
 
   const handleMarkComplete = async (goalId: string) => {
+    if (updatingProgress) return;
+    setUpdatingProgress(true);
     try {
-      try {
-        await api.completeGoal(goalId);
-      } catch (err) {
-        console.warn('Backend complete goal deferred:', err);
-      }
-
-      setGoals(prev => prev.map(g => g.id === goalId ? { ...g, status: 'COMPLETED', currentValue: g.targetValue || g.currentValue } : g));
-
-      const localRaw = localStorage.getItem('enako_goals_cache');
-      if (localRaw) {
-        const cached = JSON.parse(localRaw);
-        const updated = cached.map((g: any) => g.id === goalId ? { ...g, status: 'COMPLETED', currentValue: g.targetValue || g.currentValue } : g);
-        localStorage.setItem('enako_goals_cache', JSON.stringify(updated));
-      }
-
-      if (selectedGoal && selectedGoal.id === goalId) {
-        setSelectedGoal((prev: any) => ({ ...prev, status: 'COMPLETED', currentValue: prev.targetValue || prev.currentValue }));
-      }
+      const updated = await api.completeGoal(goalId);
+      setGoals(prev => prev.map(g => g.id === goalId ? updated : g));
+      setSelectedGoal(updated);
 
       toast.success('Objective marked as completed!');
     } catch (e: any) {
       toast.error(e.message || 'Failed to complete objective');
+    } finally {
+      setUpdatingProgress(false);
     }
   };
 
@@ -186,7 +120,8 @@ export default function TrackGoalsPage() {
       (statusFilter === 'COMPLETED' && (g.status === 'COMPLETED' || progress >= 100)) ||
       (statusFilter === 'ACTIVE' && g.status !== 'COMPLETED' && progress < 100);
 
-    return matchesSearch && matchesScope && matchesStatus;
+    const matchesCadence = cadenceFilter === 'ALL' || g.cadence === cadenceFilter;
+    return matchesSearch && matchesScope && matchesStatus && matchesCadence;
   });
 
   const totalCount = goals.length;
@@ -211,14 +146,15 @@ export default function TrackGoalsPage() {
             <span className="text-[#001f5b] font-bold">Track Goals</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Strategic Objectives Tracking Ledger
+            {canAssign ? 'Objectives Tracking Ledger' : 'My Objectives & Department Targets'}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Monitor real-time progress, target completion horizons, and quantitative team benchmarks.
+            {canAssign ? 'Track employee objectives and your own progress.' : 'Track your personal objectives. Department objectives are visible for reference and are read-only.'}
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <button onClick={() => setShowReport(true)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Download completed objectives</button>
           <Link
             to="/app/goals/new"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-[#001f5b] rounded-lg hover:bg-[#001744] transition-colors shadow-2xs cursor-pointer"
@@ -255,7 +191,7 @@ export default function TrackGoalsPage() {
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {/* Scope Filter */}
           <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg p-1 text-xs">
-            {(['ALL', 'COMPANY', 'DEPARTMENT', 'PERSONAL'] as const).map(sc => (
+            {(canAssign ? ['ALL', 'COMPANY', 'DEPARTMENT', 'PERSONAL'] as const : ['ALL', 'DEPARTMENT', 'PERSONAL'] as const).map(sc => (
               <button
                 key={sc}
                 onClick={() => setScopeFilter(sc)}
@@ -271,6 +207,9 @@ export default function TrackGoalsPage() {
             ))}
           </div>
 
+          <select aria-label="Objective period" value={cadenceFilter} onChange={e => setCadenceFilter(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs">
+            <option value="ALL">All periods</option><option value="DAILY">Daily</option><option value="WEEKLY">Weekly</option><option value="MONTHLY">Monthly</option>
+          </select>
           {/* Status Filter */}
           <select
             value={statusFilter}
@@ -360,7 +299,7 @@ export default function TrackGoalsPage() {
                                 goal.scope === 'DEPARTMENT' ? "bg-purple-50 text-purple-700 border-purple-200" :
                                 "bg-slate-100 text-slate-700 border-slate-200"
                               )}>
-                                {goal.scope || 'COMPANY'}
+                                {goal.scope || 'COMPANY'}{goal.cadence ? ` ? ${goal.cadence}` : ''}
                               </span>
                             </div>
                           </div>
@@ -556,13 +495,14 @@ export default function TrackGoalsPage() {
                 </div>
 
                 {/* Interactive Progress Update Box */}
-                <div className="pt-4 border-t border-slate-100 space-y-3">
+                {(canAssign || (selectedGoal.scope === 'PERSONAL' && selectedGoal.ownerId === user?.id)) && <div className="pt-4 border-t border-slate-100 space-y-3">
                   <span className="block text-slate-700 font-bold text-xs uppercase tracking-wider">
                     Log Progress Update
                   </span>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
+                      min="0"
                       placeholder={`Enter new value in ${selectedGoal.unit || 'units'}...`}
                       value={newProgressValue}
                       onChange={(e) => setNewProgressValue(e.target.value)}
@@ -582,6 +522,7 @@ export default function TrackGoalsPage() {
                     {selectedGoal.status !== 'COMPLETED' && getProgress(selectedGoal) < 100 && (
                       <button
                         onClick={() => handleMarkComplete(selectedGoal.id)}
+                        disabled={updatingProgress}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors cursor-pointer"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
@@ -589,12 +530,13 @@ export default function TrackGoalsPage() {
                       </button>
                     )}
                   </div>
-                </div>
+                </div>}
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+      <ObjectiveReportModal isOpen={showReport} onClose={() => setShowReport(false)} />
     </div>
   );
 }

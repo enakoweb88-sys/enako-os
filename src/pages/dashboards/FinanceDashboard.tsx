@@ -21,24 +21,25 @@ export function FinanceDashboard() {
   const [cashPosition, setCashPosition] = useState<any>({ chartData: [] });
   const [invoices, setInvoices] = useState<any>({ summary: {}, recent: [] });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadData = () => {
+  const loadData = async () => {
     setLoading(true);
-    Promise.all([
-      api.financeAccounts().catch(() => ({})),
-      api.budgetVariance().catch(() => []),
-      api.cashPosition().catch(() => ({ chartData: [] })),
-      api.b2bInvoices().catch(() => ({ summary: {}, recent: [] }))
-    ])
-      .then(([acc, b, cp, inv]) => {
-        setAccounts(acc || {});
-        setBanking(acc?.banking || []);
-        setBudget(b || []);
-        setCashPosition(cp || { chartData: [] });
-        setInvoices(inv || { summary: {}, recent: [] });
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    setError(null);
+    try {
+      const [acc, banks, b, cp, inv] = await Promise.all([
+        api.accountsSummary(), api.banking(), api.budget(), api.cashPosition(), api.invoicesOverview(),
+      ]);
+      setAccounts(acc || {});
+      setBanking(Array.isArray(banks) ? banks : []);
+      setBudget(Array.isArray(b) ? b : []);
+      setCashPosition({ chartData: Array.isArray(cp?.chartData) ? cp.chartData : [] });
+      setInvoices({ summary: inv?.summary || {}, recent: Array.isArray(inv?.recent) ? inv.recent : [] });
+    } catch {
+      setError('Finance data could not be loaded. Please use Refresh to try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export function FinanceDashboard() {
     <div className="space-y-6 pb-20 font-sans">
       {/* ── 1. ORGANIZATION SUMMARY CARD ── */}
       <OrganizationHeaderCard subtitle="Finance, Treasury & Liquidity Control" />
+      {error && <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{error}</div>}
 
       {/* ── 2. TOP METRIC CARDS WITH COLORED BOTTOM ACCENT ── */}
       <WorkplaceStatCards

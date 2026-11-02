@@ -4,6 +4,7 @@ import { ArrowLeft, Target, TrendingUp, Award, Layers } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { toast } from 'sonner';
+import { mealDay } from '../lib/meal-utils';
 
 const OBJECTIVE_TYPES = [
   { label: 'Financial Revenue & Margin (XAF)', value: 'Financial', defaultUnit: 'XAF' },
@@ -17,22 +18,30 @@ export default function CreateGoalPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const canAssign = ['CEO', 'MANAGER'].includes(user?.role || '');
+  const [cadence, setCadence] = useState('DAILY');
+  const [periodStart, setPeriodStart] = useState(mealDay());
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [objectiveType, setObjectiveType] = useState('Financial');
-  const [targetValue, setTargetValue] = useState('');
-  const [unit, setUnit] = useState('XAF');
-  const [dueDate, setDueDate] = useState('');
-  const [scope, setScope] = useState<'COMPANY' | 'DEPARTMENT' | 'PERSONAL'>(() => searchParams.get('scope') === 'PERSONAL' ? 'PERSONAL' : 'COMPANY');
+  const [objectiveType, setObjectiveType] = useState('Milestone');
+  const [targetValue, setTargetValue] = useState('100');
+  const [unit, setUnit] = useState('%');
+  const [scope, setScope] = useState<'COMPANY' | 'DEPARTMENT' | 'PERSONAL'>(() => canAssign && searchParams.get('scope') === 'COMPANY' ? 'COMPANY' : 'PERSONAL');
   const [departmentId, setDepartmentId] = useState('');
-  const [ownerId, setOwnerId] = useState(searchParams.get('ownerId') || user?.id || '');
+  const [ownerId, setOwnerId] = useState((canAssign ? searchParams.get('ownerId') : null) || user?.id || '');
 
   const [departments, setDepartments] = useState<any[]>([]);
   const [usersList, setUsersList] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!canAssign) {
+      setUsersList(user ? [user] : []);
+      setOwnerId(user?.id || '');
+      setScope('PERSONAL');
+      return;
+    }
     // Load departments
     api.departments()
       .then(depts => {
@@ -42,14 +51,8 @@ export default function CreateGoalPage() {
         }
       })
       .catch(() => {
-        setDepartments([
-          { id: 'dept-ops', name: 'Operations & Logistics' },
-          { id: 'dept-fin', name: 'Finance & Treasury' },
-          { id: 'dept-tech', name: 'Engineering & Tech' },
-          { id: 'dept-bd', name: 'Business Development' },
-          { id: 'dept-field', name: 'Outreach & Field' }
-        ]);
-        setDepartmentId('dept-ops');
+        setDepartments([]);
+        toast.error('Departments could not be loaded. Personal objectives are still available.');
       });
 
     // Load users for personal scope assignment
@@ -57,7 +60,7 @@ export default function CreateGoalPage() {
       try {
         const res = await api.listUsers();
         if (Array.isArray(res) && res.length > 0) {
-          setUsersList(res);
+          setUsersList(user && !res.some(u => u.id === user.id) ? [user, ...res] : res);
           return;
         }
       } catch (e) {}
@@ -65,7 +68,7 @@ export default function CreateGoalPage() {
       try {
         const empRes = await api.employees({ limit: 100 });
         if (empRes?.items && Array.isArray(empRes.items) && empRes.items.length > 0) {
-          setUsersList(empRes.items);
+          setUsersList(user && !empRes.items.some(u => u.id === user.id) ? [user, ...empRes.items] : empRes.items);
           return;
         }
       } catch (e) {}
@@ -76,7 +79,7 @@ export default function CreateGoalPage() {
     };
 
     loadUsers();
-  }, [user]);
+  }, [user, canAssign]);
 
   const handleTypeChange = (typeVal: string) => {
     setObjectiveType(typeVal);
@@ -91,6 +94,7 @@ export default function CreateGoalPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     if (!title.trim()) {
       toast.error('Please enter an objective title');
       return;
@@ -109,40 +113,14 @@ export default function CreateGoalPage() {
       targetValue: targetVal,
       currentValue: 0,
       unit: unit.trim() || undefined,
-      dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
-      scope,
+      scope: canAssign ? scope : 'PERSONAL',
+      cadence, periodStart,
       departmentId: scope === 'DEPARTMENT' ? departmentId : undefined,
-      ownerId: scope === 'PERSONAL' ? ownerId : undefined,
+      ownerId: !canAssign ? user?.id : scope === 'PERSONAL' ? ownerId || user?.id : undefined,
     };
 
     try {
-      let created = null;
-      try {
-        created = await api.createGoal(payload);
-      } catch (err) {
-        console.warn('Backend API deferred, saving to local goals cache:', err);
-      }
-
-      // Persist to local cache for instant feedback
-      const localId = created?.id || `GOAL-${Date.now()}`;
-      const newGoal = {
-        id: localId,
-        title: payload.title,
-        description: payload.description,
-        targetValue: payload.targetValue,
-        currentValue: 0,
-        unit: payload.unit,
-        dueDate: payload.dueDate,
-        scope: payload.scope,
-        status: 'ACTIVE',
-        createdAt: new Date().toISOString(),
-        department: scope === 'DEPARTMENT' ? departments.find(d => d.id === departmentId) : undefined,
-        owner: scope === 'PERSONAL' ? usersList.find(u => u.id === ownerId) || user : undefined,
-      };
-
-      const existingRaw = localStorage.getItem('enako_goals_cache');
-      const existing = existingRaw ? JSON.parse(existingRaw) : [];
-      localStorage.setItem('enako_goals_cache', JSON.stringify([newGoal, ...existing]));
+      await api.createGoal(payload);
 
       toast.success(`Objective "${payload.title}" created successfully!`);
       navigate('/app/goals/track');
@@ -170,10 +148,10 @@ export default function CreateGoalPage() {
             <span className="text-[#001f5b] font-bold">New Objective</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Define Strategic Objective & KPI
+            Set an Objective
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Establish executive milestones, department targets, and quantitative key results for corporate operations.
+            {canAssign ? 'Set your own objective or assign one to an employee or department.' : 'Set daily, weekly, and monthly personal objectives. Only managers and the CEO can assign objectives to others.'}
           </p>
         </div>
 
@@ -202,7 +180,7 @@ export default function CreateGoalPage() {
               <input
                 type="text"
                 required
-                placeholder="e.g. Achieve 150M FCFA Monthly Remittance Volume, Expand Cash Pickup Agents to 30 Hubs"
+                placeholder="e.g. Resolve deployment errors, complete API tests, or ship this week's release"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-slate-50/60 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 outline-none focus:border-[#001f5b] focus:bg-white transition-all placeholder:text-slate-400"
@@ -233,6 +211,7 @@ export default function CreateGoalPage() {
                   type="number"
                   placeholder="e.g. 50000000 or 100"
                   value={targetValue}
+                  min="0"
                   onChange={(e) => setTargetValue(e.target.value)}
                   className="w-full px-3.5 py-2 bg-slate-50/60 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 outline-none focus:border-[#001f5b] focus:bg-white"
                 />
@@ -252,16 +231,16 @@ export default function CreateGoalPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Target Due Date / Completion Horizon
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label className="text-xs font-semibold text-slate-700">Objective period
+                <select value={cadence} onChange={e => setCadence(e.target.value)} className="mt-2 block w-full rounded-lg border border-slate-200 p-2.5">
+                  <option value="DAILY">Daily</option><option value="WEEKLY">Weekly</option><option value="MONTHLY">Monthly</option>
+                </select>
               </label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full sm:w-1/3 px-3.5 py-2 bg-slate-50/60 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 outline-none focus:border-[#001f5b] focus:bg-white"
-              />
+              <label className="text-xs font-semibold text-slate-700">Date in the target period
+                <input type="date" required value={periodStart} onChange={e => setPeriodStart(e.target.value)} className="mt-2 block w-full rounded-lg border border-slate-200 p-2.5" />
+              </label>
+              <p className="text-xs text-slate-500 sm:col-span-2">Daily objectives end on the selected day. Weeks run Monday to Sunday; monthly objectives end on the last day of the selected month.</p>
             </div>
           </div>
         </div>
@@ -278,12 +257,13 @@ export default function CreateGoalPage() {
                 Governance Scope
               </label>
               <select
+                disabled={!canAssign}
                 value={scope}
                 onChange={(e) => setScope(e.target.value as any)}
                 className="w-full px-3.5 py-2.5 bg-slate-50/60 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-[#001f5b] focus:bg-white"
               >
-                <option value="COMPANY">Company-Wide (Enterprise Strategic OKR)</option>
-                <option value="DEPARTMENT">Departmental (Functional Unit Target)</option>
+                {canAssign && <option value="COMPANY">Company-Wide (Enterprise Strategic OKR)</option>}
+                {canAssign && <option value="DEPARTMENT">Departmental (Functional Unit Target)</option>}
                 <option value="PERSONAL">Individual / Operative (Personal OKR)</option>
               </select>
             </div>
@@ -313,6 +293,7 @@ export default function CreateGoalPage() {
                   Assigned Team Member / Key Owner
                 </label>
                 <select
+                  disabled={!canAssign}
                   value={ownerId}
                   onChange={(e) => setOwnerId(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-slate-50/60 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-[#001f5b] focus:bg-white"

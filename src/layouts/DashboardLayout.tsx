@@ -16,6 +16,7 @@ import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import FieldMarketerLayout from './FieldMarketerLayout';
+import { canAccessSidebarCategory, isAccountantWorkspace } from '../lib/workspace-access';
 
 interface SubNavItem {
   label: string;
@@ -91,7 +92,7 @@ function EnterpriseDashboardLayout() {
     if (userRole === 'manager') return 'manager';
     if (userRole === 'outreach_manager' || userDept.includes('outreach')) return 'outreach_manager';
     if (userRole === 'digital' || userDept.includes('digital') || userDept.includes('marketing')) return 'digital';
-    if (userRole === 'finance' || userDept.includes('finance') || userDept.includes('account')) return 'finance';
+    if (isAccountantWorkspace(user) || userRole === 'finance' || userDept.includes('finance') || userDept.includes('account')) return 'finance';
     if (userRole === 'bd' || userDept.includes('business') || userDept.includes('sales') || userDept.includes('bd')) return 'bd';
     if (userRole === 'support' || userDept.includes('support') || userDept.includes('customer')) return 'support';
     if (userRole === 'admin' || userDept.includes('admin') || userDept.includes('hr')) return 'admin';
@@ -293,7 +294,7 @@ function EnterpriseDashboardLayout() {
           title: 'EXECUTIVE OVERVIEW',
           items: [
             { label: 'Dashboard', path: '/app/dashboard', icon: LayoutDashboard, roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
-            { label: 'System Reports', path: '/app/reports', icon: FileText, roles: ['ceo', 'manager', 'finance', 'admin', 'outreach_manager'] },
+            { label: 'Reports • Submit & Track', path: '/app/reports', icon: FileText, roles: ['ceo', 'manager', 'finance', 'admin', 'outreach_manager', 'employee', 'bd', 'digital', 'support'] },
           ]
         }
       ],
@@ -550,10 +551,11 @@ function EnterpriseDashboardLayout() {
   // Filter rail categories by user role
   const accessibleCategories = useMemo(() => {
     return railCategories.filter(cat => {
+      if (!canAccessSidebarCategory(user, cat.id)) return false;
       if (cat.roles.includes(role)) return true;
       return cat.sections.some(s => s.items.some(item => item.roles.includes(role)));
     });
-  }, [railCategories, role]);
+  }, [railCategories, role, user]);
 
   // Current active category configuration
   const currentCategory = useMemo(() => {
@@ -620,7 +622,7 @@ function EnterpriseDashboardLayout() {
         const q = searchQuery.toLowerCase();
         const localMatches: any[] = [];
 
-        railCategories.forEach(cat => {
+        accessibleCategories.forEach(cat => {
           cat.sections.forEach(sec => {
             sec.items.forEach(it => {
               if (it.roles.includes(role) && it.label.toLowerCase().includes(q)) {
@@ -646,7 +648,7 @@ function EnterpriseDashboardLayout() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, railCategories, role]);
+  }, [searchQuery, accessibleCategories, role]);
 
   const handleLogout = async () => {
     await logout();

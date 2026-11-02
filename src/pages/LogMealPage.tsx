@@ -4,6 +4,7 @@ import { ArrowLeft, Lock, Clock, Calendar } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { toast } from 'sonner';
+import { mealDay } from '../lib/meal-utils';
 
 const MEAL_OPTIONS = [
   'Fried Rice',
@@ -20,11 +21,11 @@ export default function LogMealPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const userRole = (user?.role || 'EMPLOYEE').toLowerCase();
-  const isManager = userRole === 'ceo' || userRole === 'manager' || userRole === 'outreach_manager';
+  const isManager = userRole === 'ceo' || userRole === 'manager';
 
   const [employees, setEmployees] = useState<any[]>([]);
   const [employeeId, setEmployeeId] = useState(user?.id || '');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(mealDay());
   const [status, setStatus] = useState<'ATE' | 'DID_NOT_EAT'>('ATE');
   const [mealName, setMealName] = useState(MEAL_OPTIONS[0]);
   const [customMeal, setCustomMeal] = useState('');
@@ -54,6 +55,7 @@ export default function LogMealPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     const targetEmployeeId = isManager ? employeeId : (user?.id || employeeId);
     if (!targetEmployeeId) {
       toast.error('Please select an employee beneficiary');
@@ -81,28 +83,21 @@ export default function LogMealPage() {
     };
 
     try {
-      try {
-        await api.recordMeal(payload);
-      } catch (err) {
-        console.warn('Backend API deferred, saving to local meals cache:', err);
+      if (!isManager) {
+        const remote = await api.meals();
+        const cached = JSON.parse(localStorage.getItem('enako_meals_cache') || '[]');
+        const previous = [...(remote.items || []), ...cached].some(m =>
+          m.employeeId === targetEmployeeId && (m.effectiveDate || m.date || '').slice(0, 10) === date
+        );
+        if (previous) throw new Error('You already logged a meal for this date. Only a manager or the CEO can add another entry.');
       }
+
+      const savedMeal = await api.recordMeal(payload);
 
       const targetEmp = employees.find(e => e.id === targetEmployeeId) || {
         id: targetEmployeeId,
         fullName: user?.fullName || 'Staff Member',
       };
-
-      // Persist in local storage cache
-      const newMeal = {
-        id: `MEAL-${Date.now()}`,
-        ...payload,
-        createdAt: entryTimestamp,
-        employee: targetEmp
-      };
-
-      const existingRaw = localStorage.getItem('enako_meals_cache');
-      const existing = existingRaw ? JSON.parse(existingRaw) : [];
-      localStorage.setItem('enako_meals_cache', JSON.stringify([newMeal, ...existing]));
 
       // Log into unified system audit trail
       try {
@@ -119,7 +114,7 @@ export default function LogMealPage() {
           entryTimestamp,
           deltaDays,
           status: 'VERIFIED',
-          referenceId: newMeal.id,
+          referenceId: savedMeal.id,
           details: `Staff Beneficiary: ${targetEmp.fullName} • Vendor: ${vendor} • Subsidy: 1,000 FCFA`
         };
         const prevAudits = JSON.parse(localStorage.getItem('enako_system_audits') || '[]');
@@ -158,6 +153,9 @@ export default function LogMealPage() {
           </h1>
           <p className="text-xs text-slate-500 mt-1">
             Record daily catering check-ins, dietary selections, and company subsidy tracking.
+          </p>
+          <p className="text-xs text-slate-500 mt-1">
+            {isManager ? 'Managers and the CEO may add multiple entries per day and delete records from the meal ledger.' : 'One meal entry per day. Contact a manager or the CEO for corrections.'}
           </p>
         </div>
 

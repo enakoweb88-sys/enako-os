@@ -12,6 +12,7 @@ import { HeadDashboard } from './dashboards/HeadDashboard';
 import { EngineeringDashboard } from './dashboards/EngineeringDashboard';
 import OutreachOverview from './dashboards/outreach/OutreachOverview';
 import { MarketerWorkspace } from './marketer/FieldMarketerPages';
+import { isAccountantWorkspace } from '../lib/workspace-access';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -32,7 +33,7 @@ export default function Dashboard() {
     if (role === 'outreach_manager') return 'outreach';
 
     if (role === 'engineering' || dept.includes('engineering') || dept.includes('software') || dept.includes('tech') || dept.includes('developer') || dept.includes('dev')) return 'engineering';
-    if (role === 'finance' || dept.includes('finance') || dept.includes('account')) return 'finance';
+    if (isAccountantWorkspace(user) || role === 'finance' || dept.includes('finance') || dept.includes('account')) return 'finance';
     if (role === 'digital' || dept.includes('digital') || dept.includes('marketing') || dept.includes('media') || dept.includes('communication')) return 'digital';
     if (role === 'bd' || dept.includes('business') || dept.includes('sales') || dept.includes('bd')) return 'bd';
     if (role === 'support' || dept.includes('support') || dept.includes('customer') || dept.includes('help')) return 'support';

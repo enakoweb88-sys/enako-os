@@ -15,6 +15,7 @@ interface ExportLedgerModalProps<T> {
   getDateStr: (item: T) => string | undefined | null;
   getRowData: (item: T) => (string | number)[];
   orientation?: 'portrait' | 'landscape';
+  monthPicker?: boolean;
 }
 
 export default function ExportLedgerModal<T>({
@@ -27,11 +28,15 @@ export default function ExportLedgerModal<T>({
   items,
   getDateStr,
   getRowData,
-  orientation
+  orientation,
+  monthPicker = false
 }: ExportLedgerModalProps<T>) {
   const [format, setFormat] = useState<'PDF' | 'EXCEL'>('PDF');
   const [selectedRange, setSelectedRange] = useState<string>('LAST_7_DAYS');
   const [selectedPastMonth, setSelectedPastMonth] = useState<string>('MONTH_OFFSET_1');
+  const [selectedMonth, setSelectedMonth] = useState(() =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Douala', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()).slice(0, 7)
+  );
 
   const dateRangeOptions = useMemo(() => getExportDateRanges(), []);
 
@@ -40,15 +45,16 @@ export default function ExportLedgerModal<T>({
 
   // Filtered items based on range
   const filteredItems = useMemo(() => {
+    if (monthPicker) return selectedMonth ? items.filter(item => (getDateStr(item) || '').slice(0, 7) === selectedMonth) : [];
     return filterItemsByDateRange(items, getDateStr, effectiveRangeKey);
-  }, [items, getDateStr, effectiveRangeKey]);
+  }, [items, getDateStr, effectiveRangeKey, monthPicker, selectedMonth]);
 
   if (!isOpen) return null;
 
   const handleDownload = () => {
     const rows = filteredItems.map(getRowData);
     const rangeObj = dateRangeOptions.find(o => o.key === effectiveRangeKey);
-    const rangeLabel = rangeObj ? rangeObj.label : 'Export';
+    const rangeLabel = monthPicker ? selectedMonth : rangeObj ? rangeObj.label : 'Export';
     const cleanDateStr = new Date().toISOString().split('T')[0];
 
     const fileNameBase = `${defaultFileName}_${rangeLabel.replace(/[^a-zA-Z0-9]/g, '_')}_${cleanDateStr}`;
@@ -162,6 +168,12 @@ export default function ExportLedgerModal<T>({
           </div>
 
           {/* Date Range Selector */}
+          {monthPicker ? (
+            <label className="block text-xs font-semibold text-slate-700">
+              Meal records month
+              <input type="month" required value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="mt-2 block w-full rounded-md border border-slate-200 px-3 py-2" />
+            </label>
+          ) : (
           <div className="space-y-3">
             <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
               Timeframe & Date Range
@@ -267,6 +279,7 @@ export default function ExportLedgerModal<T>({
             </div>
           </div>
 
+          )}
           {/* Record Count Preview Box */}
           <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-lg flex items-center justify-between">
             <span className="text-slate-600 font-medium">Selected Ledger Records:</span>

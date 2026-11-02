@@ -28,7 +28,8 @@ const marketerPaths = [
   '/app/marketer/leads',
   '/app/marketer/territory',
   '/app/marketer/performance',
-  '/app/marketer/daily-report'
+  '/app/marketer/daily-report',
+  '/app/reports'
 ];
 
 const navigationItems = [
@@ -36,7 +37,8 @@ const navigationItems = [
   { path: '/app/marketer/leads', label: 'Leads & follow-ups', icon: ClipboardList },
   { path: '/app/marketer/territory', label: 'My territory', icon: MapPinned },
   { path: '/app/marketer/performance', label: 'My performance', icon: BarChart3 },
-  { path: '/app/marketer/daily-report', label: 'Daily report', icon: Target }
+  { path: '/app/marketer/daily-report', label: 'Daily report', icon: Target },
+  { path: '/app/reports', label: 'Reports • Submit & Track', icon: ClipboardList }
 ];
 
 export default function FieldMarketerLayout() {

@@ -11,6 +11,7 @@ import { Target, Award, CheckCircle, TrendingUp, Plus, Activity } from 'lucide-r
 export default function Goals() {
   const { user } = useAuth();
   const role = user?.role?.toLowerCase() ?? 'employee';
+  const canAssign = role === 'ceo' || role === 'manager';
 
   const [goals, setGoals] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
@@ -24,16 +25,16 @@ export default function Goals() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.goals();
+      const res = await api.goals({ limit: 1000 });
       setGoals(res);
-      if (role !== 'employee') {
+      if (canAssign) {
         const [emps, depts] = await Promise.all([api.employees({ limit: 1000 }), api.departments()]);
         setEmployees(emps.items || []);
         setDepartments(depts);
       }
     } catch (e: any) { console.error(e); }
     finally { setLoading(false); }
-  }, [role]);
+  }, [canAssign]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -89,15 +90,15 @@ export default function Goals() {
 
   return (
     <div className="space-y-6 pb-20 font-sans">
-      <OrganizationHeaderCard subtitle="Executive Overview • Strategic Goals & Company Objectives" />
+      <OrganizationHeaderCard subtitle={canAssign ? 'Objectives • Personal, Employee & Department Goals' : 'My Objectives • Personal Progress & Department Targets'} />
 
       <WorkplaceStatCards
         domainsCount={strategicGoals.length}
-        usersCount={strategicGoals.filter(g => g.scope === 'COMPANY').length}
+        usersCount={strategicGoals.filter(g => g.scope === (canAssign ? 'COMPANY' : 'DEPARTMENT')).length}
         groupsCount={completedGoals.length}
         licensesCount={`${avgProgress}%`}
         card1Label="TOTAL OBJECTIVES"
-        card2Label="COMPANY-WIDE INITIATIVES"
+        card2Label={canAssign ? 'COMPANY-WIDE INITIATIVES' : 'DEPARTMENT OBJECTIVES'}
         card3Label="COMPLETED TARGETS"
         card4Label="AVG COMPLETION RATE"
         card1Icon={<Target className="w-5 h-5" />}
@@ -110,14 +111,14 @@ export default function Goals() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-slate-200/90 rounded-lg p-5 shadow-2xs">
         <div>
           <h2 className="text-sm font-semibold text-slate-900">
-            Strategic Objectives & Key Results (OKRs)
+            {canAssign ? 'Objectives & Key Results' : 'Personal Objectives & Department Targets'}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Company and department outcomes tracked separately from employee KPIs.
+            {canAssign ? 'Create personal objectives or assign them to employees. Track daily, weekly and monthly outcomes.' : 'Set your personal objectives and track your progress. Department targets are read-only.'}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {role !== 'employee' && (
+          {(
             <Link
               to="/app/goals/new"
               className="flex items-center gap-1.5 px-4 py-2 bg-[#001f5b] hover:bg-[#001f5b]/90 text-white rounded-lg text-xs font-semibold tracking-wide transition-all shadow-2xs"
@@ -190,7 +191,7 @@ export default function Goals() {
                 <div className="text-right sm:self-center shrink-0">
                   <p className="text-lg font-bold font-mono text-slate-900">{progress}%</p>
                   <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Accomplished</p>
-                  {role !== 'employee' && <button type="button" onClick={() => { setEditingGoal(goal); setForm({ title: goal.title || '', description: goal.description || '', objectiveType: 'Quantitative', targetValue: String(goal.targetValue ?? ''), unit: goal.unit || '', dueDate: goal.dueDate ? new Date(goal.dueDate).toISOString().slice(0, 10) : '', scope: goal.scope, departmentId: goal.departmentId || '', ownerId: goal.ownerId || goal.owner?.id || '' }); setShowModal(true); }} className="mt-2 text-[11px] font-bold text-[#001f5b] hover:underline">Edit Goal</button>}
+                  {canAssign && <button type="button" onClick={() => { setEditingGoal(goal); setForm({ title: goal.title || '', description: goal.description || '', objectiveType: 'Quantitative', targetValue: String(goal.targetValue ?? ''), unit: goal.unit || '', dueDate: goal.dueDate ? new Date(goal.dueDate).toISOString().slice(0, 10) : '', scope: goal.scope, departmentId: goal.departmentId || '', ownerId: goal.ownerId || goal.owner?.id || '' }); setShowModal(true); }} className="mt-2 text-[11px] font-bold text-[#001f5b] hover:underline">Edit Goal</button>}
                 </div>
               </div>
 
