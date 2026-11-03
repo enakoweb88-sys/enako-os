@@ -11,8 +11,9 @@ import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider } from './src/lib/auth';
 import Reports from './src/pages/Reports';
+import Chat from './src/pages/Chat';
 import WorkReportViewer from './src/components/WorkReportViewer';
-import { canReviewWorkReport } from './src/lib/work-report';
+import { canReviewWorkReport, canCeoReviewReport } from './src/lib/work-report';
 for (const role of ['EMPLOYEE', 'MANAGER', 'CEO']) {
   const user = { id: 'self', role, fullName: 'Test Engineer', email: 'test@example.test' };
   Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: { getItem: key => key === 'enako_user' ? JSON.stringify(user) : null } });
@@ -49,9 +50,41 @@ for (const role of ['MANAGER', 'CEO']) {
     report: employeeReport, onClose: () => {}, onDownload: () => {}, downloading: false,
     canReview: canReviewWorkReport({ id: 'viewer', role }, employeeReport), onReview: () => {},
   }));
-  assert.equal(html.includes('Accept &amp; Forward to CEO'), role === 'MANAGER');
+  assert.equal(html.includes('Accept &amp; Forward to CEO'), false);
+  assert.ok(html.includes('Accepted - Read-only'));
+  assert.ok(!html.includes('Return for correction'));
 }
-console.log('Manager acceptance forwards to CEO; CEO staff-report view is read-only');
+console.log('Accepted reports are read-only for managers and the CEO');
+for (const route of ['/app/reports', '/app/reports/history']) {
+  const html = renderToString(React.createElement(AuthProvider, null,
+    React.createElement(MemoryRouter, { initialEntries: [route] }, React.createElement(Reports))));
+  assert.ok(html.includes('Needs attention'));
+  assert.ok(html.includes('Report history'));
+  assert.ok(html.includes(route.endsWith('/history') ? 'Report History' : 'Staff Reports Inbox'));
+}
+console.log('Separate active inbox and report history pages render');
+for (const report of [employeeReport, { ...employeeReport, status: 'SUBMITTED', userId: 'manager', user: { fullName: 'Manager', role: { name: 'MANAGER' } } }]) {
+  const html = renderToString(React.createElement(WorkReportViewer, {
+    report, onClose: () => {}, onDownload: () => {}, downloading: false,
+    canCeoReview: canCeoReviewReport({ id: 'ceo', role: 'CEO' }, report), onCeoReview: () => {},
+  }));
+  assert.ok(html.includes('Send private review'));
+  assert.ok(html.includes('Mark as complete'));
+  assert.ok(!html.includes('Return for correction'));
+  assert.ok(!html.includes('Accept &amp; Forward'));
+}
+console.log('CEO can comment privately and complete both manager and forwarded employee reports');
+for (const role of ['EMPLOYEE', 'CEO']) {
+  const user = { id: 'viewer', role, fullName: 'Viewer' };
+  Object.defineProperty(globalThis, 'sessionStorage', { configurable: true, value: { getItem: key => key === 'enako_user' ? JSON.stringify(user) : null } });
+  const html = renderToString(React.createElement(AuthProvider, null,
+    React.createElement(MemoryRouter, { initialEntries: ['/app/chat?channel=dm%3Apair'] }, React.createElement(Chat))));
+  assert.ok(html.includes('Private chat'));
+  assert.ok(html.includes('Open private conversation'));
+  assert.ok(html.includes('Write a private reply'));
+  assert.ok(html.includes('Private: '));
+}
+console.log('Employees and CEO can open private conversations and reply privately');
 `;
 const result = await build({ stdin: { contents: source, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, write: false, platform: 'node', format: 'cjs', packages: 'external', jsx: 'automatic', define: { 'import.meta.env': '{}' } });
 const filename = path.join(process.cwd(), 'report-ui-test.cjs');

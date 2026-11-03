@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -9,6 +9,8 @@ import {
   workReportPdfRows,
   workReportStatus,
   canReviewWorkReport,
+  canCeoReviewReport,
+  workReportNeedsAttention,
 } from '../lib/work-report';
 import WorkReportViewer from '../components/WorkReportViewer';
 
@@ -19,10 +21,15 @@ export default function Reports() {
   const { user } = useAuth();
   const canReview = ['CEO', 'MANAGER', 'OUTREACH_MANAGER'].includes(user?.role || '');
   const [params, setParams] = useSearchParams();
+  const historyMode = useLocation().pathname.endsWith('/reports/history');
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  useEffect(() => {
+    setStatusFilter('ALL');
+    setSearch('');
+  }, [historyMode]);
   const [creating, setCreating] = useState(params.get('new') === '1');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
@@ -259,8 +266,31 @@ export default function Reports() {
     }
   };
 
+  const ceoReview = async (comment: string, complete: boolean) => {
+    if (!viewed || reviewing) return;
+    setReviewing(true);
+    try {
+      await api.ceoReviewReport(viewed.id, { comment, complete });
+      setViewed(await api.getDailyReport(viewed.id));
+      await load();
+      toast.success(
+        complete
+          ? 'Report marked complete. Any review was sent privately to its author.'
+          : 'Review sent privately to the report author.',
+      );
+    } catch (error: any) {
+      toast.error(error.message || 'Could not save CEO review');
+    } finally {
+      setReviewing(false);
+    }
+  };
+
   const displayed = reports.filter(
     (report) =>
+      (!canReview ||
+        (historyMode
+          ? user?.role !== 'CEO' || !canCeoReviewReport(user, report)
+          : workReportNeedsAttention(user, report))) &&
       (statusFilter === 'ALL' || report.status === statusFilter) &&
       `${workReportTitle(report)} ${report.user?.fullName || ''} ${report.type}`
         .toLowerCase()
@@ -274,17 +304,21 @@ export default function Reports() {
             {creating
               ? 'Submit Work Report'
               : canReview
-                ? 'Staff Reports Inbox'
+                ? historyMode
+                  ? 'Report History'
+                  : 'Staff Reports Inbox'
                 : 'My Work Reports'}
           </h1>
           <p className="mt-1 text-xs text-slate-500">
             {creating
               ? 'Add a title, attach your documents, and submit.'
-              : user?.role === 'CEO'
-                ? 'View manager-approved staff reports and reports submitted by management.'
-                : canReview
-                  ? 'Review employee submissions. Accepting a report automatically forwards it to the CEO.'
-                  : 'Submit to your manager first. Accepted reports are automatically forwarded to the CEO.'}
+              : historyMode
+                ? 'View and download report history. Accepted reports are read-only.'
+                : user?.role === 'CEO'
+                  ? 'Read manager reports and forwarded staff reports, send private reviews, and mark them complete.'
+                  : canReview
+                    ? 'Review employee submissions. Accepting a report automatically forwards it to the CEO.'
+                    : 'Submit to your manager first. Accepted reports are automatically forwarded to the CEO.'}
           </p>
         </div>
         {!creating && (
@@ -301,6 +335,16 @@ export default function Reports() {
           </div>
         )}
       </div>
+      {canReview && !creating && (
+        <nav className="flex gap-3 text-sm" aria-label="Report navigation">
+          <Link className={!historyMode ? 'font-bold underline' : ''} to="/app/reports">
+            Needs attention
+          </Link>
+          <Link className={historyMode ? 'font-bold underline' : ''} to="/app/reports/history">
+            Report history
+          </Link>
+        </nav>
+      )}
       {creating ? (
         <form
           onSubmit={submit}
@@ -455,7 +499,9 @@ export default function Reports() {
             <p className="p-8 text-center text-sm text-slate-500">Loading reports...</p>
           ) : displayed.length === 0 ? (
             <p className="p-8 text-center text-sm text-slate-500">
-              No reports found. Submit a report to get started.
+              {canReview && !historyMode
+                ? 'No reports need your attention. Accepted reports are available in Report history.'
+                : 'No reports found.'}
             </p>
           ) : (
             displayed.map((report) => (
@@ -497,16 +543,19 @@ export default function Reports() {
                   >
                     Download
                   </button>
-                  {canReviewWorkReport(user, report) && (
-                    <button
-                      onClick={() => openReport(report.id, false)}
-                      className="rounded-lg border border-slate-200 px-3 py-2 text-xs"
-                    >
-                      Review
-                    </button>
-                  )}
-                  {report.userId === user?.id &&
+                  {!historyMode &&
+                    (canReviewWorkReport(user, report) || canCeoReviewReport(user, report)) && (
+                      <button
+                        onClick={() => openReport(report.id, false)}
+                        className="rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                      >
+                        Review
+                      </button>
+                    )}
+                  {!historyMode &&
+                    report.userId === user?.id &&
                     report.status !== 'VERIFIED' &&
+                    !report.ceoCompletedAt &&
                     (report.type === 'FIELD' ? (
                       <Link to="/app/marketer/daily-report" className="px-3 py-2 text-xs">
                         Revise field report
@@ -543,7 +592,9 @@ export default function Reports() {
           onViewDocument={(document) => showDocument(viewed, document)}
           onDownloadDocument={(document) => downloadDocument(viewed, document)}
           busyDocument={busyDocument}
-          canReview={canReviewWorkReport(user, viewed)}
+          canReview={!historyMode && canReviewWorkReport(user, viewed)}
+          canCeoReview={!historyMode && canCeoReviewReport(user, viewed)}
+          onCeoReview={ceoReview}
           acceptLabel={user?.role === 'CEO' ? 'Accept report' : 'Accept & Forward to CEO'}
           onReview={review}
           reviewing={reviewing}

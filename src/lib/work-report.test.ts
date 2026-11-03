@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { workReportTitle, workReportContent, workReportPdfRows, canReviewWorkReport, workReportStatus } from './work-report';
+import { workReportTitle, workReportContent, workReportPdfRows, canReviewWorkReport, workReportStatus, workReportNeedsAttention, canCeoReviewReport } from './work-report';
 
 test('download rows include full submitted contents, author and review feedback', () => {
   const content = 'Title: Engineering delivery\nDetails:\n' + 'Release details '.repeat(2000);
@@ -29,7 +29,31 @@ test('only managers accept employee reports; CEO can review management submissio
   assert.equal(canReviewWorkReport({ id: 'ceo', role: 'CEO' }, report), false);
   assert.equal(canReviewWorkReport({ id: 'employee', role: 'EMPLOYEE' }, report), false);
   const management = { ...report, userId: 'manager', user: { role: { name: 'MANAGER' } } };
-  assert.equal(canReviewWorkReport({ id: 'ceo', role: 'CEO' }, management), true);
+  assert.equal(canReviewWorkReport({ id: 'ceo', role: 'CEO' }, management), false);
+  assert.equal(canCeoReviewReport({ id: 'ceo', role: 'CEO' }, management), true);
   assert.equal(canReviewWorkReport({ id: 'manager', role: 'MANAGER' }, management), false);
-  assert.equal(workReportStatus(management), 'Awaiting CEO review');
+  assert.equal(workReportStatus(management), 'Awaiting CEO comment');
+});
+
+test('accepted and returned reports cannot be reviewed again', () => {
+  for (const status of ['VERIFIED', 'RETURNED', 'DRAFT']) {
+    for (const role of ['MANAGER', 'CEO']) {
+      assert.equal(canReviewWorkReport({ id: 'reviewer', role }, { userId: 'author', status, user: { role: { name: 'MANAGER' } } }), false);
+    }
+  }
+});
+
+test('active inbox excludes accepted reports and corrections awaiting the author', () => {
+  const manager = { id: 'manager', role: 'MANAGER' };
+  const report = { userId: 'employee', status: 'SUBMITTED' };
+  assert.equal(workReportNeedsAttention(manager, report), true);
+  for (const status of ['VERIFIED', 'RETURNED', 'DRAFT'])
+    assert.equal(workReportNeedsAttention(manager, { ...report, status }), false);
+  assert.equal(workReportNeedsAttention(manager, { userId: 'manager', status: 'RETURNED' }), true);
+  const ceo = { id: 'ceo', role: 'CEO' };
+  const management = { ...report, user: { role: { name: 'MANAGER' } } };
+  assert.equal(workReportNeedsAttention(ceo, management), true);
+  assert.equal(workReportNeedsAttention(ceo, { ...management, status: 'VERIFIED' }), true);
+  assert.equal(workReportNeedsAttention(ceo, { ...management, status: 'VERIFIED', ceoCompletedAt: '2026-11-03' }), false);
+  assert.equal(workReportNeedsAttention(ceo, { ...report, status: 'VERIFIED' }), true);
 });

@@ -1,6 +1,8 @@
 import { apiRequest } from './core';
 
 export const reportsApi = {
+  ceoReviewReport: (id: string, body: { comment?: string; complete?: boolean }) =>
+    apiRequest<any>(`/reports/daily/${encodeURIComponent(id)}/ceo-review`, { method: 'POST', body: JSON.stringify(body) }),
   uploadReport: (body: FormData, id?: string) => apiRequest<any>(id ? `/reports/daily/${encodeURIComponent(id)}/upload` : '/reports/daily/upload', { method: 'POST', body }, 'json', 120_000),
   reportDocument: (reportId: string, documentId: string, preview = false) => apiRequest<Blob>(`/reports/daily/${encodeURIComponent(reportId)}/documents/${encodeURIComponent(documentId)}${preview ? '?preview=1' : ''}`, {}, 'blob', 60_000),
   getDailyReport: (id: string) => apiRequest<any>(`/reports/daily/${encodeURIComponent(id)}`),

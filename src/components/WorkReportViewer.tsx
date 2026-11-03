@@ -10,6 +10,8 @@ export default function WorkReportViewer({
   onDownloadDocument,
   busyDocument,
   canReview = false,
+  canCeoReview = false,
+  onCeoReview,
   onReview,
   reviewing = false,
   acceptLabel = 'Accept & Forward to CEO',
@@ -22,12 +24,14 @@ export default function WorkReportViewer({
   onDownloadDocument?: (document: any) => void;
   busyDocument?: string | null;
   canReview?: boolean;
+  canCeoReview?: boolean;
+  onCeoReview?: (comment: string, complete: boolean) => void;
   onReview?: (status: 'VERIFIED' | 'RETURNED', comments: string) => void;
   reviewing?: boolean;
   acceptLabel?: string;
 }) {
-  const [comments, setComments] = useState(report.reviewerComments || '');
-  useEffect(() => setComments(report.reviewerComments || ''), [report.id, report.reviewerComments]);
+  const [comments, setComments] = useState('');
+  useEffect(() => setComments(''), [report.id, report.ceoComment, report.reviewerComments]);
   const documents = report.documents || [];
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4">
@@ -104,7 +108,61 @@ export default function WorkReportViewer({
               <p className="mt-1 whitespace-pre-wrap">{report.reviewerComments}</p>
             </div>
           )}
-          {canReview && (
+          {report.ceoComment && (
+            <div className="rounded-lg bg-slate-50 p-4 text-sm">
+              <b>CEO review</b>
+              <p className="whitespace-pre-wrap">{report.ceoComment}</p>
+            </div>
+          )}
+          {canCeoReview && (
+            <div className="space-y-3 border-t border-slate-200 pt-4">
+              <label className="block text-sm font-semibold">
+                Private review to {report.user?.fullName || 'the report author'}
+                <textarea
+                  aria-label="CEO private review"
+                  value={comments}
+                  onChange={(event) => setComments(event.target.value)}
+                  maxLength={10000}
+                  rows={3}
+                  className="mt-2 w-full rounded-lg border p-3 text-sm"
+                />
+              </label>
+              <p className="text-xs text-slate-500">
+                Your review is sent as a private chat message with a link to this submitted report.
+                The author can reply privately.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  disabled={reviewing || !comments.trim()}
+                  onClick={() => onCeoReview?.(comments, false)}
+                  className="rounded-lg border px-3 py-2 text-sm disabled:opacity-50"
+                >
+                  Send private review
+                </button>
+                <button
+                  disabled={reviewing}
+                  onClick={() => onCeoReview?.(comments, true)}
+                  className="rounded-lg bg-[#001f5b] px-3 py-2 text-sm text-white disabled:opacity-50"
+                >
+                  {reviewing ? 'Saving...' : 'Mark as complete'}
+                </button>
+              </div>
+            </div>
+          )}
+          {(report.status === 'VERIFIED' || report.ceoCompletedAt) && !canCeoReview && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm">
+              <button
+                disabled
+                className="rounded-lg bg-emerald-100 px-3 py-2 font-semibold text-emerald-800"
+              >
+                {report.ceoCompletedAt ? 'Completed - Read-only' : 'Accepted - Read-only'}
+              </button>
+              <p className="mt-2">
+                You can view and download this report. Further approval and forwarding are disabled.
+              </p>
+            </div>
+          )}
+          {canReview && report.status === 'SUBMITTED' && (
             <div className="space-y-3 border-t border-slate-200 pt-4">
               <label className="block text-sm font-semibold text-slate-700">
                 Review note

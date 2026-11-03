@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, PlusCircle, Hash, X, Info, UserPlus, Trash2 } from 'lucide-react';
+import { Send, PlusCircle, Hash, X, Info, UserPlus, Trash2, Lock } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { io, Socket } from 'socket.io-client';
+import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
 let socket: Socket | null = null;
@@ -19,8 +20,11 @@ function getSocket() {
 
 export default function Chat() {
   const { user } = useAuth();
+  const [params] = useSearchParams();
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [privateRecipient, setPrivateRecipient] = useState('');
   const [channels, setChannels] = useState<any[]>([]);
-  const [activeChannel, setActiveChannel] = useState('general');
+  const [activeChannel, setActiveChannel] = useState(params.get('channel') || 'general');
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +43,23 @@ export default function Chat() {
 
   const isManagerOrCeo = user?.role === 'CEO' || user?.role === 'MANAGER';
 
+  useEffect(() => {
+    const channel = params.get('channel');
+    if (channel) setActiveChannel(channel);
+  }, [params]);
+  useEffect(() => { api.privateChatContacts().then(setContacts).catch(() => {}); }, []);
+  const startPrivate = async () => {
+    if (!privateRecipient) return;
+    try {
+      const channel = await api.startPrivateChat(privateRecipient);
+      const available = await api.getChannels();
+      setChannels(available); setActiveChannel(channel.name); setShowMembers(false);
+    } catch (error: any) { toast.error(error.message || 'Could not open private chat'); }
+  };
+  const channelLabel = (channel: any) => channel?.name?.startsWith('dm:')
+    ? channel.members?.find((member: any) => member.userId !== user?.id)?.user?.fullName || 'Private conversation'
+    : channel?.name || activeChannel;
+
   const loadChannels = useCallback(async () => {
     try {
       const res = await api.getChannels();
@@ -53,6 +74,8 @@ export default function Chat() {
 
   useEffect(() => {
     loadChannels();
+    const interval = setInterval(loadChannels, 15000);
+    return () => clearInterval(interval);
   }, [loadChannels]);
 
   const loadMessages = useCallback(async (channel: string) => {
@@ -77,10 +100,21 @@ export default function Chat() {
   }, [activeChannel, loadMessages]);
 
   useEffect(() => {
+    if (!activeChannel.startsWith('dm:')) return;
+    let current = true;
+    const interval = setInterval(async () => {
+      try { const data = await api.messages(activeChannel); if (current) setMessages(data); } catch {}
+    }, 5000);
+    return () => { current = false; clearInterval(interval); };
+  }, [activeChannel]);
+
+  useEffect(() => {
+    if (activeChannel.startsWith('dm:')) return;
     const sock = getSocket();
+    sock.emit('channel:join', activeChannel);
     sock.on('message:created', (payload: any) => {
       if (payload.channel === activeChannel) {
-        setMessages(prev => [...prev, payload]);
+        setMessages(prev => prev.some(message => message.id === payload.id) ? prev : [...prev, payload]);
       } else {
         setUnreadCounts(prev => ({
           ...prev,
@@ -88,7 +122,7 @@ export default function Chat() {
         }));
       }
     });
-    return () => { sock.off('message:created'); };
+    return () => { sock.off('message:created'); sock.emit('channel:leave', activeChannel); };
   }, [activeChannel]);
 
   useEffect(() => {
@@ -176,6 +210,7 @@ export default function Chat() {
 
   const activeChannelData = channels.find(c => c.name === activeChannel);
   const isGeneral = activeChannelData?.isGeneral;
+  const isPrivate = activeChannel.startsWith('dm:');
 
   return (
     <div className="h-[calc(100vh-10rem)] flex overflow-hidden border border-outline-variant/30 rounded-2xl shadow-sm bg-white relative">
@@ -195,6 +230,22 @@ export default function Chat() {
 
         <div className="flex-1 overflow-y-auto px-3 space-y-4 scrollbar-hide pb-6">
           <div>
+            <div className="mb-4 space-y-2 px-3">
+              <label className="text-xs font-bold" htmlFor="private-recipient">Private chat</label>
+              <select id="private-recipient" className="w-full rounded border p-2 text-xs" value={privateRecipient} onChange={event => setPrivateRecipient(event.target.value)}>
+                <option value="">Choose an employee</option>
+                {contacts.map(contact => <option key={contact.id} value={contact.id}>{contact.fullName}</option>)}
+              </select>
+              <button disabled={!privateRecipient} onClick={startPrivate} className="text-xs font-semibold disabled:opacity-50">Open private conversation</button>
+              <div className="space-y-1 pt-2">
+                {channels.filter(channel => channel.name.startsWith('dm:')).map(channel => (
+                  <button key={channel.id} onClick={() => { setActiveChannel(channel.name); setShowMembers(false); }}
+                    className={cn("flex w-full items-center gap-2 rounded-lg p-2 text-left text-xs", activeChannel === channel.name && "bg-white font-bold shadow-sm")}>
+                    <Lock className="h-4 w-4 shrink-0" /><span className="truncate">{channelLabel(channel)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="flex items-center justify-between px-3 mb-2">
               <h3 className="text-[10px] font-bold text-secondary uppercase tracking-widest">Channels</h3>
               {isManagerOrCeo && (
@@ -218,7 +269,7 @@ export default function Chat() {
             )}
 
             <div className="space-y-1">
-              {channels.map(ch => (
+              {channels.filter(channel => !channel.name.startsWith('dm:')).map(ch => (
                 <button
                   key={ch.id}
                   onClick={() => { 
@@ -255,9 +306,10 @@ export default function Chat() {
         <header className="h-16 flex items-center justify-between px-6 border-b border-outline-variant/30 sticky top-0 bg-white z-10">
           <div className="flex items-center gap-3">
             <Hash className="w-5 h-5 text-primary" />
-            <h2 className="font-display text-lg font-bold">#{activeChannel}</h2>
+            <h2 className="font-display text-lg font-bold">{isPrivate ? 'Private: ' : '#'}{channelLabel(activeChannelData)}</h2>
           </div>
                 <button
+            disabled={isPrivate}
             onClick={() => setShowMembers(!showMembers)}
             className={cn("p-2 rounded-lg transition-colors", showMembers ? "bg-primary-container text-primary" : "hover:bg-surface-container-low text-secondary")}
           >
@@ -272,7 +324,7 @@ export default function Chat() {
             <div className="text-center py-12">
               <Hash className="w-12 h-12 text-outline-variant mx-auto mb-4 opacity-30" />
               <p className="text-secondary text-sm font-bold uppercase tracking-widest">No messages yet</p>
-              <p className="text-xs text-outline mt-1">Be the first to send a message in #{activeChannel}</p>
+              <p className="text-xs text-outline mt-1">{isPrivate ? 'Only you and this employee can read this conversation.' : 'Be the first to send a message.'}</p>
             </div>
           ) : messages.map((m, idx) => {
             const name = m.sender?.fullName ?? 'Unknown';
@@ -298,7 +350,12 @@ export default function Chat() {
                     'px-4 py-3 rounded-2xl text-sm leading-relaxed',
                     isMe ? 'bg-primary text-white rounded-tr-sm' : 'bg-surface-container-low text-on-surface rounded-tl-sm',
                   )}>
-                    {m.content}
+                    {m.reportReferenceId && (
+                      <Link to={`/app/reports?reportId=${encodeURIComponent(m.reportReferenceId)}`} className="mb-2 block rounded border border-current/20 p-2 text-xs underline">
+                        Review of your submitted report: {m.reportReferenceTitle || m.reportReferenceId}
+                      </Link>
+                    )}
+                    <span className="whitespace-pre-wrap">{m.content}</span>
                   </div>
                 </div>
               </div>
@@ -319,7 +376,7 @@ export default function Chat() {
                 if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
               }}
               className="flex-1 bg-transparent border-none focus:ring-0 text-sm resize-none placeholder-outline outline-none min-h-[40px] max-h-[120px]"
-              placeholder={`Message #${activeChannel}`}
+              placeholder={isPrivate ? 'Write a private reply' : `Message #${activeChannel}`}
               rows={1}
             />
             <button

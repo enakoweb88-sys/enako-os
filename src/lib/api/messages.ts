@@ -1,6 +1,8 @@
 import { apiRequest } from './core';
 
 export const messagesApi = {
+  privateChatContacts: () => apiRequest<any[]>('/private-chat/contacts'),
+  startPrivateChat: (recipientId: string) => apiRequest<any>('/private-chat', { method: 'POST', body: JSON.stringify({ recipientId }) }),
   messages: (channel = 'general') =>
     apiRequest<any[]>(`/messages?channel=${encodeURIComponent(channel)}`),
   sendMessage: (channel: string, content: string) =>

@@ -15,19 +15,40 @@ export function canReviewWorkReport(
   viewer: { id: string; role: string } | null | undefined,
   report: any,
 ) {
-  if (!viewer || report.userId === viewer.id || report.status === 'DRAFT') return false;
-  if (viewer.role === 'CEO') return ['MANAGER', 'OUTREACH_MANAGER'].includes(ownerRole(report));
+  if (
+    !viewer ||
+    report.userId === viewer.id ||
+    report.status !== 'SUBMITTED' ||
+    report.ceoCompletedAt
+  )
+    return false;
+  if (viewer.role === 'CEO') return false;
   return ['MANAGER', 'OUTREACH_MANAGER'].includes(viewer.role);
 }
 
+export function canCeoReviewReport(
+  viewer: { id: string; role: string } | null | undefined,
+  report: any,
+) {
+  return (
+    viewer?.role === 'CEO' &&
+    viewer.id !== report.userId &&
+    !report.ceoCompletedAt &&
+    (report.status === 'VERIFIED' ||
+      (report.status === 'SUBMITTED' &&
+        ['MANAGER', 'OUTREACH_MANAGER'].includes(ownerRole(report))))
+  );
+}
+
 export function workReportStatus(report: any) {
+  if (report.ceoCompletedAt) return 'Completed - Reviewed by CEO';
   if (report.status === 'DRAFT') return 'Private draft';
   if (report.status === 'RETURNED') return 'Returned for correction';
   const managementReport = ['MANAGER', 'OUTREACH_MANAGER'].includes(ownerRole(report));
   if (report.status === 'VERIFIED')
     return managementReport ? 'Accepted by CEO' : 'Accepted · Forwarded to CEO';
   if (report.status === 'SUBMITTED')
-    return managementReport ? 'Awaiting CEO review' : 'Awaiting manager review';
+    return managementReport ? 'Awaiting CEO comment' : 'Awaiting manager review';
   return report.status || 'Submitted';
 }
 
@@ -63,4 +84,15 @@ export function workReportPdfRows(report: any): string[][] {
       new Date(report.reviewedAt).toLocaleString('en-GB', { timeZone: 'Africa/Douala' }),
     ]);
   return rows;
+}
+
+export function workReportNeedsAttention(
+  viewer: { id: string; role: string } | null | undefined,
+  report: any,
+) {
+  return (
+    canCeoReviewReport(viewer, report) ||
+    canReviewWorkReport(viewer, report) ||
+    (!!viewer && report.userId === viewer.id && ['DRAFT', 'RETURNED'].includes(report.status))
+  );
 }

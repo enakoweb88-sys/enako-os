@@ -191,6 +191,7 @@ export default function App() {
             <Route path="meals/new" element={<LogMealPage />} />
             <Route path="announcements" element={<Announcements />} />
             <Route path="reports" element={<Reports />} />
+            <Route path="reports/history" element={<Reports />} />
             <Route path="subscriptions" element={<Subscriptions />} />
             <Route path="subscriptions/new" element={<CreateSubscriptionPage />} />
             <Route path="settings" element={<Settings />} />

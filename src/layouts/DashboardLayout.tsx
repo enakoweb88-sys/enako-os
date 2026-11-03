@@ -295,6 +295,7 @@ function EnterpriseDashboardLayout() {
           items: [
             { label: 'Dashboard', path: '/app/dashboard', icon: LayoutDashboard, roles: ['ceo', 'manager', 'finance', 'bd', 'digital', 'support', 'admin', 'employee', 'outreach_manager'] },
             { label: 'Reports • Submit & Track', path: '/app/reports', icon: FileText, roles: ['ceo', 'manager', 'finance', 'admin', 'outreach_manager', 'employee', 'bd', 'digital', 'support'] },
+            { label: 'Report History', path: '/app/reports/history', icon: FileText, roles: ['ceo', 'manager', 'outreach_manager'] },
           ]
         }
       ],
