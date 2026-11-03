@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:finance": "tsx --test src/lib/finance-dashboard.test.ts src/lib/workspace-access.test.ts && node scripts/test-finance-dashboard-ui.mjs",
+    "prebuild": "npm run test:finance"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

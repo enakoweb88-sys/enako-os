@@ -15,6 +15,7 @@ import {
 import { cn } from '../lib/utils';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
+import { WorkspaceErrorBoundary } from '../components/WorkspaceErrorBoundary';
 import FieldMarketerLayout from './FieldMarketerLayout';
 import { canAccessSidebarCategory, isAccountantWorkspace } from '../lib/workspace-access';
 
@@ -1428,7 +1429,9 @@ function EnterpriseDashboardLayout() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.15 }}
           >
-            <Outlet />
+            <WorkspaceErrorBoundary key={location.pathname}>
+              <Outlet />
+            </WorkspaceErrorBoundary>
           </motion.div>
         </div>
 

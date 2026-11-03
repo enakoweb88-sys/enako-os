@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import { api } from '../../lib/api';
+import { emptyFinanceDashboard, loadFinanceDashboard, treasuryBalances, type FinanceDashboardData } from '../../lib/finance-dashboard';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 
 function fmt(val: string | number | null | undefined, currency = true) {
-  const n = Number(val ?? 0);
+  const value = Number(val ?? 0);
+  const n = Number.isFinite(value) ? value : 0;
   if (currency) return `${n.toLocaleString('en-US', { maximumFractionDigits: 0 })} FCFA`;
   return n.toLocaleString();
 }
@@ -15,43 +16,33 @@ import { OrganizationHeaderCard } from '../../components/OrganizationHeaderCard'
 import { WorkplaceStatCards } from '../../components/WorkplaceStatCards';
 
 export function FinanceDashboard() {
-  const [banking, setBanking] = useState<any[]>([]);
-  const [accounts, setAccounts] = useState<any>({});
-  const [budget, setBudget] = useState<any[]>([]);
-  const [cashPosition, setCashPosition] = useState<any>({ chartData: [] });
-  const [invoices, setInvoices] = useState<any>({ summary: {}, recent: [] });
+  const [data, setData] = useState(emptyFinanceDashboard);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const loadData = async () => {
     setLoading(true);
-    setError(null);
     try {
-      const [acc, banks, b, cp, inv] = await Promise.all([
-        api.accountsSummary(), api.banking(), api.budget(), api.cashPosition(), api.invoicesOverview(),
-      ]);
-      setAccounts(acc || {});
-      setBanking(Array.isArray(banks) ? banks : []);
-      setBudget(Array.isArray(b) ? b : []);
-      setCashPosition({ chartData: Array.isArray(cp?.chartData) ? cp.chartData : [] });
-      setInvoices({ summary: inv?.summary || {}, recent: Array.isArray(inv?.recent) ? inv.recent : [] });
-    } catch {
-      setError('Finance data could not be loaded. Please use Refresh to try again.');
-    } finally {
-      setLoading(false);
-    }
+      const result = await loadFinanceDashboard(api);
+      setData(result.data);
+      const labels: Record<string, string> = { accounts: 'account summary', banking: 'bank accounts', budget: 'budgets', cashPosition: 'cash position', invoices: 'invoices' };
+      setError(result.failed.length ? `Could not load: ${result.failed.map(key => labels[key]).join(', ')}. Use Refresh to try again.` : null);
+    } catch { setError('Finance data could not be loaded. Please use Refresh to try again.'); }
+    finally { setLoading(false); }
   };
+  useEffect(() => { void loadData(); }, []);
+  return <FinanceDashboardView data={data} loading={loading} error={error} onRefresh={loadData} />;
+}
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  if (loading) return <div className="text-slate-500 text-xs font-bold uppercase tracking-wider py-8">Loading Treasury & Finance Controller Hub...</div>;
-
+export function FinanceDashboardView({ data, loading = false, error = null, onRefresh }: {
+  data: FinanceDashboardData; loading?: boolean; error?: string | null; onRefresh: () => void;
+}) {
+  const { banking, accounts, budget, cashPosition, invoices } = data;
+  const reserves = treasuryBalances(banking);
   return (
     <div className="space-y-6 pb-20 font-sans">
       {/* ── 1. ORGANIZATION SUMMARY CARD ── */}
       <OrganizationHeaderCard subtitle="Finance, Treasury & Liquidity Control" />
+      {loading && <p role="status" className="text-sm text-slate-500">Loading finance dashboard...</p>}
       {error && <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{error}</div>}
 
       {/* ── 2. TOP METRIC CARDS WITH COLORED BOTTOM ACCENT ── */}
@@ -75,7 +66,8 @@ export function FinanceDashboard() {
           Reconcile Floats
         </button>
         <button 
-          onClick={loadData} 
+          onClick={onRefresh}
+          disabled={loading}
           className="px-4 py-2.5 border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
         >
           Refresh
@@ -121,7 +113,7 @@ export function FinanceDashboard() {
                 ))}
                 <tr className="bg-slate-50 font-bold">
                   <td colSpan={3} className="px-4 py-3 text-xs font-bold text-slate-900 text-right uppercase tracking-wider">Total Treasury Reserve</td>
-                  <td className="px-4 py-3 text-sm font-mono text-slate-900 font-bold text-right border-t border-slate-200">{fmt(totalBankBalance, true)}</td>
+                  <td className="px-4 py-3 text-sm font-mono text-slate-900 font-bold text-right border-t border-slate-200">{reserves.length ? reserves.map(([currency, amount]) => `${fmt(amount, false)} ${currency === 'XAF' ? 'FCFA' : currency}`).join(' / ') : 'No account balances available'}</td>
                 </tr>
               </tbody>
             </table>
@@ -140,7 +132,7 @@ export function FinanceDashboard() {
           <div className="space-y-3">
             {budget.map((b: any, i) => {
               const variance = b.budget - b.actual;
-              const percent = Math.min((b.actual / b.budget) * 100, 100);
+              const percent = Number(b.budget) > 0 ? Math.max(0, Math.min((Number(b.actual) / Number(b.budget)) * 100, 100)) : 0;
               const overBudget = variance < 0;
               return (
                 <div key={i} className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
