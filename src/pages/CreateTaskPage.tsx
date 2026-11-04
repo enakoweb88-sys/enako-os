@@ -25,7 +25,7 @@ export default function CreateTaskPage() {
   const [priority, setPriority] = useState('NORMAL');
   const [department, setDepartment] = useState(DEPARTMENTS[0]);
   const [dueDate, setDueDate] = useState('');
-  const [assigneeId, setAssigneeId] = useState(user?.id || '');
+  const [assigneeId, setAssigneeId] = useState(canAssign ? '' : user?.id || '');
   const [usersList, setUsersList] = useState<any[]>([]);
   const [status, setStatus] = useState('TODO');
   const [submitting, setSubmitting] = useState(false);
@@ -37,8 +37,8 @@ export default function CreateTaskPage() {
       try {
         const res = await api.listUsers();
         if (Array.isArray(res) && res.length > 0) {
-          setUsersList(user && !res.some(u => u.id === user.id) ? [user, ...res] : res);
-          if (!assigneeId && user?.id) setAssigneeId(user.id);
+          setUsersList(user && !res.filter(u => !u.status || u.status === 'ACTIVE').some(u => u.id === user.id) ? [user, ...res.filter(u => !u.status || u.status === 'ACTIVE')] : res.filter(u => !u.status || u.status === 'ACTIVE'));
+
           return;
         }
       } catch (err) {
@@ -48,8 +48,8 @@ export default function CreateTaskPage() {
       try {
         const empRes = await api.employees({ limit: 100 });
         if (empRes?.items && Array.isArray(empRes.items) && empRes.items.length > 0) {
-          setUsersList(user && !empRes.items.some(u => u.id === user.id) ? [user, ...empRes.items] : empRes.items);
-          if (!assigneeId && user?.id) setAssigneeId(user.id);
+          setUsersList(user && !empRes.items.some(u => u.id === user.id) ? [user, ...empRes.items.filter(u => !u.status || u.status === 'ACTIVE')] : empRes.items.filter(u => !u.status || u.status === 'ACTIVE'));
+
           return;
         }
       } catch (empErr) {
@@ -57,7 +57,7 @@ export default function CreateTaskPage() {
       }
 
       setUsersList(user ? [user] : []);
-      if (!assigneeId && user?.id) setAssigneeId(user.id);
+
     };
 
     loadAssignees();
@@ -71,6 +71,7 @@ export default function CreateTaskPage() {
       return;
     }
 
+    if (canAssign && !assigneeId) { toast.error('Select the employee who should receive this task, or select yourself for a private task.'); return; }
     setSubmitting(true);
 
     const payload = {
@@ -79,7 +80,7 @@ export default function CreateTaskPage() {
       priority,
       department,
       dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
-      assigneeId: canAssign ? assigneeId || user?.id : user?.id,
+      assigneeId: canAssign ? assigneeId : user?.id,
       status,
     };
 
@@ -215,6 +216,7 @@ export default function CreateTaskPage() {
                 onChange={(e) => setAssigneeId(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-slate-50/60 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-[#001f5b] focus:bg-white"
               >
+                {canAssign && <option value="">Select an employee (or yourself for a private task)</option>}
                 {usersList.map((u) => {
                   const roleStr = typeof u.role === 'object' ? u.role?.name : (u.role || 'Staff');
                   return (

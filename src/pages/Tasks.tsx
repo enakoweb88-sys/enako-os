@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Plus, 
@@ -20,27 +20,37 @@ import { toast } from 'sonner';
 
 export default function Tasks() {
   const { user } = useAuth();
+  const [params] = useSearchParams();
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('ALL');
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true);
     try {
       setTasks(await api.tasks());
     } catch (e) {
       console.error(e);
       toast.error('Failed to load tasks');
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    load();
+    void load();
+    const refresh = () => { void load(true); };
+    const timer = window.setInterval(refresh, 15000);
+    window.addEventListener('focus', refresh);
+    return () => { window.clearInterval(timer); window.removeEventListener('focus', refresh); };
   }, [load]);
+
+  useEffect(() => {
+    const taskId = params.get('taskId');
+    if (taskId) { const task = tasks.find(item => item.id === taskId); if (task) setSelectedTask(task); }
+  }, [tasks, params]);
 
   const handleUpdateStatus = async (taskId: string, status: string) => {
     try {
@@ -113,7 +123,7 @@ export default function Tasks() {
             Create Task
           </Link>
           <button
-            onClick={load}
+            onClick={() => load()}
             disabled={loading}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200/90 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
           >

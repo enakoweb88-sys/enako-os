@@ -20,7 +20,10 @@ function getSocket() {
 
 export default function Chat() {
   const { user } = useAuth();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
+  const [openingPrivate, setOpeningPrivate] = useState(false);
+  const privateOpenRequest = useRef(0);
+  const messageRequest = useRef(0);
   const [contacts, setContacts] = useState<any[]>([]);
   const [privateRecipient, setPrivateRecipient] = useState('');
   const [channels, setChannels] = useState<any[]>([]);
@@ -48,13 +51,21 @@ export default function Chat() {
     if (channel) setActiveChannel(channel);
   }, [params]);
   useEffect(() => { api.privateChatContacts().then(setContacts).catch(() => {}); }, []);
-  const startPrivate = async () => {
-    if (!privateRecipient) return;
+  const startPrivate = async (recipientId = privateRecipient) => {
+    if (!recipientId) return;
+    const request = ++privateOpenRequest.current;
+    setPrivateRecipient(recipientId); setOpeningPrivate(true);
     try {
-      const channel = await api.startPrivateChat(privateRecipient);
-      const available = await api.getChannels();
-      setChannels(available); setActiveChannel(channel.name); setShowMembers(false);
+      const channel = await api.startPrivateChat(recipientId);
+      if (request !== privateOpenRequest.current) return;
+      setChannels(previous => [...previous.filter(item => item.name !== channel.name), channel]);
+      ++messageRequest.current;
+      setMessages([]); setLoading(true);
+      setActiveChannel(channel.name); setShowMembers(false);
+      setParams({ channel: channel.name });
+      if (channel.name === activeChannel) await loadMessages(channel.name);
     } catch (error: any) { toast.error(error.message || 'Could not open private chat'); }
+    finally { if (request === privateOpenRequest.current) setOpeningPrivate(false); }
   };
   const channelLabel = (channel: any) => channel?.name?.startsWith('dm:')
     ? channel.members?.find((member: any) => member.userId !== user?.id)?.user?.fullName || 'Private conversation'
@@ -64,7 +75,7 @@ export default function Chat() {
     try {
       const res = await api.getChannels();
       setChannels(res);
-      if (!res.find((c: any) => c.name === activeChannel) && res.length > 0) {
+      if (!activeChannel.startsWith('dm:') && !res.find((c: any) => c.name === activeChannel) && res.length > 0) {
         setActiveChannel(res[0].name);
       }
     } catch (e) {
@@ -79,15 +90,16 @@ export default function Chat() {
   }, [loadChannels]);
 
   const loadMessages = useCallback(async (channel: string) => {
+    const request = ++messageRequest.current;
     setLoading(true);
     try {
       const res = await api.messages(channel);
-      setMessages(res);
+      if (request === messageRequest.current) setMessages(res);
     } catch (e: any) {
       console.error(e);
-      setMessages([]);
+      if (request === messageRequest.current) setMessages([]);
     }
-    finally { setLoading(false); }
+    finally { if (request === messageRequest.current) setLoading(false); }
   }, []);
 
   useEffect(() => {
@@ -232,11 +244,11 @@ export default function Chat() {
           <div>
             <div className="mb-4 space-y-2 px-3">
               <label className="text-xs font-bold" htmlFor="private-recipient">Private chat</label>
-              <select id="private-recipient" className="w-full rounded border p-2 text-xs" value={privateRecipient} onChange={event => setPrivateRecipient(event.target.value)}>
+              <select id="private-recipient" className="w-full rounded border p-2 text-xs" value={privateRecipient} onChange={event => { setPrivateRecipient(event.target.value); void startPrivate(event.target.value); }}>
                 <option value="">Choose an employee</option>
                 {contacts.map(contact => <option key={contact.id} value={contact.id}>{contact.fullName}</option>)}
               </select>
-              <button disabled={!privateRecipient} onClick={startPrivate} className="text-xs font-semibold disabled:opacity-50">Open private conversation</button>
+              <button disabled={!privateRecipient || openingPrivate} onClick={() => startPrivate()} className="text-xs font-semibold disabled:opacity-50">{openingPrivate ? 'Opening private conversation...' : 'Open private conversation'}</button>
               <div className="space-y-1 pt-2">
                 {channels.filter(channel => channel.name.startsWith('dm:')).map(channel => (
                   <button key={channel.id} onClick={() => { setActiveChannel(channel.name); setShowMembers(false); }}

@@ -35,7 +35,10 @@ export function EngineeringDashboard() {
   };
 
   useEffect(() => {
-    loadData();
+    void loadData();
+    const timer = window.setInterval(loadData, 15000);
+    window.addEventListener('focus', loadData);
+    return () => { window.clearInterval(timer); window.removeEventListener('focus', loadData); };
   }, []);
 
   if (loading) {
