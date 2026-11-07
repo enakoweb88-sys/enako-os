@@ -28,10 +28,10 @@ export function AdminDashboard() {
   if (loading) return <div className="text-slate-500 text-sm animate-pulse p-8">Loading HR & People Management Command Center…</div>;
 
   const hrStats = [
-    { label: 'Total Active Staff', value: overview?.totalStaff || 142, sub: `${overview?.presentToday || 128} Present Today` },
-    { label: 'Employee Retention Rate', value: overview?.employeeRetention || '96.8%', sub: 'Target: >95%' },
-    { label: 'Onboarding Completion', value: overview?.onboardingCompletion || '94.2%', sub: 'New Hire Pipeline' },
-    { label: 'Performance Review Rate', value: overview?.performanceReviewCompletion || '92.0%', sub: 'Q3 Evaluations Complete' },
+    { label: 'Total Active Staff', value: overview?.totalStaff ?? 0, sub: `${overview?.presentToday ?? 'Unavailable'} Present Today` },
+    { label: 'Employee Retention Rate', value: overview?.employeeRetention ?? 'Unavailable', sub: 'Target: >95%' },
+    { label: 'Onboarding Completion', value: overview?.onboardingCompletion ?? 'Unavailable', sub: 'New Hire Pipeline' },
+    { label: 'Performance Review Rate', value: overview?.performanceReviewCompletion ?? 'Unavailable', sub: 'Q3 Evaluations Complete' },
   ];
 
   return (

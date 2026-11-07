@@ -23,6 +23,7 @@ export function CEODashboard() {
   useEffect(() => {
     fetchDashboardData({
       overview: () => api.overview(),
+      transactions: params => api.transactions(params),
       healthScore: () => api.healthScore(),
       outreachStats: () => outreachAPI.getStats(),
     });

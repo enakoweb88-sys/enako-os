@@ -1,3 +1,4 @@
+import { usePrivateKycDocument, downloadPrivateKyc } from '../lib/private-documents';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
@@ -25,25 +26,7 @@ const isPdfUrl = (doc: any) => {
   return /\.pdf$/.test(url);
 };
 
-const handleDownload = async (doc: any) => {
-  if (!doc.fileUrl) return;
-  try {
-    const url = getFileUrl(doc.fileUrl);
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Download failed');
-    const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = doc.fileName || 'document';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-  } catch {
-    window.open(getFileUrl(doc.fileUrl), '_blank');
-  }
-};
+const handleDownload = downloadPrivateKyc;
 
 export default function KYC() {
   const { user } = useAuth();
@@ -56,6 +39,7 @@ export default function KYC() {
   const [statusFilter, setStatusFilter] = useState('');
   const [selected, setSelected] = useState<any>(null);
   const [activeDocument, setActiveDocument] = useState<any>(null);
+  const { url: previewUrl, error: documentError } = usePrivateKycDocument(activeDocument);
   const [reviewForm, setReviewForm] = useState({ status: '', rejectionReason: '' });
   const [submitting, setSubmitting] = useState(false);
 
@@ -452,7 +436,7 @@ export default function KYC() {
                       
                       {/* Inline Viewer */}
                       <div className="flex-1 p-6 flex flex-col items-center justify-center relative overflow-hidden bg-slate-50">
-                        {activeDocument ? (
+                        {documentError ? <p role="alert" className="text-sm text-red-700">{documentError}</p> : activeDocument ? (
                           !activeDocument.fileUrl ? (
                             /* No file URL — metadata-only record */
                             <div className="text-center space-y-4">
@@ -480,7 +464,7 @@ export default function KYC() {
                                 {isImageUrl(activeDocument) ? (
                                   <>
                                   <img
-                                    src={getFileUrl(activeDocument.fileUrl)}
+                                    src={previewUrl || undefined}
                                     alt={activeDocument.documentType}
                                     className="max-w-full max-h-full object-contain rounded-lg shadow-sm border border-slate-200"
                                     onError={(e) => {
@@ -496,7 +480,7 @@ export default function KYC() {
                                   </div>
                                   </>
                                 ) : isPdfUrl(activeDocument) ? (
-                                  <iframe src={getFileUrl(activeDocument.fileUrl)} className="w-full h-full rounded-lg border-none" title={activeDocument.fileName} />
+                                  <iframe src={previewUrl || undefined} className="w-full h-full rounded-lg border-none" title={activeDocument.fileName} />
                                 ) : (
                                   <div className="text-center space-y-4">
                                     <p className="text-sm font-medium text-slate-500">Preview not available for this file type.</p>

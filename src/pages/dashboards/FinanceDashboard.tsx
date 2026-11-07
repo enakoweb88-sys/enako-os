@@ -50,7 +50,7 @@ export function FinanceDashboardView({ data, loading = false, error = null, onRe
         card1Label="TOTAL ASSETS"
         domainsCount={fmt(accounts.assets || 0)}
         card2Label="SETTLEMENT RATE"
-        usersCount={accounts.settlementAccuracy || '99.9%'}
+        usersCount={accounts.settlementAccuracy ?? 'Unavailable'}
         card3Label="YTD REVENUE"
         groupsCount={fmt(accounts.revenueYtd || 0)}
         card4Label="NET PROFIT"
@@ -84,7 +84,7 @@ export function FinanceDashboardView({ data, loading = false, error = null, onRe
               Mobile Money Floats & Bank Accounts
             </h3>
             <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded text-[10px] font-bold uppercase tracking-wider">
-              Reconciliation: {accounts.reconciliationRate || '99.98%'}
+              Reconciliation: {accounts.reconciliationRate ?? 'Unavailable'}
             </span>
           </div>
 

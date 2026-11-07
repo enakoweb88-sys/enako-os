@@ -1,4 +1,5 @@
 import { clearSession, getStoredUser, storeSession } from '../lib/api';
+import { API_BASE_URL, getAccessToken as sessionAccessToken } from '../lib/api/core';
 
 export type { AuthUser } from '../lib/api';
 
@@ -7,10 +8,9 @@ export async function login(
   password: string,
   role: 'CEO' | 'MANAGER' | 'EMPLOYEE',
 ) {
-  const defaultHost = window.location.hostname.replace(/^(www\.|app\.|os\.|client\.|dashboard\.)/, '');
-  const API_BASE = (import.meta.env.VITE_API_URL as string) ?? (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'https://api.enakoos.com/api/v1' : `https://api.${defaultHost}/api/v1`);
-  const res = await fetch(`${API_BASE}/auth/login`, {
+  const res = await fetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
+    credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, role }),
   });
@@ -39,7 +39,7 @@ export function logout(): void {
 export { getStoredUser } from '../lib/api';
 
 export function getAccessToken(): string | null {
-  return localStorage.getItem('enako_access_token');
+  return sessionAccessToken();
 }
 
 export function isAuthenticated(): boolean {

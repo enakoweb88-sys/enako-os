@@ -1,3 +1,4 @@
+import { usePrivateKycDocument, downloadPrivateKyc } from '../../lib/private-documents';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '../../lib/utils';
@@ -25,25 +26,7 @@ const isPdfUrl = (doc: any) => {
   return /\.pdf$/.test(url);
 };
 
-const handleDownload = async (doc: any) => {
-  if (!doc?.fileUrl) return;
-  try {
-    const url = getFileUrl(doc.fileUrl);
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Download failed');
-    const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = doc.fileName || 'kyc-document';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-  } catch {
-    window.open(getFileUrl(doc.fileUrl), '_blank');
-  }
-};
+const handleDownload = downloadPrivateKyc;
 
 export default function KycPendingPage() {
   const { user } = useAuth();
@@ -55,6 +38,7 @@ export default function KycPendingPage() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<any>(null);
   const [activeDocument, setActiveDocument] = useState<any>(null);
+  const { url: previewUrl, error: documentError } = usePrivateKycDocument(activeDocument);
   const [reviewForm, setReviewForm] = useState({ status: '', rejectionReason: '' });
   const [submitting, setSubmitting] = useState(false);
 
@@ -574,7 +558,7 @@ export default function KycPendingPage() {
 
                   {/* Viewer Body: Generous Size */}
                   <div className="w-full min-h-[550px] p-4 flex items-center justify-center bg-slate-100/90">
-                    {activeDocument ? (
+                    {documentError ? <p role="alert" className="text-sm text-red-700">{documentError}</p> : activeDocument ? (
                       !activeDocument.fileUrl ? (
                         <div className="text-center p-8 bg-white rounded-lg border border-amber-200 max-w-md shadow-xs">
                           <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">
@@ -587,7 +571,7 @@ export default function KycPendingPage() {
                       ) : isImageUrl(activeDocument) ? (
                         <div className="w-full flex flex-col items-center justify-center">
                           <img
-                            src={getFileUrl(activeDocument.fileUrl)}
+                            src={previewUrl || undefined}
                             alt={activeDocument.documentType || 'KYC Document'}
                             className="w-auto max-w-full max-h-[750px] object-contain rounded-lg shadow-md border border-slate-200/90 bg-white"
                             onError={(e) => {
@@ -615,7 +599,7 @@ export default function KycPendingPage() {
                         </div>
                       ) : isPdfUrl(activeDocument) ? (
                         <iframe
-                          src={getFileUrl(activeDocument.fileUrl)}
+                          src={previewUrl || undefined}
                           className="w-full h-[750px] rounded-lg border border-slate-200 bg-white shadow-sm"
                           title={activeDocument.fileName || 'KYC Document PDF'}
                         />

@@ -24,11 +24,11 @@ export function DigitalDashboard() {
   const loadData = () => {
     setLoading(true);
     Promise.all([
-      api.digitalCalendar().catch(() => ({ dailyCounts: [], summary: {} })),
+      api.contentCalendar().catch(() => ({ dailyCounts: [], summary: {} })),
       api.socialPerformance().catch(() => []),
-      api.adSpendChart().catch(() => ({ chartData: [] })),
-      api.websiteTraffic().catch(() => ({})),
-      api.contentPipelineTasks().catch(() => ({}))
+      api.adsPerformance().catch(() => ({ chartData: [] })),
+      api.websiteOverview().catch(() => ({})),
+      api.contentTasks().catch(() => ({}))
     ])
       .then(([cal, soc, adData, web, pipe]) => {
         setCalendar(cal);

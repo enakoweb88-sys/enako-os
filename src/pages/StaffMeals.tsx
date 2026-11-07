@@ -38,24 +38,8 @@ export default function StaffMeals() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      let remoteMeals: any = { items: [], totals: null };
-      try {
-        remoteMeals = await api.meals();
-      } catch (err) {
-        toast.error('Could not load saved meals. Please refresh before relying on these totals.');
-      }
-
-      // Merge local storage cached meals
-      const localRaw = localStorage.getItem('enako_meals_cache');
-      const cached: any[] = localRaw ? JSON.parse(localRaw) : [];
-      const localMeals = reconcileMealCache(remoteMeals?.items || [], cached);
-      localStorage.setItem('enako_meals_cache', JSON.stringify(localMeals));
-
-      const combinedMap = new Map<string, any>();
-      (remoteMeals?.items || []).forEach((m: any) => combinedMap.set(m.id, m));
-      localMeals.forEach(m => combinedMap.set(m.id, m));
-
-      const merged = Array.from(combinedMap.values()).filter(m => role !== 'employee' || m.employeeId === user?.id);
+      const remoteMeals = await api.meals();
+      const merged = remoteMeals.items;
       // Sort newest first
       merged.sort((a, b) => new Date(b.date || b.createdAt || 0).getTime() - new Date(a.date || a.createdAt || 0).getTime());
       setItems(merged);
@@ -71,9 +55,7 @@ export default function StaffMeals() {
     if (!window.confirm(`Delete this meal entry for ${meal.employee?.fullName || 'this employee'} on ${mealDate(meal)}?`)) return;
     setDeletingId(meal.id);
     try {
-      if (!meal.id.startsWith('MEAL-')) await api.deleteMeal(meal.id);
-      const cached = JSON.parse(localStorage.getItem('enako_meals_cache') || '[]');
-      localStorage.setItem('enako_meals_cache', JSON.stringify(cached.filter(m => m.id !== meal.id)));
+      await api.deleteMeal(meal.id);
       toast.success('Meal entry deleted');
       await load();
     } catch (error: any) {
@@ -96,7 +78,7 @@ export default function StaffMeals() {
       setDisputeId(null);
       setDisputeReason('');
       load();
-    } catch (e: any) {
+    } catch (e: any) {/*  */
       toast.error(e.message || 'Failed to submit dispute');
     }
   };

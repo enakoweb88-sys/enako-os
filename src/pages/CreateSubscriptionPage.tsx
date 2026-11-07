@@ -102,13 +102,14 @@ export default function CreateSubscriptionPage() {
       try {
         const formData = new FormData();
         formData.append('file', receiptFile);
-        const uploadRes = await apiRequest<{ url: string }>('/upload', {
+        const uploadRes = await apiRequest<{ url: string }>('/files/upload', {
           method: 'POST',
           body: formData,
         });
         finalReceiptUrl = uploadRes.url;
       } catch (err: any) {
-        console.warn('Receipt upload deferred, continuing without attachment');
+        toast.error('Receipt upload failed; subscription was not saved');
+        setSubmitting(false); return;
       }
     }
 
@@ -129,21 +130,7 @@ export default function CreateSubscriptionPage() {
     };
 
     try {
-      try {
-        await api.createSubscription(payload);
-      } catch (err) {
-        console.warn('Backend API deferred, saving to local cache:', err);
-      }
-
-      // Save to local cache
-      const newSub = {
-        id: `SUB-${Date.now()}`,
-        ...payload,
-        createdAt: new Date().toISOString(),
-      };
-      const existingRaw = localStorage.getItem('enako_subscriptions');
-      const existing = existingRaw ? JSON.parse(existingRaw) : [];
-      localStorage.setItem('enako_subscriptions', JSON.stringify([newSub, ...existing]));
+      await api.createSubscription(payload);
 
       toast.success(`${payload.name} subscription logged successfully!`);
       navigate('/app/subscriptions');

@@ -85,43 +85,14 @@ export default function LogMealPage() {
     try {
       if (!isManager) {
         const remote = await api.meals();
-        const cached = JSON.parse(localStorage.getItem('enako_meals_cache') || '[]');
-        const previous = [...(remote.items || []), ...cached].some(m =>
+
+        const previous = (remote.items || []).some(m =>
           m.employeeId === targetEmployeeId && (m.effectiveDate || m.date || '').slice(0, 10) === date
         );
         if (previous) throw new Error('You already logged a meal for this date. Only a manager or the CEO can add another entry.');
       }
 
       const savedMeal = await api.recordMeal(payload);
-
-      const targetEmp = employees.find(e => e.id === targetEmployeeId) || {
-        id: targetEmployeeId,
-        fullName: user?.fullName || 'Staff Member',
-      };
-
-      // Log into unified system audit trail
-      try {
-        const deltaDays = Math.round(
-          (new Date(entryTimestamp).getTime() - new Date(date).getTime()) / (1000 * 3600 * 24)
-        );
-        const auditRecord = {
-          id: `AUD-MEAL-${Date.now()}`,
-          module: 'Staff Meals',
-          event: `Meal Check-in: ${status === 'ATE' ? finalMealName : 'Did Not Eat'}`,
-          actor: user?.fullName || 'Staff Member',
-          actorRole: user?.role || 'Employee',
-          effectiveDate: date,
-          entryTimestamp,
-          deltaDays,
-          status: 'VERIFIED',
-          referenceId: savedMeal.id,
-          details: `Staff Beneficiary: ${targetEmp.fullName} • Vendor: ${vendor} • Subsidy: 1,000 FCFA`
-        };
-        const prevAudits = JSON.parse(localStorage.getItem('enako_system_audits') || '[]');
-        localStorage.setItem('enako_system_audits', JSON.stringify([auditRecord, ...prevAudits]));
-      } catch (auditErr) {
-        console.warn('Audit record warning:', auditErr);
-      }
 
       toast.success('Staff meal entry recorded successfully!');
       navigate('/app/meals');

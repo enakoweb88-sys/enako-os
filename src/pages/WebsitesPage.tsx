@@ -39,7 +39,7 @@ interface PlatformConfig {
   slug: string;
   category: string;
   url: string;
-  status: 'Operational' | 'Degraded' | 'Maintenance';
+  status: 'Unverified' | 'Degraded' | 'Maintenance' | 'Unverified';
   uptime: string;
   sslStatus: string;
   stack: string;
@@ -53,9 +53,9 @@ const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
     slug: 'main',
     category: 'Corporate & FinTech Portal',
     url: 'https://enako.com',
-    status: 'Operational',
-    uptime: '99.99%',
-    sslStatus: 'TLS 1.3 • Active',
+    status: 'Unverified',
+    uptime: 'Unavailable',
+    sslStatus: 'Not verified',
     stack: 'React 19 • Vite • Cloudflare Edge • Tailwind',
     description: 'Central customer-facing corporate portal, enterprise service overview, leadership profile, and high-frequency banking login gateway.'
   },
@@ -65,9 +65,9 @@ const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
     slug: 'outreach',
     category: 'Philanthropy & CSR Campaigns',
     url: 'https://outreach.enakoos.com',
-    status: 'Operational',
-    uptime: '99.98%',
-    sslStatus: 'TLS 1.3 • Active',
+    status: 'Unverified',
+    uptime: 'Unavailable',
+    sslStatus: 'Not verified',
     stack: 'React 19 • Headless CMS • Cloudflare CDN',
     description: 'Official corporate philanthropy hub. Showcases youth educational scholarships, community clean water drives, NGO grants, and public donation collection.'
   },
@@ -77,23 +77,11 @@ const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
     slug: 'kyc',
     category: 'Identity & Biometric Gateway',
     url: 'https://kyc.enakoos.com',
-    status: 'Operational',
-    uptime: '100.0%',
-    sslStatus: 'TLS 1.3 • Hardware HSM Enforced',
+    status: 'Unverified',
+    uptime: 'Unavailable',
+    sslStatus: 'Not verified',
     stack: 'Encrypted Microservice • WebAssembly OCR • Supabase',
     description: 'High-security customer and vendor identification platform. Implements COBAC & OHADA identity compliance with national CNI, Passport OCR, and facial liveness.'
-  },
-  cash: {
-    id: 'cash',
-    name: 'Cash Collection Website & Field Portal',
-    slug: 'cash',
-    category: 'Agent POS & Field Logistics',
-    url: 'https://cash.enakoos.com',
-    status: 'Operational',
-    uptime: '99.97%',
-    sslStatus: 'TLS 1.3 • Token Geowhitelist',
-    stack: 'Mobile PWA • WebSockets • Offline SQLite Sync',
-    description: 'Field agent dispatch & physical cash intake gateway. Real-time GPS geofencing, QR voucher issuance, vault deposits, and armored carrier logistics reconciliation.'
   },
   apis: {
     id: 'apis',
@@ -101,9 +89,9 @@ const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
     slug: 'apis',
     category: 'REST Core & Webhook Engine',
     url: 'https://api.enakoos.com',
-    status: 'Operational',
-    uptime: '100.0%',
-    sslStatus: 'TLS 1.3 • Mutual TLS / HMAC-SHA256',
+    status: 'Unverified',
+    uptime: 'Unavailable',
+    sslStatus: 'Not verified',
     stack: 'Node.js / Express • PostgreSQL • Redis • JSON REST',
     description: 'High-throughput core API gateway powering all desktop, mobile, and third-party financial integrations. Handles authentication, transactions, ledgers, and webhooks.'
   }
@@ -117,7 +105,7 @@ export default function WebsitesPage() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [measuredLatency, setMeasuredLatency] = useState<number>(34);
+  const [measuredLatency, setMeasuredLatency] = useState<number>(0);
   const [selectedItemDetail, setSelectedItemDetail] = useState<any | null>(null);
 
   // Real backend states
@@ -148,13 +136,14 @@ export default function WebsitesPage() {
         outreachAPI.getWebInsights(selectedSlug === 'main' ? 'main' : selectedSlug),
         outreachAPI.getStats(),
         api.overview(),
-        api.cashCollectionStats(),
+        Promise.reject(new Error('Cash is an independent application')),
         outreachAPI.getApplications(),
         outreachAPI.getCommunityProjects(),
         outreachAPI.getEvents(),
         outreachAPI.getDonations()
       ]);
 
+      if ([insightsRes, statsRes, overviewRes, appsRes, projRes, eventsRes, donationsRes].some(result => result.status === 'rejected')) toast.error('Some website records are unavailable. Refresh before exporting.');
       const roundTrip = Math.round(performance.now() - startPing);
       if (roundTrip > 0 && roundTrip < 2000) {
         setMeasuredLatency(roundTrip);
@@ -205,13 +194,12 @@ export default function WebsitesPage() {
     toast.info('Measuring live API & edge node latency...');
     const t0 = performance.now();
     try {
-      await api.healthScore().catch(() => {});
+      await api.healthScore();
       const elapsed = Math.round(performance.now() - t0);
-      setMeasuredLatency(elapsed || 24);
-      toast.success(`Active edge ping response: ${elapsed || 24} ms (200 OK)`);
+      setMeasuredLatency(elapsed);
+      toast.success(`Active edge ping response: ${elapsed} ms (200 OK)`);
     } catch (e) {
-      setMeasuredLatency(34);
-      toast.success('Live node reachable (34 ms)');
+      toast.error('The health check could not be completed');
     } finally {
       setPinging(false);
     }
@@ -222,28 +210,28 @@ export default function WebsitesPage() {
   const realWebEvents = Number(webInsights?.traffic?.totalEvents ?? 0);
   const realAvgDuration = webInsights?.traffic?.avgDurationSeconds
     ? `${Math.floor(webInsights.traffic.avgDurationSeconds / 60)}m ${webInsights.traffic.avgDurationSeconds % 60}s`
-    : '2m 45s';
-  const realBounceRate = webInsights?.traffic?.bounceRatePercent ? `${webInsights.traffic.bounceRatePercent}%` : '28.4%';
+    : 'Unavailable';
+  const realBounceRate = webInsights?.traffic?.bounceRatePercent ? `${webInsights.traffic.bounceRatePercent}%` : 'Unavailable';
 
-  const realBeneficiaries = Number(outreachStats?.pendingApplications ?? (applicationsList.length || 14));
-  const realDonations = Number(outreachStats?.totalDonations ?? 4850000);
-  const realDonationCount = Number(outreachStats?.donationCount ?? (donationsList.length || 38));
-  const realActiveEvents = Number(outreachStats?.activeEvents ?? (eventsList.length || 4));
+  const realBeneficiaries = Number(outreachStats?.pendingApplications ?? (applicationsList.length));
+  const realDonations = Number(outreachStats?.totalDonations ?? 0);
+  const realDonationCount = Number(outreachStats?.donationCount ?? (donationsList.length));
+  const realActiveEvents = Number(outreachStats?.activeEvents ?? (eventsList.length));
 
-  const realKycApproved = Number(overviewData?.kyc?.approved ?? 128);
-  const realKycPending = Number(overviewData?.kyc?.pending ?? 14);
+  const realKycApproved = Number(overviewData?.kyc?.approved ?? 0);
+  const realKycPending = Number(overviewData?.kyc?.pending ?? 0);
   const realKycTotal = realKycApproved + realKycPending;
 
-  const realCashCollected = Number(cashStats?.totalCollected ?? cashStats?.todayCollected ?? 18450000);
-  const realCashRecords = Number(cashStats?.totalRecords ?? cashStats?.todayCount ?? 94);
+  const realCashCollected = Number(cashStats?.totalCollected ?? cashStats?.todayCollected ?? 0);
+  const realCashRecords = Number(cashStats?.totalRecords ?? cashStats?.todayCount ?? 0);
 
-  const realRevenueCount = Number(overviewData?.revenue?._count ?? 3280);
-  const realTotalRequests = realWebEvents > 0 ? realWebEvents : (realRevenueCount + realCashRecords + 4500);
+  const realRevenueCount = Number(overviewData?.revenue?._count ?? 0);
+  const realTotalRequests = realWebEvents > 0 ? realWebEvents : (realRevenueCount);
 
   // Real aggregate monthly visitors
   const totalMonthlyVisitors = realPageviews > 0
     ? realPageviews + (realKycTotal * 3) + realCashRecords
-    : 581900;
+    : 0;
 
   // Real top pages
   const topPagesList: { path: string; views: string; pct: number }[] = Array.isArray(webInsights?.topPages) && webInsights.topPages.length > 0
@@ -257,104 +245,25 @@ export default function WebsitesPage() {
         pct: pct || 1
 };
       })
-    : [
-        { path: selectedSlug === 'main' ? '/login' : selectedSlug === 'kyc' ? '/verify/cni' : selectedSlug === 'cash' ? '/agent/intake' : selectedSlug === 'apis' ? '/v1/transactions' : '/campaigns/scholarship-2026', views: '24,180', pct: 42 },
-        { path: selectedSlug === 'main' ? '/enterprise' : selectedSlug === 'kyc' ? '/biometrics' : selectedSlug === 'cash' ? '/vault/deposit' : selectedSlug === 'apis' ? '/v1/auth/tokens' : '/donate', views: '18,450', pct: 31 },
-        { path: selectedSlug === 'main' ? '/rates' : selectedSlug === 'kyc' ? '/audit-log' : selectedSlug === 'cash' ? '/pos/summary' : selectedSlug === 'apis' ? '/v1/webhooks' : '/about', views: '11,200', pct: 19 },
-        { path: selectedSlug === 'main' ? '/contact' : selectedSlug === 'kyc' ? '/compliance' : selectedSlug === 'cash' ? '/receipts' : selectedSlug === 'apis' ? '/health' : '/impact-report', views: '4,800', pct: 8 }
-    ];
+    : [];
 
   // Real recent events
   const recentEventsList: { time: string; event: string; status: string; latency: string }[] = Array.isArray(webInsights?.recentEvents) && webInsights.recentEvents.length > 0
     ? webInsights.recentEvents.slice(0, 5).map((evt: any) => ({
         time: evt.createdAt ? new Date(evt.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now',
       event: `${evt.eventType?.toUpperCase() || 'HTTP'} ${evt.path || '/'} (Origin: ${evt.country || 'CM'})`,
-        status: '200 OK',
-        latency: `${measuredLatency} ms`
+        status: evt.status ? String(evt.status) : 'Not recorded',
+        latency: typeof evt.durationMs === 'number' ? `${evt.durationMs} ms` : 'Not recorded'
       }))
-    : [
-        { time: 'Just now', event: `GET ${activeConfig ? activeConfig.url : 'https://enako.com'} • Cloudflare Edge / Douala`, status: '200 OK', latency: `${measuredLatency} ms` },
-        { time: '1 min ago', event: 'POST /v1/telemetry/beacon • Session keep-alive ping', status: '200 OK', latency: `${measuredLatency + 4} ms` },
-        { time: '3 mins ago', event: 'GET /static/assets/app.min.js • Edge cache hit 100%', status: '304 Not Modified', latency: '12 ms' },
-        { time: '6 mins ago', event: 'GET /api/health • Cryptographic TLS handshake valid', status: '200 OK', latency: `${measuredLatency} ms` }
-    ];
+    : [];
 
   // Real 7-day trend
-  const trafficChartData = [
-    { day: 'Mon', value: Math.max(0, Math.round(totalMonthlyVisitors * 0.12)) },
-    { day: 'Tue', value: Math.max(0, Math.round(totalMonthlyVisitors * 0.18)) },
-    { day: 'Wed', value: Math.max(0, Math.round(totalMonthlyVisitors * 0.31)) },
-    { day: 'Thu', value: Math.max(0, Math.round(totalMonthlyVisitors * 0.49)) },
-    { day: 'Fri', value: Math.max(0, Math.round(totalMonthlyVisitors * 0.68)) },
-    { day: 'Sat', value: Math.max(0, Math.round(totalMonthlyVisitors * 0.85)) },
-    { day: 'Today', value: totalMonthlyVisitors }
-  ];
+  const trafficChartData = [] as Array<{ day: string; value: number }>;
 
   // Specific Projects per platform
   const getProjectsForPlatform = (slug: string) => {
     if (slug === 'main') {
-      return [
-        {
-          id: 'PRJ-MAIN-01',
-          name: 'NextGen Corporate Portal & Investor Hub',
-          category: 'Frontend & UI',
-          lead: 'Sarah M. (Lead Frontend Eng)',
-          progress: 85,
-          status: 'In Progress',
-          targetDate: 'Q4 2026',
-          env: 'Cloudflare Edge / Production',
-          notes: 'Complete UI modernization with localized French and English content, sub-second TTFB, and responsive corporate design.',
-          deliverables: ['Bilingual French/English Language Switcher', 'Executive Leadership Bios & Governance', 'Interactive ESG Investor Deck Viewer']
-        },
-        {
-          id: 'PRJ-MAIN-02',
-          name: 'High-Frequency Executive Login Gateway',
-          category: 'Authentication',
-          lead: 'Marc T. (SecOps Guild)',
-          progress: 100,
-          status: 'Completed',
-          targetDate: 'Q3 2026',
-          env: 'Hardware HSM Enforced',
-          notes: 'Integrated Argon2id session tokens, biometric device bindings, and automated brute-force IP rate-limiting.',
-          deliverables: ['Argon2id Hash Key Rotation Protocol', 'Passkey & WebAuthn Biometric Support', 'Hardware Token Session Revocation']
-        },
-        {
-          id: 'PRJ-MAIN-03',
-          name: 'Cloudflare Enterprise WAF & Bot Defense Shield',
-          category: 'Infrastructure',
-          lead: 'David K. (Infrastructure Eng)',
-          progress: 100,
-          status: 'Completed',
-          targetDate: 'Q3 2026',
-          env: 'Edge CDN / Douala IXP',
-          notes: 'Zero-downtime DDOS protection, automated bad bot challenges, and TLS 1.3 certificate pinning across CEMAC.',
-          deliverables: ['CEMAC Geo-Filtering Ruleset', 'Automated Layer 7 HTTP Rate Throttling', 'SSL/TLS 1.3 Strict Mode Enforced']
-        },
-        {
-          id: 'PRJ-MAIN-04',
-          name: 'Corporate Multi-Currency FX Live Ticker',
-          category: 'Financial Telemetry',
-          lead: 'Alain F. (FinTech Eng)',
-          progress: 65,
-          status: 'In Progress',
-          targetDate: 'Nov 2026',
-          env: 'WebSocket Gateway Cluster',
-          notes: 'Real-time XAF, EUR, USD, and GBP exchange rate feeds directly streaming from treasury central banks.',
-          deliverables: ['BEAC Central Bank Automated Rate Scraper', 'Sub-millisecond WebSocket Broadcast Channel', 'Client-side LocalStorage Rate Cache']
-        },
-        {
-          id: 'PRJ-MAIN-05',
-          name: 'Search Engine Indexing & Core Web Vitals Optimization',
-          category: 'SEO & Performance',
-          lead: 'Digital Growth Guild',
-          progress: 92,
-          status: 'In Progress',
-          targetDate: 'Oct 2026',
-          env: 'Static Edge SSR',
-          notes: 'Achieved sub-1s Largest Contentful Paint (LCP) on mobile 3G/4G connections across Central Africa.',
-          deliverables: ['Automated Dynamic XML Sitemap Generator', 'OpenGraph Social Card Meta Tags', 'WebP/AVIF Responsive Asset Compression']
-        }
-      ];
+      return [];
     }
     if (slug === 'outreach') {
       return communityProjects.length > 0
@@ -363,218 +272,22 @@ export default function WebsitesPage() {
           name: p.title || p.name || 'Outreach Community Initiative',
           category: p.category || 'Philanthropy & Grants',
           lead: p.coordinator || 'Outreach Field Team',
-          progress: p.progressPercent || 75,
+          progress: p.progressPercent ?? 0,
             status: p.status === 'COMPLETED' ? 'Completed' : 'In Progress',
           targetDate: p.targetDate || '2026',
             env: 'Field Operations / NGO Core',
           notes: p.description || 'Corporate social responsibility initiative in Central Africa.',
             deliverables: ['Community Consultation & Needs Assessment', 'Direct Funding Allocation & Disbursement', 'Field Impact Audit & Beneficiary Reporting']
       }))
-        : [
-        {
-              id: 'PRJ-OUT-01',
-              name: 'Youth STEM & Coding Scholarships 2026',
-              category: 'Education & Grants',
-              lead: 'Dr. Evelyn N. (Outreach Director)',
-              progress: 78,
-          status: 'In Progress',
-          targetDate: 'Nov 2026',
-              env: 'Regional Scholarship Portal',
-              notes: 'Funding 120 underprivileged students across Littoral and Center regions with full tuition, laptops, and monthly internet stipends.',
-              deliverables: ['Beneficiary Merit & Need Selection Panel', 'Hardware Provisioning (120 Laptops)', 'Direct University Tuition Bank Transfer']
-  },
-        {
-              id: 'PRJ-OUT-02',
-              name: 'Rural Clean Water Well Project (South-West)',
-              category: 'Health & Infrastructure',
-              lead: 'Paul E. (Civil Eng Lead)',
-              progress: 90,
-          status: 'In Progress',
-          targetDate: 'Oct 2026',
-              env: 'Buea Rural Sector',
-              notes: 'Solar-powered water borehole installations for 3 rural village communities serving over 4,500 residents.',
-              deliverables: ['Hydrogeological Survey & Drilling', 'Solar Pump & Storage Tank Installation', 'Community Water Committee Training']
-  },
-        {
-              id: 'PRJ-OUT-03',
-              name: 'Community Healthcare & Essential Hygiene Drive',
-              category: 'Emergency Relief',
-              lead: 'Medical & Health Guild',
-          progress: 100,
-          status: 'Completed',
-              targetDate: 'Sep 2026',
-              env: 'Douala & Yaoundé Hubs',
-              notes: 'Provided free essential medical kits, antimalarials, and maternity kits to over 2,400 vulnerable families.',
-              deliverables: ['Mobile Clinic Logistics & Screening', 'Emergency Pharmaceutical Supplies', 'Public Health Education Sessions']
-  },
-        {
-              id: 'PRJ-OUT-04',
-              name: 'Orphanage Micro-Nutrient Distribution Drive',
-              category: 'Social Welfare',
-              lead: 'CSR Volunteer Guild',
-              progress: 40,
-          status: 'In Progress',
-              targetDate: 'Dec 2026',
-              env: 'Western Region Orphanages',
-              notes: 'Quarterly supply of non-perishable food grains, infant nutrition, and hygienic supplies to 8 registered care centers.',
-              deliverables: ['Nutritional Needs Inventory', 'Wholesale Bulk Grain Procurement', 'On-Site Delivery & Safe Storage']
-}
-      ];
+        : [];
     }
     if (slug === 'kyc') {
-      return [
-        {
-          id: 'PRJ-KYC-01',
-          name: 'Biometric Facial Liveness Engine v2',
-          category: 'Computer Vision',
-          lead: 'AI/ML Engineering Guild',
-          progress: 94,
-          status: 'In Progress',
-          targetDate: 'Oct 2026',
-          env: 'Encrypted Microservice',
-          notes: 'Passive 3D depth estimation to prevent printed photo, video playback, and screen replay identity fraud.',
-          deliverables: ['Depth Estimation Neural Network Model', 'Client-side WebAssembly Liveness SDK', 'Hardware Camera Flash Reflection Test']
-        },
-        {
-          id: 'PRJ-KYC-02',
-          name: 'National CNI WebAssembly OCR Scanner',
-          category: 'Edge Computing',
-          lead: 'Core Security Guild',
-          progress: 100,
-          status: 'Completed',
-          targetDate: 'Q3 2026',
-          env: 'WASM Client Sandbox',
-          notes: 'Client-side encrypted OCR processing without raw PII transmission over public internet backbones.',
-          deliverables: ['Cameroonian CNI Layout Recognition', 'MRZ 3-Line Passport Checksum Parser', 'Automated Black-and-White Binarization']
-        },
-        {
-          id: 'PRJ-KYC-03',
-          name: 'CEMAC Inter-Bank Sanctions & AML Screening',
-          category: 'Regulatory Compliance',
-          lead: 'Chief Compliance Officer',
-          progress: 70,
-          status: 'In Progress',
-          targetDate: 'Nov 2026',
-          env: 'COBAC Gateway Bridge',
-          notes: 'Real-time cross-referencing against COBAC, UN, Interpol, and national PEP watchlists.',
-          deliverables: ['Automated Fuzzy Name Matching Engine', 'Sanctions Database Daily Delta Sync', 'Compliance Audit Trail Generation']
-        },
-        {
-          id: 'PRJ-KYC-04',
-          name: 'Hardware HSM Root Key Rotation Protocol',
-          category: 'Cryptographic Core',
-          lead: 'SecOps Guild',
-          progress: 100,
-          status: 'Completed',
-          targetDate: 'Q2 2026',
-          env: 'FIPS 140-2 Level 3 HSM',
-          notes: 'Hardware Security Module key storage certified under OHADA and Central Bank data sovereignty laws.',
-          deliverables: ['Zero-Knowledge Master Key Split', 'Dual-Custodian Smartcard Ceremony', 'Automated Ciphertext Re-encryption']
-        }
-      ];
+      return [];
     }
     if (slug === 'cash') {
-      return [
-        {
-          id: 'PRJ-CASH-01',
-          name: 'Bluetooth Thermal Printer POS Sync Engine',
-          category: 'Hardware Integration',
-          lead: 'Terminal Engineering',
-          progress: 100,
-          status: 'Completed',
-          targetDate: 'Q3 2026',
-          env: 'Mobile PWA Driver',
-          notes: 'Instant bilingual QR receipt printing for field cash deposits with offline cryptographic digital signatures.',
-          deliverables: ['ESC/POS Thermal Command Driver', 'HMAC-Signed QR Code Receipt Format', 'Bluetooth Auto-Reconnection Daemon']
-        },
-        {
-          id: 'PRJ-CASH-02',
-          name: 'Geo-Fenced Field Agent Liquidity Float Manager',
-          category: 'Mobile & Logistics',
-          lead: 'Field Operations Supervisor',
-          progress: 82,
-          status: 'In Progress',
-          targetDate: 'Oct 2026',
-          env: 'Agent Field Portal',
-          notes: 'Real-time GPS validation before authorizing cash vault transfers and agent wallet intake requests.',
-          deliverables: ['Polygon Geofence Radius Validation', 'Real-time Agent Float Balance Throttling', 'SOS Emergency Panic Button Link']
-        },
-        {
-          id: 'PRJ-CASH-03',
-          name: 'Armored Carrier Barcode Deposit Reconciliation',
-          category: 'Vault Operations',
-          lead: 'Logistics Operations',
-          progress: 68,
-          status: 'In Progress',
-          targetDate: 'Nov 2026',
-          env: 'Vault Custody Server',
-          notes: 'End-to-end chain of custody tracking from agent POS collection envelope to central bank vault deposit.',
-          deliverables: ['Tamper-Evident Bag Barcode Registry', 'Armored Courier Courier Signature Handover', 'Bank Reconciliation Ledger Sync']
-        },
-        {
-          id: 'PRJ-CASH-04',
-          name: 'Offline SQLite PWA Sync with Auto-Conflict Resolver',
-          category: 'Offline Resilience',
-          lead: 'Mobile Core Guild',
-          progress: 100,
-          status: 'Completed',
-          targetDate: 'Q2 2026',
-          env: 'Client PWA IndexedDB',
-          notes: 'Guarantees zero lost transactions during remote rural internet blackouts with deterministic timestamp reconciliation.',
-          deliverables: ['Vector Clock Conflict Resolution', 'Local Encrypted SQLite Storage', 'Exponential Backoff Background Sync']
-        }
-      ];
+      return [];
     }
-    return [
-      {
-        id: 'PRJ-API-01',
-        name: 'High-Throughput Core REST Ledger v2',
-        category: 'Backend Architecture',
-        lead: 'API Platform Guild',
-        progress: 100,
-        status: 'Completed',
-        targetDate: 'Q3 2026',
-        env: 'PostgreSQL & Redis Core',
-        notes: 'Handles over 15,000 sub-millisecond database queries per minute with ACID compliance and zero transaction drift.',
-        deliverables: ['Connection Pooling Optimization (PgBouncer)', 'Redis Read-Through Cache Layer', 'Database Sharding Infrastructure']
-      },
-      {
-        id: 'PRJ-API-02',
-        name: 'Microsecond HMAC-SHA256 Webhook Dispatcher',
-        category: 'Event Streaming',
-        lead: 'DevOps & Reliability',
-        progress: 100,
-        status: 'Completed',
-        targetDate: 'Q3 2026',
-        env: 'Asynchronous Event Bus',
-        notes: 'Guaranteed at-least-once delivery with exponential backoff retry and cryptographic payload verification.',
-        deliverables: ['Dead-Letter Queue (DLQ) Fallback', 'HMAC Signature Header Verification', 'Partner Webhook Health Monitor']
-      },
-      {
-        id: 'PRJ-API-03',
-        name: 'Interactive OpenAPI 3.1 & Developer Sandbox',
-        category: 'Developer Experience',
-        lead: 'DevRel Team',
-        progress: 95,
-        status: 'In Progress',
-        targetDate: 'Oct 2026',
-        env: 'Sandbox Testnet Gateway',
-        notes: 'Self-serve developer testing console with pre-loaded mock bank accounts, webhooks tester, and SDK generators.',
-        deliverables: ['Swagger UI 5.0 Custom Theme', 'cURL, Python, Node.js Code Snippets', 'Testnet Synthetic Credit Card Faucet']
-      },
-      {
-        id: 'PRJ-API-04',
-        name: 'Distributed Redis Token Bucket Rate Limiter',
-        category: 'Traffic Management',
-        lead: 'Infrastructure Eng',
-        progress: 100,
-        status: 'Completed',
-        targetDate: 'Q2 2026',
-        env: 'Global Edge Proxy',
-        notes: 'Protects critical financial payment endpoints against brute-force, credential stuffing, and DDoS amplification.',
-        deliverables: ['Sliding Window Counter Algorithm', 'IP & API-Key Multi-Tier Quotas', 'Standardized RFC 7807 429 Error Body']
-      }
-    ];
+    return [];
   };
 
   // Specific Applications per platform
@@ -585,53 +298,26 @@ export default function WebsitesPage() {
           id: app.id || `APP-OUT-${idx + 1}`,
           title: app.fullName || app.applicantName || app.name || 'Beneficiary Applicant',
           subtitle: `${app.category || 'Scholarship Grant'} • ${app.city || app.region || 'Cameroon'}`,
-          date: app.createdAt ? new Date(app.createdAt).toISOString().split('T')[0] : '2026-09-28',
+          date: app.createdAt ? new Date(app.createdAt).toISOString().split('T')[0] : 'Not recorded',
           amountOrDetail: app.requestedAmount ? `${Number(app.requestedAmount).toLocaleString()} FCFA` : (app.needSummary || 'Educational Tuition Grant'),
           status: app.status || 'PENDING',
-          contact: app.phone || app.email || '+237 690 000 000',
+          contact: app.phone || app.email || 'Not provided',
           dossierType: 'Philanthropic Beneficiary Application',
-          reviewOfficer: 'Dr. Evelyn N. (Outreach Committee)'
+          reviewOfficer: app.reviewedBy?.fullName || 'Not recorded'
         }));
       }
-      return [
-        { id: 'APP-OUT-01', title: 'Emmanuel N. Ndoh', subtitle: 'Youth Tech Scholarship • Douala (Littoral)', date: '2026-09-30', amountOrDetail: '450,000 FCFA Tuition Grant', status: 'PENDING', contact: '+237 677 821 440', dossierType: 'Youth Scholarship Dossier', reviewOfficer: 'Scholarship Board' },
-        { id: 'APP-OUT-02', title: 'Grace Bessem Tabe', subtitle: 'Clean Water Village Committee • Buea (SW)', date: '2026-09-29', amountOrDetail: 'Community Borehole Grant', status: 'APPROVED', contact: '+237 699 140 229', dossierType: 'Infrastructure Grant', reviewOfficer: 'Paul E. (Field Lead)' },
-        { id: 'APP-OUT-03', title: 'St. Bernadette Orphanage Care Center', subtitle: 'Emergency Nutrition Grant • Yaoundé (Center)', date: '2026-09-28', amountOrDetail: '1,200,000 FCFA Relief', status: 'APPROVED', contact: '+237 674 330 918', dossierType: 'Orphanage Welfare Grant', reviewOfficer: 'CSR Committee' },
-        { id: 'APP-OUT-04', title: 'Samuel B. Kengne', subtitle: 'Secondary Education Scholarship • Bafoussam (West)', date: '2026-09-25', amountOrDetail: '280,000 FCFA Tuition Grant', status: 'UNDER REVIEW', contact: '+237 691 552 119', dossierType: 'Tuition Assistance', reviewOfficer: 'Regional Liaison' },
-        { id: 'APP-OUT-05', title: 'Hope Women Agricultural Cooperative', subtitle: 'Micro-Irrigation Equipment Grant • Bamenda (NW)', date: '2026-09-22', amountOrDetail: '850,000 FCFA Grant', status: 'PENDING', contact: '+237 670 411 902', dossierType: 'Community Agricultural Grant', reviewOfficer: 'Rural Development' }
-      ];
+      return [];
     }
     if (slug === 'main') {
-      return [
-        { id: 'APP-CORP-01', title: 'Société Générale Cameroun Corporate Treasury', subtitle: 'Enterprise Treasury API Integration', date: '2026-09-30', amountOrDetail: 'Institutional Direct Clearing Gateway', status: 'APPROVED', contact: 'treasury@sgc.cm', dossierType: 'Commercial Partnership Application', reviewOfficer: 'Chief Commercial Officer' },
-        { id: 'APP-CORP-02', title: 'Afriland First Bank Treasury Liaison', subtitle: 'Direct Interbank FX Settlement Onboarding', date: '2026-09-29', amountOrDetail: 'Wholesale FX Settlement Channel', status: 'UNDER REVIEW', contact: 'partner@afriland.cm', dossierType: 'Banking Gateway License', reviewOfficer: 'Treasury Ops Lead' },
-        { id: 'APP-CORP-03', title: 'Bocom Petroleum Commercial Logistics', subtitle: 'Bulk Employee Meal Voucher & Payroll Portal', date: '2026-09-27', amountOrDetail: '500+ Staff Meal Accounts System', status: 'APPROVED', contact: 'hr@bocom-group.com', dossierType: 'Enterprise Client Onboarding', reviewOfficer: 'Corporate Relations' },
-        { id: 'APP-CORP-04', title: 'Orange Cameroun Enterprise Sales', subtitle: 'Direct Mobile Money B2B Merchant Aggregation', date: '2026-09-26', amountOrDetail: 'API Aggregation Contract SLA', status: 'PENDING', contact: 'enterprise@orange.cm', dossierType: 'Telecom Carrier Contract', reviewOfficer: 'Legal & Partnerships' },
-        { id: 'APP-CORP-05', title: 'Camwater Infrastructure Logistics', subtitle: 'Public Utility Bill Collection Gateway', date: '2026-09-24', amountOrDetail: 'National Municipal Cash Inbound', status: 'UNDER REVIEW', contact: 'billing@camwater.cm', dossierType: 'Public Utility Billing Mandate', reviewOfficer: 'Public Sector Officer' }
-      ];
+      return [];
     }
     if (slug === 'kyc') {
-      return [
-        { id: 'APP-KYC-01', title: 'Ferdinand M. Abanda', subtitle: 'National CNI #10293847291 • Douala', date: '2026-09-30', amountOrDetail: 'Tier 3 Corporate Director Clearance', status: 'APPROVED', contact: 'abanda.f@gmail.com', dossierType: 'National ID & Proof of Residence', reviewOfficer: 'Compliance Officer (Tier 3)' },
-        { id: 'APP-KYC-02', title: 'Christelle N. Mbah', subtitle: 'CEMAC Passport #CM0928371 • Yaoundé', date: '2026-09-30', amountOrDetail: 'Tier 2 Agent Verification Limit', status: 'PENDING', contact: 'mbah.c@yahoo.fr', dossierType: 'Passport OCR Verification', reviewOfficer: 'KYC Operations' },
-        { id: 'APP-KYC-03', title: 'Ibrahim Oumarou', subtitle: 'Driver License #LT99281 • Garoua', date: '2026-09-29', amountOrDetail: 'Tier 1 Standard Limit Profile', status: 'APPROVED', contact: '+237 698 120 441', dossierType: 'Biometric Driver Profile', reviewOfficer: 'Automated AI Screened' },
-        { id: 'APP-KYC-04', title: 'Sylvanus T. Eyong', subtitle: 'Biometric Facial Liveness Audit Dossier', date: '2026-09-28', amountOrDetail: 'Biometric 3D Audit Flagged', status: 'UNDER REVIEW', contact: 'eyong.s@outlook.com', dossierType: 'Manual Liveness Review', reviewOfficer: 'Senior Compliance Auditor' }
-      ];
+      return [];
     }
     if (slug === 'cash') {
-      return [
-        { id: 'APP-CASH-01', title: 'Agent POS Terminal #104 (Akwa Central)', subtitle: 'Daily Vault Authorization & Float Intake', date: '2026-09-30', amountOrDetail: '3,850,000 FCFA Reconciled', status: 'APPROVED', contact: 'Supervisor: Marc O.', dossierType: 'Agent Cash Intake Terminal', reviewOfficer: 'Vault Custody Officer' },
-        { id: 'APP-CASH-02', title: 'Agent POS Terminal #109 (Bonabéri Industrial)', subtitle: 'Merchant Deposit Envelope #ENV-9921', date: '2026-09-30', amountOrDetail: '5,200,000 FCFA In Transit', status: 'UNDER REVIEW', contact: 'Supervisor: Paul B.', dossierType: 'Merchant Envelope Drop', reviewOfficer: 'Logistics Lead' },
-        { id: 'APP-CASH-03', title: 'Agent POS Terminal #114 (Mokolo Market Yaoundé)', subtitle: 'Merchant Registration & Cash Intake Terminal', date: '2026-09-29', amountOrDetail: 'Terminal Setup Pending', status: 'PENDING', contact: 'Supervisor: Jean K.', dossierType: 'New POS Terminal Authorization', reviewOfficer: 'Field Operations' },
-        { id: 'APP-CASH-04', title: 'Agent POS Terminal #120 (Kribi Deep Sea Port)', subtitle: 'Customs Cash Collection Terminal License', date: '2026-09-28', amountOrDetail: 'Maritime Port Authority Mandate', status: 'APPROVED', contact: 'Supervisor: Eric M.', dossierType: 'Institutional POS License', reviewOfficer: 'Maritime Agency Officer' }
-      ];
+      return [];
     }
-    return [
-      { id: 'APP-DEV-01', title: 'FinTech PayStream Ltd (Nigeria / CEMAC)', subtitle: 'Cross-Border API Key Sandbox Request', date: '2026-09-30', amountOrDetail: 'Disbursements & Ledger REST Scopes', status: 'APPROVED', contact: 'dev@paystream.africa', dossierType: 'Third-Party FinTech API Credentials', reviewOfficer: 'DevRel Lead Engineer' },
-      { id: 'APP-DEV-02', title: 'KwikMoMo Settlement Gateway', subtitle: 'High-Frequency Transaction Webhook Scope', date: '2026-09-29', amountOrDetail: 'Tier 2 High-Volume Tier Request', status: 'UNDER REVIEW', contact: 'api@kwikmomo.com', dossierType: 'High-Quota Rate Limit Request', reviewOfficer: 'API Gatekeeper' },
-      { id: 'APP-DEV-03', title: 'AgriCommerce Platform Douala', subtitle: 'Farmer Mobile Cash Disbursement API', date: '2026-09-28', amountOrDetail: 'Batch Payment Endpoint Mandate', status: 'PENDING', contact: 'tech@agricommerce.cm', dossierType: 'Agricultural Batch Payout Token', reviewOfficer: 'Developer Support' },
-      { id: 'APP-DEV-04', title: 'AfriLogistics Armored Vault Fleet', subtitle: 'GPS Cash Transit Webhook Integration', date: '2026-09-27', amountOrDetail: 'Real-Time Telemetry Event Stream', status: 'APPROVED', contact: 'devops@afrilogistics.cm', dossierType: 'Webhook Dispatcher License', reviewOfficer: 'Infrastructure Team' }
-    ];
+    return [];
   };
 
   const handleExportPdf = () => {
@@ -1065,13 +751,13 @@ export default function WebsitesPage() {
                 <p className="text-2xl font-bold text-slate-900 leading-tight mt-2">
                   {realTotalRequests > 0 ? realTotalRequests.toLocaleString() : 'Active'}
                 </p>
-                <p className="text-[11px] text-emerald-600 font-semibold mt-1">99.99% Edge Delivery</p>
+                <p className="text-[11px] text-emerald-600 font-semibold mt-1">Edge delivery not measured</p>
               </div>
 
               <div className="bg-white border border-slate-200/90 border-b-[3px] border-b-amber-500 rounded-lg p-4 shadow-2xs flex flex-col justify-between">
                 <p className="text-[11px] font-bold text-slate-500 tracking-wider uppercase">ACTIVE PLATFORMS</p>
                 <p className="text-2xl font-bold text-slate-900 leading-tight mt-2">5 Properties</p>
-                <p className="text-[11px] text-slate-400 mt-1">100% Operational Status</p>
+                <p className="text-[11px] text-slate-400 mt-1">Operational status unverified</p>
               </div>
             </div>
           </div>
@@ -1653,12 +1339,7 @@ export default function WebsitesPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(eventsList.length > 0 ? eventsList : [
-                { id: 'ev-1', title: 'Youth Technology & AI Scholarships Gala 2026', location: 'Hotel Sawa, Bonanjo, Douala', date: '2026-11-15', attendees: 350, status: 'PUBLISHED', description: 'Annual awards banquet honoring 120 secondary and university scholarship beneficiaries.', coordinator: 'Dr. Evelyn N. (Outreach Board)' },
-                { id: 'ev-2', title: 'Rural Clean Water Inauguration & Handover Ceremony', location: 'Buea Rural Council, South-West Region', date: '2026-10-24', attendees: 800, status: 'PUBLISHED', description: 'Official community handover of 3 solar-powered borehole water purification systems.', coordinator: 'Paul E. (Civil Engineering)' },
-                { id: 'ev-3', title: 'Women In FinTech Entrepreneurship Workshop', location: 'ENAKO Headquarters Auditorium, Douala', date: '2026-12-05', attendees: 200, status: 'DRAFT', description: 'Three-day interactive masterclass on digital ledger accounting and merchant mobile money POS administration.', coordinator: 'Grace B. (Mentorship Guild)' },
-                { id: 'ev-4', title: 'Orphanage Winter Nutrition & Food Relief Handover', location: 'Yaoundé Central Distribution Hub', date: '2026-12-18', attendees: 450, status: 'PUBLISHED', description: 'Charitable delivery of food grains, infant nutrition, and warm supplies to 8 regional care centers.', coordinator: 'CSR Volunteer Team' }
-              ]).map((ev: any) => (
+              {(eventsList.length > 0 ? eventsList : []).map((ev: any) => (
                 <div key={ev.id} className="p-4 bg-slate-50/80 rounded-lg border border-slate-200/80 flex flex-col justify-between">
                   <div>
                     <div className="flex items-start justify-between gap-2">
@@ -1700,7 +1381,7 @@ export default function WebsitesPage() {
                 </p>
               </div>
               <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
-                100% Direct Impact Allocation
+                Impact allocation not verified
               </span>
             </div>
 
@@ -1718,13 +1399,7 @@ export default function WebsitesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {(donationsList.length > 0 ? donationsList : [
-                    { id: 'REC-DN-9901', donor: 'Anonymous Patron', cause: 'Youth Tech Scholarships 2026', date: '2026-09-30', amount: 500000, method: 'MTN Mobile Money', status: 'CONFIRMED' },
-                    { id: 'REC-DN-9902', donor: 'Société Industrielle du Wouri', cause: 'Rural Clean Water Wells', date: '2026-09-29', amount: 1500000, method: 'Direct Bank Wire (SGC)', status: 'CONFIRMED' },
-                    { id: 'REC-DN-9903', donor: 'Dr. Helene Fosso', cause: 'Community Healthcare Drive', date: '2026-09-28', amount: 250000, method: 'Orange Money', status: 'CONFIRMED' },
-                    { id: 'REC-DN-9904', donor: 'Douala Tech Alumni Guild', cause: 'STEM Coding Scholarships', date: '2026-09-25', amount: 600000, method: 'MTN Mobile Money', status: 'CONFIRMED' },
-                    { id: 'REC-DN-9905', donor: 'Kribi Marine Logistics CSR', cause: 'Clean Water Boreholes', date: '2026-09-22', amount: 2000000, method: 'Direct ACH Transfer', status: 'CONFIRMED' }
-                  ]).map((d: any, idx: number) => (
+                  {(donationsList.length > 0 ? donationsList : []).map((d: any, idx: number) => (
                     <tr key={d.id || idx} className="hover:bg-slate-50/80 transition-colors">
                       <td className="py-3.5 px-4 font-mono font-bold text-[#001f5b]">{d.id || `REC-${idx + 1}`}</td>
                       <td className="py-3.5 px-4 font-bold text-slate-900">{d.donor || d.donorName || 'Public Donor'}</td>
@@ -1812,7 +1487,7 @@ export default function WebsitesPage() {
                   {activeConfig.id === 'outreach' && realActiveEvents.toLocaleString()}
                   {activeConfig.id === 'kyc' && realKycPending.toLocaleString()}
                   {activeConfig.id === 'cash' && '100%'}
-                  {activeConfig.id === 'apis' && '100%'}
+                  {activeConfig.id === 'apis' && 'Unavailable'}
                 </p>
                 <p className="text-[11px] text-slate-400 mt-1">Current SLA Status</p>
               </div>
@@ -1828,7 +1503,7 @@ export default function WebsitesPage() {
                 <p className="text-2xl font-bold text-slate-900 leading-tight mt-2">
                   {activeConfig.id === 'main' && realBounceRate}
                   {activeConfig.id === 'outreach' && realDonationCount.toLocaleString()}
-                  {activeConfig.id === 'kyc' && (realKycTotal > 0 ? `${Math.round((realKycApproved / realKycTotal) * 100)}%` : '100%')}
+                  {activeConfig.id === 'kyc' && (realKycTotal > 0 ? `${Math.round((realKycApproved / realKycTotal) * 100)}%` : 'Unavailable')}
                   {activeConfig.id === 'cash' && realCashRecords.toLocaleString()}
                   {activeConfig.id === 'apis' && 'HMAC/TLS'}
                 </p>

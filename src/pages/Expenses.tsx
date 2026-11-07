@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Plus, 
-  RefreshCw, 
-  ArrowRight, 
-  Search, 
-  Wallet, 
-  Clock, 
-  CheckCircle2, 
+import {
+  Plus,
+  RefreshCw,
+  ArrowRight,
+  Search,
+  Wallet,
+  Clock,
+  CheckCircle2,
   AlertCircle,
   Building2,
   FileSpreadsheet,
@@ -38,29 +38,8 @@ export default function Expenses() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Fetch remote items
-      let remoteItems: any[] = [];
-      let remoteTotals: any[] = [];
-      try {
-        const res = await api.expenses({ limit: 100 });
-        remoteItems = res?.items || (Array.isArray(res) ? res : []);
-        remoteTotals = res?.totals || [];
-      } catch (e) {
-        console.warn('Backend expenses fetch deferred:', e);
-      }
-
-      // 2. Fetch local storage cached expenses
-      const localRaw = localStorage.getItem('enako_custom_expenses');
-      const localItems: any[] = localRaw ? JSON.parse(localRaw) : [];
-
-      // 3. Merge: local items take precedence if matching id
-      const combinedMap = new Map<string, any>();
-      remoteItems.forEach(item => combinedMap.set(item.id, item));
-      localItems.forEach(item => combinedMap.set(item.id, item));
-
-      const merged = Array.from(combinedMap.values());
-      // Sort newest first
-      merged.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      const result = await api.expenses({ limit: 100 });
+      const merged = result.items;
       setItems(merged);
 
       // Recalculate totals dynamically
@@ -87,42 +66,29 @@ export default function Expenses() {
         { status: 'PENDING', _sum: { amount: pendingSum }, _count: pendingCount },
         { status: 'REJECTED', _sum: { amount: rejectedSum }, _count: rejectedCount }
       ]);
-    } catch (e: any) { 
-      console.error(e); 
-    } finally { 
-      setLoading(false); 
+    } catch (e: any) {
+      toast.error(e.message || 'Expense records could not be loaded');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  useEffect(() => { 
-    load(); 
+  useEffect(() => {
+    load();
   }, [load]);
 
   const handleReview = async (id: string, status: string) => {
     try {
-      try {
-        await api.reviewExpense(id, status);
-      } catch (err) {
-        console.warn('API review failed, updating local state:', err);
-      }
-
-      // Update local storage
-      const localRaw = localStorage.getItem('enako_custom_expenses');
-      if (localRaw) {
-        const localItems: any[] = JSON.parse(localRaw);
-        const updated = localItems.map(item => item.id === id ? { ...item, status } : item);
-        localStorage.setItem('enako_custom_expenses', JSON.stringify(updated));
-      }
-
+      await api.reviewExpense(id, status);
       toast.success(status === 'APPROVED' ? 'Claim approved' : 'Claim rejected');
-    load(); 
-    } catch (e: any) { 
+    load();
+    } catch (e: any) {
       toast.error(e.message || 'Action failed');
     }
   };
 
   const filtered = items.filter(e => {
-    const matchesSearch = 
+    const matchesSearch =
       (e.description || '').toLowerCase().includes(search.toLowerCase()) ||
       (e.submittedBy?.fullName ?? '').toLowerCase().includes(search.toLowerCase()) ||
       (e.department || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -179,8 +145,8 @@ export default function Expenses() {
             {role === 'employee' ? 'My Expense Claims' : 'Corporate Expense Management'}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            {role === 'employee' 
-              ? 'Track your reimbursements, departmental claims, and payment settlements.' 
+            {role === 'employee'
+              ? 'Track your reimbursements, departmental claims, and payment settlements.'
               : 'Review, reconcile, and audit corporate expenditures across all entities.'}
           </p>
         </div>
@@ -479,13 +445,13 @@ export default function Expenses() {
                         {t.status === 'PENDING' ? (
                           <div className="flex items-center justify-end gap-1.5">
           <button
-                              onClick={() => handleReview(t.id, 'APPROVED')} 
+                              onClick={() => handleReview(t.id, 'APPROVED')}
                               className="px-2.5 py-1 bg-emerald-600 text-white rounded-md text-[10px] font-bold uppercase tracking-wider hover:bg-emerald-700 transition-colors shadow-2xs cursor-pointer"
                             >
                               Approve
                             </button>
           <button
-                              onClick={() => handleReview(t.id, 'REJECTED')} 
+                              onClick={() => handleReview(t.id, 'REJECTED')}
                               className="px-2.5 py-1 border border-rose-200 text-rose-700 bg-rose-50/50 hover:bg-rose-100 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
                             >
                               Reject

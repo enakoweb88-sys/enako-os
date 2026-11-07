@@ -18,12 +18,12 @@ export default function RealTimeMetricsPage() {
   const loadData = () => {
     setLoading(true);
     Promise.all([
-      api.dashboardSummary().catch(() => ({})),
-      api.engineeringKpis().catch(() => ({ uptime: '99.98%', apiPerformance: '38ms' })),
-      api.analytics().catch(() => ({ revenueByDay: [] }))
+      api.dashboardOverview().catch(() => ({})),
+      api.engineeringOverview().catch(() => ({ kpis: {} })),
+      api.transactionChart().catch(() => ({ revenueByDay: [] }))
     ])
       .then(([dash, eng, analytics]) => {
-        setData({ dash, eng, analytics });
+        setData({ dash, eng: eng.kpis || {}, analytics });
       })
       .finally(() => setLoading(false));
   };
@@ -34,14 +34,7 @@ export default function RealTimeMetricsPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const chartData = [
-    { time: '08:00', volume: 1200000, requests: 420 },
-    { time: '10:00', volume: 3800000, requests: 1250 },
-    { time: '12:00', volume: 5400000, requests: 1890 },
-    { time: '14:00', volume: 4600000, requests: 1640 },
-    { time: '16:00', volume: 7200000, requests: 2450 },
-    { time: '18:00', volume: 6100000, requests: 2100 },
-  ];
+  const chartData = Array.isArray(data?.analytics) ? data.analytics : [];
 
   if (loading && !data) {
     return (
@@ -56,8 +49,8 @@ export default function RealTimeMetricsPage() {
       <OrganizationHeaderCard subtitle="Executive Real-Time Operating Metrics & Telemetry" />
 
       <WorkplaceStatCards
-        domainsCount={data?.eng?.uptime || '99.98%'}
-        usersCount={data?.eng?.apiPerformance || '38ms'}
+        domainsCount={data?.eng?.uptime ?? 'Unavailable'}
+        usersCount={data?.eng?.apiPerformance ?? 'Unavailable'}
         groupsCount={fmt(data?.dash?.todayVolume ?? 6850000)}
         licensesCount="Zero Errors"
         card1Label="SYSTEM AVAILABILITY"

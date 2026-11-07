@@ -22,7 +22,7 @@ export default function Help() {
     setLoadingTickets(true);
     try {
       const res = await api.supportTickets();
-      const isAdmin = user?.role === 'CEO' || user?.role === 'MANAGER' || user?.role === 'SUPPORT';
+      const isAdmin = user?.role === 'CEO' || user?.role === 'MANAGER';
       const items = res.items || [];
       const filtered = isAdmin ? items : items.filter((t: any) => t.clientEmail === user?.email);
       setTickets(filtered);

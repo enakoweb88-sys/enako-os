@@ -17,7 +17,7 @@ import { isAccountantWorkspace } from '../lib/workspace-access';
 export default function Dashboard() {
   const { user } = useAuth();
   const role = user?.role?.toLowerCase() ?? 'employee';
-  const dept = (user?.department?.name || user?.department || '').toString().toLowerCase();
+  const dept = (user?.department || user?.department || '').toString().toLowerCase();
   const title = (user?.title || '').toLowerCase();
   const isHead = (user?.ledDepartments?.length ?? 0) > 0;
 

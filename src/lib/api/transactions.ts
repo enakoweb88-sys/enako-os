@@ -1,5 +1,6 @@
 import { apiRequest } from './core';
 
+const requests = new Map<string, string>();
 export const transactionsApi = {
   transactions: (params?: { search?: string; limit?: number; page?: number; status?: string; type?: string; dateRange?: string; channel?: string; specificDate?: string }) => {
     const q = new URLSearchParams();
@@ -13,8 +14,12 @@ export const transactionsApi = {
     if (params?.specificDate) q.set('specificDate', params.specificDate);
     return apiRequest<any>(`/transactions?${q}`);
   },
-  createTransaction: (body: unknown) =>
-    apiRequest<any>('/transactions', { method: 'POST', body: JSON.stringify(body) }),
+  createTransaction: async (body: unknown, suppliedKey?: string) => {
+    const signature = JSON.stringify(body), idempotencyKey = suppliedKey || requests.get(signature) || crypto.randomUUID();
+    requests.set(signature, idempotencyKey);
+    const result = await apiRequest<any>('/transactions', { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: signature });
+    requests.delete(signature); return result;
+  },
   setTransactionStatus: (id: string, status: string) =>
     apiRequest<any>(`/transactions/${id}/status/${status}`, { method: 'PATCH' }),
   settleTransaction: (id: string) =>

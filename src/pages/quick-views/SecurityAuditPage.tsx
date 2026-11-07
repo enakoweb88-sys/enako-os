@@ -22,7 +22,7 @@ export interface SystemAuditRecord {
   effectiveDate: string; // The date it happened in reality (editable/backdatable)
   entryTimestamp: string; // The exact non-editable system date & time it was recorded
   deltaDays: number; // Difference in days: entryTimestamp date - effectiveDate
-  status: 'VERIFIED' | 'APPROVED' | 'PENDING' | 'SECURED';
+  status: 'VERIFIED' | 'APPROVED' | 'PENDING' | 'SECURED' | 'RECORDED';
   referenceId?: string;
   ip?: string;
   details: string;
@@ -60,247 +60,16 @@ export default function SecurityAuditPage() {
   // Fetch only REAL system records across all modules
   const loadRealAuditLogs = useCallback(async () => {
     setLoading(true);
-    const collected: SystemAuditRecord[] = [];
-
-    // 1. Load explicit user audit records from local storage with full sanitization
     try {
-      const storedAuditsRaw = localStorage.getItem('enako_system_audits');
-      if (storedAuditsRaw) {
-        const storedList = JSON.parse(storedAuditsRaw);
-        if (Array.isArray(storedList)) {
-          storedList.forEach((item: any) => {
-            if (!item || typeof item !== 'object') return;
-            collected.push({
-              ...item,
-              id: String(item.id || `AUD-LOCAL-${Math.random().toString().slice(2, 6)}`),
-              module: item.module || 'Transactions',
-              event: typeof item.event === 'string' ? item.event : String(item.event?.name || item.event || 'System Activity'),
-              actor: getActorName(item.actor),
-              actorRole: getRoleName(item.actorRole),
-              effectiveDate: typeof item.effectiveDate === 'string' ? item.effectiveDate : new Date().toISOString().split('T')[0],
-              entryTimestamp: typeof item.entryTimestamp === 'string' ? item.entryTimestamp : new Date().toISOString(),
-              deltaDays: typeof item.deltaDays === 'number' ? item.deltaDays : 0,
-              status: item.status || 'VERIFIED',
-              referenceId: item.referenceId ? String(item.referenceId) : undefined,
-              details: typeof item.details === 'string' ? item.details : String(item.details?.text || item.details || ''),
-              hash: item.hash ? String(item.hash) : undefined
-            });
-          });
-        }
-      }
-    } catch (e) {
-      console.warn('Error reading stored audits:', e);
-    }
+      const rows = await api.auditLogs();
+      const modules: Record<string, SystemAuditRecord['module']> = { transaction: 'Transactions', expense: 'Expenses', meal: 'Staff Meals', leave: 'Leave', kyc: 'KYC', kyc_submission: 'KYC' };
+      setAuditLogs(rows.map(row => ({ id: row.id, module: modules[row.entity.toLowerCase()] || 'Security & Vault', event: row.action,
+        actor: row.actor?.fullName || 'System', actorRole: row.actor?.role?.name || 'System', effectiveDate: row.createdAt.slice(0, 10), entryTimestamp: row.createdAt,
+        deltaDays: 0, status: 'RECORDED', referenceId: row.entityId || undefined, details: row.entity + (row.entityId ? ' ? ' + row.entityId : '') })));
+    } catch (error) {
+      setAuditLogs([]); toast.error(error instanceof Error ? error.message : 'Audit records unavailable');
+    } finally { setLoading(false); }
 
-    // 2. Fetch real transactions from API & local cache
-    try {
-      let txns: any[] = [];
-      try {
-        const res = await api.transactions({ limit: 100 });
-        txns = res?.items || (Array.isArray(res) ? res : []);
-      } catch {
-        const localTxRaw = localStorage.getItem('enako_transactions_cache');
-        if (localTxRaw) txns = JSON.parse(localTxRaw);
-      }
-
-      txns.forEach((tx: any) => {
-        const effectiveDate = tx.effectiveDate || tx.date || (tx.createdAt ? tx.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]);
-        const entryTimestamp = tx.entryTimestamp || tx.systemRecordedAt || tx.createdAt || new Date().toISOString();
-        const deltaDays = Math.round(
-          (new Date(entryTimestamp).getTime() - new Date(effectiveDate).getTime()) / (1000 * 3600 * 24)
-        );
-        const amtStr = Number(tx.amount || 0).toLocaleString();
-        collected.push({
-          id: `AUD-TXN-${(tx.id || Math.random().toString().slice(2, 6)).toString().replace(/[^a-zA-Z0-9]/g, '')}`,
-          module: 'Transactions',
-          event: `Transaction ${tx.type || 'Transfer'}: ${amtStr} ${tx.currency || 'XAF'} (${tx.entity || 'Client'})`,
-          actor: getActorName(tx.createdBy) || tx.agentName || 'Finance Operator',
-          actorRole: 'Finance',
-          effectiveDate,
-          entryTimestamp,
-          deltaDays: isNaN(deltaDays) ? 0 : deltaDays,
-          status: tx.status === 'SETTLED' || tx.status === 'COMPLETED' ? 'VERIFIED' : 'APPROVED',
-          referenceId: tx.reference || tx.id,
-          details: `Entity: ${tx.entity || 'N/A'} • Channel: ${tx.channel || 'Bank Transfer'} • Val: ${amtStr} ${tx.currency || 'XAF'}${tx.description ? ` • Notes: ${tx.description}` : ''}`,
-          hash: `sha256-txn-${(tx.id || '001')}-verified`
-        });
-      });
-    } catch (e) {
-      console.warn('Error loading real transactions for audit:', e);
-    }
-
-    // 3. Fetch real expenses from API & local cache
-    try {
-      let expenses: any[] = [];
-      try {
-        const res = await api.expenses();
-        expenses = res?.items || (Array.isArray(res) ? res : []);
-      } catch {
-        const localExpRaw = localStorage.getItem('enako_custom_expenses');
-        if (localExpRaw) expenses = JSON.parse(localExpRaw);
-      }
-
-      expenses.forEach((exp: any) => {
-        const effectiveDate = exp.effectiveDate || exp.expenseDate || (exp.createdAt ? exp.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]);
-        const entryTimestamp = exp.entryTimestamp || exp.systemRecordedAt || exp.createdAt || new Date().toISOString();
-        const deltaDays = Math.round(
-          (new Date(entryTimestamp).getTime() - new Date(effectiveDate).getTime()) / (1000 * 3600 * 24)
-        );
-        const amtStr = Number(exp.amount || 0).toLocaleString();
-        collected.push({
-          id: `AUD-EXP-${(exp.id || Math.random().toString().slice(2, 6)).toString().replace(/[^a-zA-Z0-9]/g, '')}`,
-          module: 'Expenses',
-          event: `Expense Claim: ${exp.category || 'Disbursement'} - ${amtStr} FCFA`,
-          actor: getActorName(exp.submittedBy) || exp.userName || 'Staff Member',
-          actorRole: getRoleName(exp.submittedBy?.role || exp.submittedBy) || 'Operations',
-          effectiveDate,
-          entryTimestamp,
-          deltaDays: isNaN(deltaDays) ? 0 : deltaDays,
-          status: exp.status === 'APPROVED' ? 'APPROVED' : 'VERIFIED',
-          referenceId: exp.receiptRef || exp.id,
-          details: `Description: ${exp.description || 'N/A'} • Department: ${exp.department || 'General'} • Route: ${exp.paymentMethod || 'Corporate Account'}`,
-          hash: `sha256-exp-${(exp.id || '001')}-verified`
-        });
-      });
-    } catch (e) {
-      console.warn('Error loading real expenses for audit:', e);
-    }
-
-    // 4. Fetch real meals from API & local cache
-    try {
-      let meals: any[] = [];
-      try {
-        const res = await api.meals();
-        meals = res?.items || (Array.isArray(res) ? res : []);
-      } catch {
-        const localMealsRaw = localStorage.getItem('enako_meals_cache');
-        if (localMealsRaw) meals = JSON.parse(localMealsRaw);
-      }
-
-      meals.forEach((m: any) => {
-        const effectiveDate = m.effectiveDate || m.date || (m.createdAt ? m.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]);
-        const entryTimestamp = m.entryTimestamp || m.systemRecordedAt || m.createdAt || new Date().toISOString();
-        const deltaDays = Math.round(
-          (new Date(entryTimestamp).getTime() - new Date(effectiveDate).getTime()) / (1000 * 3600 * 24)
-        );
-        collected.push({
-          id: `AUD-MEAL-${(m.id || Math.random().toString().slice(2, 6)).toString().replace(/[^a-zA-Z0-9]/g, '')}`,
-          module: 'Staff Meals',
-          event: `Staff Meal: ${m.status === 'ATE' ? (m.mealName || 'Standard Lunch') : 'Did Not Eat'}`,
-          actor: getActorName(m.employee) || m.userName || 'Staff Beneficiary',
-          actorRole: 'Employee',
-          effectiveDate,
-          entryTimestamp,
-          deltaDays: isNaN(deltaDays) ? 0 : deltaDays,
-          status: 'VERIFIED',
-          referenceId: m.id,
-          details: `Staff Beneficiary: ${getActorName(m.employee) || m.userName || 'Staff'} • Vendor: ${m.vendor || 'Catering'} • Price: ${Number(m.price || 1000).toLocaleString()} FCFA`,
-          hash: `sha256-meal-${(m.id || '001')}-verified`
-        });
-      });
-    } catch (e) {
-      console.warn('Error loading real meals for audit:', e);
-    }
-
-    // 5. Fetch real KYC records
-    try {
-      let kycList: any[] = [];
-      try {
-        const res: any = await api.kyc({ limit: 100 });
-        kycList = res?.items || (Array.isArray(res) ? res : []);
-      } catch {}
-
-      kycList.forEach((k: any) => {
-        const effectiveDate = k.effectiveDate || (k.submittedAt ? k.submittedAt.split('T')[0] : (k.createdAt ? k.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]));
-        const entryTimestamp = k.entryTimestamp || k.reviewedAt || k.createdAt || new Date().toISOString();
-        const deltaDays = Math.round(
-          (new Date(entryTimestamp).getTime() - new Date(effectiveDate).getTime()) / (1000 * 3600 * 24)
-        );
-        collected.push({
-          id: `AUD-KYC-${(k.id || Math.random().toString().slice(2, 6)).toString().replace(/[^a-zA-Z0-9]/g, '')}`,
-          module: 'KYC',
-          event: `KYC Dossier Review: ${k.fullName || k.name || 'Applicant'} (${k.status || 'PENDING'})`,
-          actor: getActorName(k.reviewedBy) || 'Compliance Officer',
-          actorRole: 'Compliance',
-          effectiveDate,
-          entryTimestamp,
-          deltaDays: isNaN(deltaDays) ? 0 : deltaDays,
-          status: k.status === 'APPROVED' ? 'VERIFIED' : 'PENDING',
-          referenceId: k.id,
-          details: `Document: ${k.documentType || 'Identity Document'} • Country: ${k.nationality || 'Cameroon'} • Verification Status: ${k.status || 'PENDING'}`,
-          hash: `sha256-kyc-${(k.id || '001')}-verified`
-        });
-      });
-    } catch (e) {
-      console.warn('Error loading real KYC for audit:', e);
-    }
-
-    // 6. Fetch real leave records
-    try {
-      let leaves: any[] = [];
-      try {
-        const res = await api.leaves();
-        leaves = res?.items || (Array.isArray(res) ? res : []);
-      } catch {
-        const localLeavesRaw = localStorage.getItem('enako_leaves_cache');
-        if (localLeavesRaw) leaves = JSON.parse(localLeavesRaw);
-      }
-
-      leaves.forEach((lv: any) => {
-        const effectiveDate = lv.effectiveDate || lv.startDate || (lv.createdAt ? lv.createdAt.split('T')[0] : new Date().toISOString().split('T')[0]);
-        const entryTimestamp = lv.entryTimestamp || lv.createdAt || new Date().toISOString();
-        const deltaDays = Math.round(
-          (new Date(entryTimestamp).getTime() - new Date(effectiveDate).getTime()) / (1000 * 3600 * 24)
-        );
-        collected.push({
-          id: `AUD-LEV-${(lv.id || Math.random().toString().slice(2, 6)).toString().replace(/[^a-zA-Z0-9]/g, '')}`,
-          module: 'Leave',
-          event: `Leave Filing: ${lv.type || 'Annual Leave'} (${lv.days || 1} Days)`,
-          actor: getActorName(lv.employee) || 'Staff Member',
-          actorRole: 'Employee',
-          effectiveDate,
-          entryTimestamp,
-          deltaDays: isNaN(deltaDays) ? 0 : deltaDays,
-          status: lv.status === 'APPROVED' ? 'APPROVED' : 'PENDING',
-          referenceId: lv.id,
-          details: `Reason: ${lv.reason || 'Leave requested'} • Status: ${lv.status || 'PENDING'}`,
-          hash: `sha256-lev-${(lv.id || '001')}-verified`
-        });
-      });
-    } catch (e) {
-      console.warn('Error loading real leaves for audit:', e);
-    }
-
-    // 7. Security & Vault active authentication session
-    if (user) {
-      const authTimestamp = new Date().toISOString();
-      collected.push({
-        id: `AUD-VAULT-${user.id ? user.id.slice(-4) : 'AUTH'}`,
-        module: 'Security & Vault',
-        event: `Active Operator Session Bound: ${user.fullName || 'Authorized User'}`,
-        actor: user.fullName || 'Operator',
-        actorRole: (user.role || 'CEO').toUpperCase(),
-        effectiveDate: authTimestamp.split('T')[0],
-        entryTimestamp: authTimestamp,
-        deltaDays: 0,
-        status: 'SECURED',
-        referenceId: `TOKEN-${user.id || 'SES'}`,
-        details: `Identity: ${user.email || 'operator@enako.cm'} • Role Clearance: ${user.role || 'Staff'} • Cryptographic token authenticated.`,
-        hash: 'sha256-vault-session-active-verified'
-      });
-    }
-
-    // Remove duplicates by ID and sort newest entryTimestamp first
-    const seen = new Set<string>();
-    const unique = collected.filter(item => {
-      if (seen.has(item.id)) return false;
-      seen.add(item.id);
-      return true;
-    });
-
-    unique.sort((a, b) => new Date(b.entryTimestamp).getTime() - new Date(a.entryTimestamp).getTime());
-    setAuditLogs(unique);
-    setLoading(false);
   }, [user]);
 
   useEffect(() => {
@@ -404,7 +173,7 @@ export default function SecurityAuditPage() {
             Enterprise System Audit & Activity Verification Ledger
           </h1>
           <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-            Real-time compliance ledger recording the exact calendar date activities occurred against the immutable, non-editable system entry timestamp. Audits all Transactions, KYC Dossiers, Expenses, Staff Meals, and Leave requests from real system records.
+            Latest 500 saved company audit events. Dates show when each event was recorded.
           </p>
         </div>
 
@@ -799,10 +568,10 @@ export default function SecurityAuditPage() {
               <div className="p-3 bg-slate-900 text-slate-200 rounded-md space-y-1 font-mono text-[11px]">
                 <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-wider font-sans">
                   <span>Cryptographic Integrity Seal</span>
-                  <span className="text-emerald-400 font-bold">SHA-256 Validated</span>
+                  <span className="text-emerald-400 font-bold">Event integrity information</span>
                 </div>
                 <p className="break-all text-slate-300">
-                  {selectedAudit.hash || 'sha256-verified-tamperproof-ledger-token'}
+                  {selectedAudit.hash || 'No cryptographic integrity proof is attached to this event.'}
                 </p>
               </div>
             </div>

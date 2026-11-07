@@ -62,10 +62,10 @@ export function EngineeringDashboard() {
 
       {/* Reference Screenshot 4 Top Stat Cards */}
       <WorkplaceStatCards
-        domainsCount={kpis.uptime || '99.98%'}
-        usersCount={kpis.apiPerformance || '42ms'}
-        groupsCount={kpis.deploymentSuccessRate || '99.4%'}
-        licensesCount={`${kpis.securityIncidents ?? 0} Breaches`}
+        domainsCount={kpis.uptime ?? 'Unavailable'}
+        usersCount={kpis.apiPerformance ?? 'Unavailable'}
+        groupsCount={kpis.deploymentSuccessRate ?? 'Unavailable'}
+        licensesCount={kpis.securityIncidents == null ? 'Unavailable' : `${kpis.securityIncidents} Breaches`}
         card1Label="SYSTEM UPTIME"
         card2Label="API LATENCY"
         card3Label="DEPLOY SUCCESS"

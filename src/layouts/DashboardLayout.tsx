@@ -86,7 +86,7 @@ function EnterpriseDashboardLayout() {
   const searchRef = useRef<HTMLDivElement>(null);
 
   const userRole = (user?.role ?? 'EMPLOYEE').toLowerCase();
-  const userDept = (user?.department?.name || user?.department || '').toString().toLowerCase();
+  const userDept = (user?.department || user?.department || '').toString().toLowerCase();
 
   const getEffectiveRole = () => {
     if (userRole === 'ceo') return 'ceo';

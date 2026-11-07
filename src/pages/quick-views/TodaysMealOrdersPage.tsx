@@ -16,7 +16,7 @@ export default function TodaysMealOrdersPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.staffMeals()
+    api.meals()
       .then((res: any) => {
         const list = Array.isArray(res) ? res : res?.items || [];
         setMeals(list);
@@ -75,7 +75,7 @@ export default function TodaysMealOrdersPage() {
                 m.employee?.department || 'Operations',
                 m.mealName || 'Standard Lunch Menu',
                 m.status === 'ATE' ? 'Confirmed & Consumed' : 'Did Not Eat',
-                fmt(m.price || 1500),
+                fmt(m.price ?? m.totalAmount ?? 0),
                 m.orderTime ? new Date(m.orderTime).toLocaleTimeString() : new Date().toLocaleTimeString()
               ]);
 

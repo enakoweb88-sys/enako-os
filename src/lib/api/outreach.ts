@@ -12,14 +12,14 @@ export interface CreatePostDTO {
 }
 
 export const outreachAPI = {
-  searchOutreach: (query: string) => apiRequest<any[]>(`/outreach/search?q=${encodeURIComponent(query)}`),
+  searchOutreach: (query: string) => apiRequest<any[]>(`/outreach/admin/search?q=${encodeURIComponent(query)}`),
   getDonations: () => apiRequest<any>('/outreach/donations'),
   getStats: () => apiRequest<any>('/outreach/stats'),
   getApplications: () => apiRequest<any[]>('/outreach/applications'),
-  getEvents: () => apiRequest<any[]>('/outreach/events'),
+  getEvents: () => apiRequest<any[]>('/outreach/admin/events'),
   createEvent: (data: any) => apiRequest<any>('/outreach/events', { method: 'POST', body: JSON.stringify(data) }),
-  updateEventStatus: (id: string, status: string) => apiRequest<any>(`/outreach/events/${id}/status`, { method: 'POST', body: JSON.stringify({ id, status }) }),
-  getPosts: () => apiRequest<any[]>('/outreach/posts'),
+  updateEventStatus: (id: string, status: string, openDate?: string) => apiRequest<any>(`/outreach/events/${id}/status`, { method: 'POST', body: JSON.stringify({ status, openDate }) }),
+  getPosts: () => apiRequest<any[]>('/outreach/admin/posts'),
   createPost: (data: CreatePostDTO) => apiRequest<any>('/outreach/posts', { method: 'POST', body: JSON.stringify(data) }),
   updatePost: (id: string, data: Partial<CreatePostDTO>) => apiRequest<any>(`/outreach/posts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   updatePostStatus: (id: string, status: string) => apiRequest<any>(`/outreach/posts/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) }),

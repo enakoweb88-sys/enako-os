@@ -94,14 +94,9 @@ export default function UpdateRatesPage() {
         }
       });
 
+      await api.saveExchangeRates(payloadList);
       setRates(updatedRates);
       saveStoredExchangeRates(updatedRates);
-
-      if (api.setExchangeRates) {
-        await api.setExchangeRates(payloadList).catch(err => {
-          console.warn('API sync warning:', err);
-        });
-      }
 
       toast.success('Live currency buying & selling exchange rates saved successfully');
       navigate('/app/transactions');

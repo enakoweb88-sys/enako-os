@@ -179,30 +179,6 @@ export default function CreateTransactionPage() {
         description: fullDesc,
       });
 
-      // Log into unified system audit trail
-      try {
-        const deltaDays = Math.round(
-          (new Date(entryTimestamp).getTime() - new Date(form.transactionDate).getTime()) / (1000 * 3600 * 24)
-        );
-        const auditRecord = {
-          id: `AUD-TXN-${Date.now()}`,
-          module: 'Transactions',
-          event: `Transaction Created: ${form.type.toUpperCase()} ${cleanedAmt.toLocaleString()} ${form.currency}`,
-          actor: user?.fullName || 'Financial Operator',
-          actorRole: user?.role || 'Finance',
-          effectiveDate: form.transactionDate,
-          entryTimestamp,
-          deltaDays,
-          status: 'VERIFIED',
-          referenceId: `TXN-${Date.now().toString().slice(-6)}`,
-          details: `Entity: ${form.entity} • Channel: ${form.channel} • Amount: ${cleanedAmt.toLocaleString()} ${form.currency} (${cleanedXaf.toLocaleString()} XAF)`
-        };
-        const prevAudits = JSON.parse(localStorage.getItem('enako_system_audits') || '[]');
-        localStorage.setItem('enako_system_audits', JSON.stringify([auditRecord, ...prevAudits]));
-      } catch (auditErr) {
-        console.warn('Transaction audit log warning:', auditErr);
-      }
-
       toast.success('Transaction created and queued for settlement');
       navigate('/app/transactions');
     } catch (err: any) {

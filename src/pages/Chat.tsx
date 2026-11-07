@@ -1,3 +1,4 @@
+import { getAccessToken, SOCKET_BASE_URL } from '../lib/api/core';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, PlusCircle, Hash, X, Info, UserPlus, Trash2, Lock } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -11,9 +12,7 @@ let socket: Socket | null = null;
 
 function getSocket() {
   if (!socket) {
-    const defaultHost = window.location.hostname.replace(/^(www\.|app\.|os\.|client\.|dashboard\.)/, '');
-    const url = (import.meta.env.VITE_API_URL as string)?.replace('/api/v1', '') ?? (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'https://api.enakoos.com' : `https://api.${defaultHost}`);
-    socket = io(url, { transports: ['websocket', 'polling'] });
+    socket = io(SOCKET_BASE_URL, { transports: ['websocket'], auth: (callback) => callback({ token: getAccessToken() }) });
   }
   return socket;
 }
@@ -153,7 +152,7 @@ export default function Chat() {
   const loadEmployees = async () => {
     try {
       const emps = await api.employees();
-      setEmployees(emps);
+      setEmployees(emps.items || []);
     } catch (e: any) {
       console.error(e);
     }

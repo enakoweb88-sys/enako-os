@@ -60,20 +60,11 @@ export default function OutreachScholarships() {
     setLoading(true);
     try {
       const [evts, apps] = await Promise.all([
-        outreachAPI.getEvents().catch(() => null),
-        outreachAPI.getApplications().catch(() => null)
+        outreachAPI.getEvents(),
+        outreachAPI.getApplications()
       ]);
 
-      const savedLocal = localStorage.getItem('enako_outreach_scholarships');
-      const localEvents = savedLocal ? JSON.parse(savedLocal) : [];
-
-      let scholarshipEvents = (evts || []).filter((e: any) => e.type === 'SCHOLARSHIP');
-
-      if (scholarshipEvents.length === 0 && localEvents.length > 0) {
-        scholarshipEvents = localEvents;
-      } else if (scholarshipEvents.length === 0) {
-        scholarshipEvents = INITIAL_DEMO_SCHOLARSHIPS;
-      }
+      const scholarshipEvents = evts.filter((event: any) => event.type === 'SCHOLARSHIP');
 
       setEvents(scholarshipEvents);
       setApplications((apps || []).filter((a: any) => a.type === 'SCHOLARSHIP'));
@@ -90,7 +81,7 @@ export default function OutreachScholarships() {
 
   const saveLocalEvents = (updated: any[]) => {
     setEvents(updated);
-    localStorage.setItem('enako_outreach_scholarships', JSON.stringify(updated));
+
   };
 
   const addCustomField = () => {
@@ -135,14 +126,7 @@ export default function OutreachScholarships() {
     };
 
     try {
-      const created = await outreachAPI.createEvent(payload).catch(() => null);
-
-      const newItem = created && created.id ? created : {
-        ...payload,
-        id: `sch-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        _count: { applications: 0 },
-      };
+      const newItem = await outreachAPI.createEvent(payload);
 
       const updatedList = [newItem, ...events];
       saveLocalEvents(updatedList);
@@ -169,7 +153,7 @@ export default function OutreachScholarships() {
   // Publish Now Handler
   const handlePublishNow = async (id: string) => {
     try {
-      await outreachAPI.updateEventStatus(id, 'OPEN').catch(() => null);
+      await outreachAPI.updateEventStatus(id, 'OPEN');
       const updated = events.map(e => e.id === id ? { ...e, status: 'OPEN', openDate: new Date().toISOString() } : e);
       saveLocalEvents(updated);
       toast.success('Scholarship published live now!');
@@ -189,7 +173,7 @@ export default function OutreachScholarships() {
     if (!scheduleModalItem) return;
 
     try {
-      await outreachAPI.updateEventStatus(scheduleModalItem.id, 'SCHEDULED').catch(() => null);
+      await outreachAPI.updateEventStatus(scheduleModalItem.id, 'SCHEDULED', new Date(scheduledDateTime).toISOString());
       const updated = events.map(e => 
         e.id === scheduleModalItem.id 
           ? { ...e, status: 'SCHEDULED', openDate: new Date(scheduledDateTime).toISOString() } 

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { api, AuthUser, clearSession, getStoredUser, RoleName, storeSession } from './api';
+import { API_BASE_URL, refreshSession } from './api/core';
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -12,6 +13,12 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
+
+  useEffect(() => {
+    const expireSession = () => { clearSession(); setUser(null); };
+    window.addEventListener('enako:session-expired', expireSession);
+    return () => window.removeEventListener('enako:session-expired', expireSession);
+  }, []);
 
   // Refresh the server profile whenever the app starts. This makes HR changes
   // (such as assigning the Field Marketer title) take effect without waiting
@@ -25,10 +32,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let currentUser = getStoredUser();
 
       try {
-        const session = await api.refreshSession(refreshToken);
-        storeSession(session);
-        currentUser = session.user;
-        if (active) setUser(session.user);
+        await refreshSession();
+        currentUser = getStoredUser();
+        if (active) setUser(currentUser);
       } catch {
         // Keep the existing valid session available if the refresh endpoint is unavailable.
       }
@@ -63,9 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const handleUnload = () => {
       const sessionId = sessionStorage.getItem('enako_session_id');
       if (sessionId) {
-        const defaultHost = window.location.hostname.replace(/^(www\.|app\.|os\.|client\.|dashboard\.)/, '');
-        const url = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'https://api.enakoos.com/api/v1' : `https://api.${defaultHost}/api/v1`);
-        navigator.sendBeacon(`${url}/auth/end-session`, new Blob([JSON.stringify({ sessionId })], { type: 'application/json' }));
+        navigator.sendBeacon(`${API_BASE_URL}/auth/end-session`, new Blob([JSON.stringify({ sessionId })], { type: 'application/json' }));
       }
     };
     window.addEventListener('beforeunload', handleUnload);

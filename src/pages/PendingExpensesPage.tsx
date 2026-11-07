@@ -29,25 +29,8 @@ export default function PendingExpensesPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Remote items from API
-      let remoteItems: any[] = [];
-      try {
-        const res = await api.expenses({ limit: 100 });
-        remoteItems = res?.items || (Array.isArray(res) ? res : []);
-      } catch (err) {
-        console.warn('Backend expenses fetch deferred:', err);
-      }
-
-      // 2. Local storage items
-      const localRaw = localStorage.getItem('enako_custom_expenses');
-      const localItems: any[] = localRaw ? JSON.parse(localRaw) : [];
-
-      // 3. Merge: local items take precedence if matching id
-      const combinedMap = new Map<string, any>();
-      remoteItems.forEach(item => combinedMap.set(item.id, item));
-      localItems.forEach(item => combinedMap.set(item.id, item));
-
-      const merged = Array.from(combinedMap.values());
+      const result = await api.expenses({ limit: 100 });
+      const merged = result.items;
       const pendingClaims = merged.filter(item => item.status === 'PENDING');
       // Sort newest first
       pendingClaims.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
@@ -72,19 +55,7 @@ export default function PendingExpensesPage() {
   const handleReview = async (id: string, status: 'APPROVED' | 'REJECTED') => {
     setProcessingId(id);
     try {
-      try {
-        await api.reviewExpense(id, status);
-      } catch (err) {
-        console.warn('API review endpoint deferred, updating locally:', err);
-      }
-
-      // Update in local cache
-      const localRaw = localStorage.getItem('enako_custom_expenses');
-      if (localRaw) {
-        const localItems: any[] = JSON.parse(localRaw);
-        const updated = localItems.map(item => item.id === id ? { ...item, status } : item);
-        localStorage.setItem('enako_custom_expenses', JSON.stringify(updated));
-      }
+      await api.reviewExpense(id, status);
 
       setItems(prev => prev.filter(item => item.id !== id));
       toast.success(status === 'APPROVED' ? 'Claim approved and logged' : 'Claim rejected');
@@ -104,24 +75,11 @@ export default function PendingExpensesPage() {
 
     setLoading(true);
     try {
-      for (const item of items) {
-        try {
-          await api.reviewExpense(item.id, 'APPROVED');
-        } catch {
-          // ignore individual error in batch
-        }
-      }
-
-      const localRaw = localStorage.getItem('enako_custom_expenses');
-      if (localRaw) {
-        const localItems: any[] = JSON.parse(localRaw);
-        const updated = localItems.map(item => ({ ...item, status: 'APPROVED' }));
-        localStorage.setItem('enako_custom_expenses', JSON.stringify(updated));
-      }
-
-      setItems([]);
-      setExpandedId(null);
-      toast.success(`All ${items.length} pending claims approved`);
+      const results = await Promise.allSettled(items.map(item => api.reviewExpense(item.id, 'APPROVED')));
+      const succeeded = results.filter(item => item.status === 'fulfilled').length;
+      await loadData();
+      if (succeeded === items.length) toast.success('All pending claims approved');
+      else toast.error(succeeded + ' approved; ' + (items.length - succeeded) + ' require attention. Your own claims need another reviewer.');
     } catch (e: any) {
       toast.error(e.message || 'Batch approval failed');
     } finally {

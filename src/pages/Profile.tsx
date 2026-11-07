@@ -64,7 +64,7 @@ export default function Profile() {
   const getRoleSpecificData = () => {
     const completion = stats ? `${stats.taskCompletion || 0}%` : '0%';
     const goals = stats ? `${stats.completedGoals || 0}/${stats.totalGoals || 0}` : '0/0';
-    const uptime = stats ? `${stats.networkUptime || 99.9}%` : '99.9%';
+    const uptime = stats?.networkUptime == null ? 'Unavailable' : `${stats.networkUptime}%`;
     const badges = stats?.badges || [];
 
     const defaultTitle = role.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');

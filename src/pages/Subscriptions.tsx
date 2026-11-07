@@ -1,20 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Plus, 
-  RefreshCw, 
-  FileSpreadsheet, 
-  CreditCard, 
-  Clock, 
-  TrendingUp, 
-  CheckCircle2, 
+import {
+  Plus,
+  RefreshCw,
+  FileSpreadsheet,
+  CreditCard,
+  Clock,
+  TrendingUp,
+  CheckCircle2,
   AlertCircle,
   ExternalLink
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';
+import { apiRequest } from '../lib/api/core';
 import { useAuth } from '../lib/auth';
 
 type Subscription = {
@@ -32,12 +33,14 @@ type Subscription = {
   receiptUrl?: string;
 };
 
-const getFileUrl = (url: string) => {
-  if (!url) return '';
-  if (url.startsWith('http') || url.startsWith('blob:')) return url;
-  const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/v1\/?$/, '') : 'http://localhost:8000';
-  return `${baseUrl}${url.startsWith('/') ? url : '/' + url}`;
-};
+async function downloadReceipt(url: string) {
+  if (!/^\/api\/v1\/files\/private\/[a-zA-Z0-9-]+$/.test(url)) { toast.error('This receipt needs an authorized retrieval link.'); return; }
+  try {
+    const objectUrl = URL.createObjectURL(await apiRequest<Blob>(url.slice('/api/v1'.length), {}, 'blob'));
+    const link = document.createElement('a'); link.href = objectUrl; link.download = 'receipt'; link.click();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  } catch (error) { toast.error(error instanceof Error ? error.message : 'Receipt unavailable'); }
+}
 
 export default function Subscriptions() {
   const { user } = useAuth();
@@ -50,23 +53,7 @@ export default function Subscriptions() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      let remoteSubs: Subscription[] = [];
-      try {
-        remoteSubs = await api.subscriptions();
-      } catch (err) {
-        console.warn('Backend subscriptions API deferred:', err);
-      }
-
-      // Merge local storage cached subscriptions
-      const localRaw = localStorage.getItem('enako_subscriptions');
-      const localSubs: Subscription[] = localRaw ? JSON.parse(localRaw) : [];
-
-      const combinedMap = new Map<string, Subscription>();
-      (remoteSubs || []).forEach((s: any) => combinedMap.set(s.id, s));
-      localSubs.forEach(s => combinedMap.set(s.id, s));
-
-      const merged = Array.from(combinedMap.values());
-      setSubs(merged);
+      setSubs(await api.subscriptions());
     } catch (e: any) {
       toast.error('Failed to load subscriptions');
     } finally {
@@ -81,17 +68,7 @@ export default function Subscriptions() {
   const handleCancel = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to mark ${name} as cancelled?`)) return;
     try {
-      try {
-        await api.updateSubscription(id, { status: 'Cancelled' });
-      } catch (e) {}
-
-      // Update local storage
-      const localRaw = localStorage.getItem('enako_subscriptions');
-      if (localRaw) {
-        const localSubs: Subscription[] = JSON.parse(localRaw);
-        const updated = localSubs.map(s => s.id === id ? { ...s, status: 'Cancelled' as const } : s);
-        localStorage.setItem('enako_subscriptions', JSON.stringify(updated));
-      }
+      await api.updateSubscription(id, { status: 'Cancelled' });
 
       setSubs(prev => prev.map(s => s.id === id ? { ...s, status: 'Cancelled' as const } : s));
       toast.info(`${name} subscription status updated to Cancelled.`);
@@ -128,7 +105,7 @@ export default function Subscriptions() {
     toast.success('Subscriptions report exported as CSV');
   };
 
-  const filteredSubs = subs.filter(s => 
+  const filteredSubs = subs.filter(s =>
     s.name.toLowerCase().includes(search.toLowerCase()) ||
     s.status.toLowerCase().includes(search.toLowerCase()) ||
     (s.department || '').toLowerCase().includes(search.toLowerCase())
@@ -136,8 +113,8 @@ export default function Subscriptions() {
 
   const monthlyTotal = subs.reduce((acc, sub) => {
     if (sub.status !== 'Active') return acc;
-    const cost = sub.costInXaf 
-      ? Number(sub.costInXaf) 
+    const cost = sub.costInXaf
+      ? Number(sub.costInXaf)
       : (sub.currency === 'XAF' ? Number(sub.cost) : Number(sub.cost) * 600);
     return acc + (sub.cycle === 'Yearly' ? cost / 12 : cost);
   }, 0);
@@ -281,8 +258,8 @@ export default function Subscriptions() {
           </div>
 
           <div className="relative w-full sm:w-72">
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Search subscriptions or dept..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -319,7 +296,7 @@ export default function Subscriptions() {
                   </tr>
                 ) : (
                   filteredSubs.map((sub) => (
-                    <tr 
+                    <tr
                       key={sub.id}
                       className="hover:bg-slate-50/60 transition-colors"
                     >
@@ -333,10 +310,10 @@ export default function Subscriptions() {
                       </td>
                       <td className="px-5 py-3.5">
                         <span className="text-xs font-bold text-slate-900">
-                          {sub.costInXaf 
-                            ? parseFloat(sub.costInXaf as string).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) 
-                            : (sub.currency === 'XAF' 
-                                ? parseFloat(sub.cost as string) 
+                          {sub.costInXaf
+                            ? parseFloat(sub.costInXaf as string).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                            : (sub.currency === 'XAF'
+                                ? parseFloat(sub.cost as string)
                                 : parseFloat(sub.cost as string) * 600
                               ).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
                           } FCFA
@@ -362,15 +339,12 @@ export default function Subscriptions() {
                       </td>
                       <td className="px-5 py-3.5">
                         {sub.receiptUrl ? (
-                          <a 
-                            href={getFileUrl(sub.receiptUrl)} 
-                            target="_blank" 
-                            rel="noreferrer" 
+                          <button type="button" onClick={() => downloadReceipt(sub.receiptUrl!)}
                             className="inline-flex items-center gap-1 text-[#001f5b] font-bold hover:underline text-xs"
                           >
                             <span>Receipt</span>
                             <ExternalLink className="w-3 h-3" />
-                          </a>
+                          </button>
                         ) : (
                           <span className="text-xs text-slate-400">-</span>
                         )}

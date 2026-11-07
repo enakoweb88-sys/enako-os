@@ -11,7 +11,7 @@ export default function UnreadMessagesPage() {
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
-    api.chatMessages()
+    api.messages()
       .then((res: any) => {
         const list = Array.isArray(res) ? res : res?.items || [];
         setMessages(list.slice(0, 10));

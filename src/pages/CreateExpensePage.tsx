@@ -62,7 +62,7 @@ export default function CreateExpensePage() {
     const finalCategory = category === 'Other' ? (customCategory.trim() || 'Other') : category;
     
     // CEO and Manager do not submit for review; they approve and record directly
-    const initialStatus = isExecutive ? 'APPROVED' : 'PENDING';
+    const initialStatus = 'PENDING';
     const entryTimestamp = new Date().toISOString();
 
     const payload = {
@@ -87,65 +87,8 @@ export default function CreateExpensePage() {
     };
 
     try {
-      let created = null;
-      try {
-        created = await api.createExpense(payload);
-      } catch (err) {
-        console.warn('Backend API deferred, saving locally:', err);
-      }
-
-      const localId = created?.id || `EXP-${Date.now()}`;
-      const newClaim = {
-        id: localId,
-        description: payload.description,
-        amount: payload.amount,
-        category: payload.category,
-        department: payload.department,
-        status: initialStatus,
-        createdAt: entryTimestamp,
-        expenseDate: payload.expenseDate,
-        effectiveDate: payload.expenseDate,
-        entryTimestamp,
-        systemRecordedAt: entryTimestamp,
-        paymentMethod: payload.paymentMethod,
-        receiptRef: payload.receiptRef,
-        notes: payload.notes,
-        submittedBy: payload.submittedBy
-      };
-
-      const existingRaw = localStorage.getItem('enako_custom_expenses');
-      const existingList = existingRaw ? JSON.parse(existingRaw) : [];
-      localStorage.setItem('enako_custom_expenses', JSON.stringify([newClaim, ...existingList]));
-
-      // Log into unified system audit trail
-      try {
-        const deltaDays = Math.round(
-          (new Date(entryTimestamp).getTime() - new Date(expenseDate).getTime()) / (1000 * 3600 * 24)
-        );
-        const auditRecord = {
-          id: `AUD-EXP-${Date.now()}`,
-          module: 'Expenses',
-          event: `Expense Claim Logged: ${finalCategory} - ${numAmount.toLocaleString()} FCFA`,
-          actor: payload.submittedBy.fullName,
-          actorRole: payload.submittedBy.role,
-          effectiveDate: expenseDate,
-          entryTimestamp,
-          deltaDays,
-          status: isExecutive ? 'VERIFIED' : 'PENDING',
-          referenceId: localId,
-          details: `Description: ${description.trim()} • Cost Center: ${department} • Channel: ${paymentMethod}`
-        };
-        const prevAudits = JSON.parse(localStorage.getItem('enako_system_audits') || '[]');
-        localStorage.setItem('enako_system_audits', JSON.stringify([auditRecord, ...prevAudits]));
-      } catch (auditErr) {
-        console.warn('Expense audit record warning:', auditErr);
-      }
-
-      if (isExecutive) {
-        toast.success('Expense authorized and recorded directly into ledger');
-      } else {
-        toast.success('Expense claim submitted for executive review');
-      }
+      await api.createExpense(payload);
+      toast.success('Expense claim submitted for independent review');
       navigate('/app/expenses');
     } catch (e: any) {
       toast.error(e.message || 'Failed to record expense');

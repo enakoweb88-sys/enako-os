@@ -1,0 +1,17 @@
+{
+  "name": "enako-os-api-proxy",
+  "main": "access-proxy.mjs",
+  "compatibility_date": "2026-11-07",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    {
+      "pattern": "https://enakoos.com/api/v1/*",
+      "zone_name": "enakoos.com"
+    },
+    {
+      "pattern": "https://enakoos.com/socket.io/*",
+      "zone_name": "enakoos.com"
+    }
+  ]
+}
