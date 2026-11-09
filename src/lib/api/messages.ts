@@ -1,6 +1,8 @@
 import { apiRequest } from './core';
 
 export const messagesApi = {
+  unreadMessages: () => apiRequest<any[]>('/messages/unread'),
+  markMessagesRead: (channel: string, messageIds: string[]) => apiRequest<{ success: boolean }>('/messages/read', { method: 'PATCH', body: JSON.stringify({ channel, messageIds }) }),
   privateChatContacts: () => apiRequest<any[]>('/private-chat/contacts'),
   startPrivateChat: (recipientId: string) => apiRequest<any>('/private-chat', { method: 'POST', body: JSON.stringify({ recipientId }) }),
   messages: (channel = 'general') =>

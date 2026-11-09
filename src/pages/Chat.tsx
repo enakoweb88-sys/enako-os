@@ -32,6 +32,8 @@ export default function Chat() {
   const [loading, setLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const readInFlight = useRef(false);
+  const readFailures = useRef(false);
 
   // Members panel state
   const [showMembers, setShowMembers] = useState(false);
@@ -139,6 +141,43 @@ export default function Chat() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Persist only messages actually loaded into the visible conversation.
+  useEffect(() => {
+    const save = async () => {
+      if (document.visibilityState !== 'visible' || readInFlight.current || loading) return;
+      const ids = messages.filter(item => item.channel === activeChannel && item.senderId !== user?.id).map(item => item.id);
+      if (!ids.length) return;
+      readInFlight.current = true;
+      try {
+        await api.markMessagesRead(activeChannel, ids.slice(-200));
+        setUnreadCounts(counts => ({ ...counts, [activeChannel]: 0 }));
+        readFailures.current = false;
+      } catch {
+        if (!readFailures.current) toast.error('Could not save message read status. Retrying shortly.');
+        readFailures.current = true;
+      } finally { readInFlight.current = false; }
+    };
+    void save();
+    const timer = window.setInterval(save, 15000);
+    document.addEventListener('visibilitychange', save);
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', save); };
+  }, [messages, activeChannel, loading, user?.id]);
+
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      try {
+        const unread = await api.unreadMessages();
+        if (!active) return;
+        const counts: Record<string, number> = {};
+        for (const item of unread) counts[item.channel] = (counts[item.channel] || 0) + 1;
+        setUnreadCounts(counts);
+      } catch {}
+    };
+    void refresh(); const timer = window.setInterval(refresh, 15000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [user?.id]);
 
   const loadMembers = async () => {
     try {

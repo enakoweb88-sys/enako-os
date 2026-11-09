@@ -1,5 +1,5 @@
 import { Outlet, NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEffect, useState, useRef, useMemo } from 'react';
 import {
@@ -594,9 +594,10 @@ function EnterpriseDashboardLayout() {
   useEffect(() => {
     let active = true;
     const refresh = async () => {
+      const version = api.notificationReadVersion();
       try {
         const result = await api.notifications();
-        if (!active) return;
+        if (!active || version !== api.notificationReadVersion()) return;
         const items = Array.isArray(result) ? result : [];
         setNotifications(items);
         setUnreadCount(items.filter(item => !item.readAt).length);
@@ -605,8 +606,9 @@ function EnterpriseDashboardLayout() {
     void refresh();
     const timer = window.setInterval(refresh, 15_000);
     window.addEventListener('focus', refresh);
+    window.addEventListener('enako:notifications-read', refresh);
     api.announcements().then(items => { if (active && Array.isArray(items) && items.length) setAnnouncement(items[0]); }).catch(() => {});
-    return () => { active = false; window.clearInterval(timer); window.removeEventListener('focus', refresh); };
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener('focus', refresh); window.removeEventListener('enako:notifications-read', refresh); };
   }, [location.pathname, user?.id]);
 
   // Search debouncing
@@ -657,14 +659,17 @@ function EnterpriseDashboardLayout() {
   };
 
   const markAllRead = async () => {
-    try { await api.markAllNotificationsRead(); } catch { return; }
+    try { await api.markAllNotificationsRead(); } catch { toast.error('Could not save read status. Please try again.'); return; }
     setNotifications(prev => prev.map(n => ({ ...n, readAt: new Date().toISOString() })));
     setUnreadCount(0);
     setShowNotif(false);
   };
 
   const openNotification = async (notification: any) => {
-    try { if (!notification.readAt) await api.markNotificationRead(notification.id); } catch { /* The report can still be opened. */ }
+    try { if (!notification.readAt) await api.markNotificationRead(notification.id); }
+    catch { toast.error('Could not save read status. Please try again.'); return; }
+    setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, readAt: n.readAt || new Date().toISOString() } : n));
+    if (!notification.readAt) setUnreadCount(count => Math.max(0, count - 1));
     setShowNotif(false);
     if (notification.link) navigate(notification.link);
   };

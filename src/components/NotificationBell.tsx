@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
+import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
@@ -11,20 +12,25 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     let active = true;
-    const refresh = () =>
+    const refresh = () => {
+      const version = api.notificationReadVersion();
+      return (
       api
         .notifications()
         .then((result) => {
-          if (active) setItems(Array.isArray(result) ? result : []);
+          if (active && version === api.notificationReadVersion()) setItems(Array.isArray(result) ? result : []);
         })
-        .catch(() => {});
+        .catch(() => {}));
+    };
     void refresh();
     const timer = window.setInterval(refresh, 15_000);
     window.addEventListener('focus', refresh);
+    window.addEventListener('enako:notifications-read', refresh);
     return () => {
       active = false;
       window.clearInterval(timer);
       window.removeEventListener('focus', refresh);
+      window.removeEventListener('enako:notifications-read', refresh);
     };
   }, [user?.id]);
   const unread = items.filter((item) => !item.readAt).length;
@@ -56,7 +62,8 @@ export default function NotificationBell() {
                 key={item.id}
                 className="block w-full border-b p-3 text-left text-xs hover:bg-slate-50"
                 onClick={async () => {
-                  await api.markNotificationRead(item.id).catch(() => {});
+                  try { await api.markNotificationRead(item.id); }
+                  catch { toast.error('Could not save read status. Please try again.'); return; }
                   setItems((current) =>
                     current.map((row) =>
                       row.id === item.id ? { ...row, readAt: new Date().toISOString() } : row,

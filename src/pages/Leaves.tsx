@@ -12,17 +12,21 @@ export default function Leaves() {
   const [data, setData] = useState<any>({ totalStaff: 0, presentToday: 0, onLeave: 0, leaveRequests: [], employees: [] });
   const [loading, setLoading] = useState(true);
   const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [leaveDuration, setLeaveDuration] = useState('1 day');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const canManage = ['ceo', 'manager'].includes(role);
   const [leaveType, setLeaveType] = useState('Annual');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await (api as any).adminOverview();
-      const emps = await (api as any).employees({ limit: 500 });
+      const res = canManage ? await api.adminOverview() : {};
+      const leaveRequests = await api.leaves();
+      const emps = isCeo ? await (api as any).employees({ limit: 500 }) : { items: [] };
       setData({
         ...res,
+        leaveRequests,
         employees: emps.items || res.employees || []
       });
     } catch (e) {
@@ -30,14 +34,15 @@ export default function Leaves() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [canManage, isCeo]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const handleAction = (id: string, action: string) => {
-    toast.success(`Leave request ${action} successfully`);
+  const handleAction = async (id: string, action: 'Approved' | 'Rejected') => {
+    try { await api.reviewLeave(id, action); toast.success('Leave ' + action.toLowerCase()); await load(); }
+    catch { toast.error('Could not review leave. Refresh and try again.'); }
   };
 
   const handleCreateLeave = async (e: React.FormEvent) => {
@@ -46,14 +51,15 @@ export default function Leaves() {
     setIsSubmitting(true);
     try {
       await (api as any).createLeave({
-        employee: selectedEmployee || user?.fullName || 'Current User',
-        type: leaveType,
-        duration: leaveDuration
+        employeeId: isCeo ? selectedEmployee : undefined,
+        startDate, endDate,
+        type: leaveType
       });
       toast.success(isCeo ? "Leave assigned successfully" : "Leave requested successfully");
       load();
       if (isCeo) setSelectedEmployee('');
-      setLeaveDuration('1 day');
+      setStartDate('');
+      setEndDate('');
     } catch (err) {
       toast.error("Failed to assign leave");
       console.error(err);
@@ -98,7 +104,7 @@ export default function Leaves() {
       </div>
 
       {/* ── TOP METRIC CARDS WITH COLORED BOTTOM ACCENT (Matching Main Dashboard, No Icons) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {canManage && <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Red Accent */}
         <div className="bg-white border border-slate-200/90 border-b-[3px] border-b-rose-500 rounded-lg p-4 shadow-2xs">
           <p className="text-[11px] font-bold text-slate-600 tracking-wider uppercase">TOTAL STAFF</p>
@@ -124,6 +130,7 @@ export default function Leaves() {
         </div>
       </div>
 
+      }
       {/* Leave Application / Assignment Card */}
       <div className="bg-white border border-slate-200/90 rounded-lg p-6 shadow-2xs">
         <div className="mb-4 pb-3 border-b border-slate-100">
@@ -144,7 +151,7 @@ export default function Leaves() {
               >
                 <option value="">-- Choose Employee --</option>
                 {data.employees?.map((emp: any) => (
-                  <option key={emp.id} value={emp.fullName || emp.id}>
+                  <option key={emp.id} value={emp.id}>
                     {emp.fullName} ({emp.department || 'General'})
                   </option>
                 ))}
@@ -152,16 +159,13 @@ export default function Leaves() {
             </div>
           )}
 
-          <div className={cn("space-y-1.5", isCeo ? "sm:col-span-3" : "sm:col-span-5")}>
-            <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Duration / Period *</label>
-            <input 
-              type="text" 
-              value={leaveDuration}
-              onChange={e => setLeaveDuration(e.target.value)}
-              placeholder="e.g. 3 days, 1 week"
-              className="w-full px-3.5 py-2.5 border border-slate-200/90 rounded-lg text-xs bg-slate-50/70 focus:bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#001f5b] font-medium"
-              required
-            />
+          <div className="sm:col-span-3 space-y-1.5">
+            <label htmlFor="leave-start" className="text-xs font-bold text-slate-600">Start date *</label>
+            <input id="leave-start" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <div className="sm:col-span-3 space-y-1.5">
+            <label htmlFor="leave-end" className="text-xs font-bold text-slate-600">End date (last day of leave) *</label>
+            <input id="leave-end" type="date" value={endDate} min={startDate || undefined} onChange={e => setEndDate(e.target.value)} required className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
           </div>
 
           <div className={cn("space-y-1.5", isCeo ? "sm:col-span-3" : "sm:col-span-4")}>
@@ -229,7 +233,7 @@ export default function Leaves() {
                       </div>
                     </td>
                     <td className="px-6 py-4 font-semibold text-slate-700">
-                      {req.duration || 'N/A'}
+                      {req.startDate && req.endDate ? `${req.startDate.slice(0, 10)} ? ${req.endDate.slice(0, 10)}` : req.duration || 'Dates not set'}
                     </td>
                     <td className="px-6 py-4">
                       <span className="bg-slate-100 border border-slate-200/80 px-2.5 py-1 rounded-md text-[10px] font-bold text-slate-700 uppercase tracking-wider">
@@ -250,13 +254,13 @@ export default function Leaves() {
                       {(req.status === 'Pending' || !req.status) && isCeo ? (
                         <div className="flex items-center justify-end gap-2">
                           <button 
-                            onClick={() => handleAction(req.id, 'approved')} 
+                            onClick={() => handleAction(req.id, 'Approved')}
                             className="px-2.5 py-1 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 cursor-pointer transition-colors shadow-2xs"
                           >
                             Approve
                           </button>
                           <button 
-                            onClick={() => handleAction(req.id, 'rejected')} 
+                            onClick={() => handleAction(req.id, 'Rejected')}
                             className="px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs font-bold hover:bg-rose-100 cursor-pointer transition-colors shadow-2xs"
                           >
                             Reject
