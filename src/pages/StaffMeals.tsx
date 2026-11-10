@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -15,8 +15,10 @@ import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import ExportLedgerModal from '../components/ExportLedgerModal';
-import { mealDay, mealDate, monthlyMealSummary, reconcileMealCache } from '../lib/meal-utils';
+import MealExportModal from '../components/MealExportModal';
+import MealSettlementSummary from '../components/MealSettlementSummary';
+import { buildMealReport, providerKey, providerName, mealServiceTime, mealRecordedAt } from '../lib/meal-report';
+import { mealDay, mealDate } from '../lib/meal-utils';
 
 function fmt(val: string | number | null | undefined) {
   return `${Number(val ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 })} FCFA`;
@@ -32,6 +34,8 @@ export default function StaffMeals() {
   const [loading, setLoading] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
   const [search, setSearch] = useState('');
+  const [month, setMonth] = useState(() => mealDay().slice(0, 7));
+  const [selectedProvider, setSelectedProvider] = useState('');
   const [disputeId, setDisputeId] = useState<string | null>(null);
   const [disputeReason, setDisputeReason] = useState('');
 
@@ -86,17 +90,23 @@ export default function StaffMeals() {
   const todayStr = mealDay();
   const todayMeals = items.filter(m => mealDate(m) === todayStr && m.status === 'ATE');
 
-  const filteredItems = items.filter(m => {
+  const result = useMemo(() => {
+    try { return { report: buildMealReport(items, { month }), error: '' }; }
+    catch (error) { return { report: buildMealReport([], { month: mealDay().slice(0, 7) }), error: error instanceof Error ? error.message : 'Could not calculate meal totals' }; }
+  }, [items, month]);
+  const filteredItems = result.report.records.filter(m => {
+    if (selectedProvider && providerKey(m.vendor) !== selectedProvider) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return (
       (m.employee?.fullName || '').toLowerCase().includes(q) ||
       (m.mealName || '').toLowerCase().includes(q) ||
+      providerName(m.vendor).toLowerCase().includes(q) ||
       (m.status || '').toLowerCase().includes(q)
     );
   });
 
-  const monthly = monthlyMealSummary(items);
+  const monthly = { companyAmount: result.report.totals.company, employeeAmount: result.report.totals.payroll, count: result.report.totals.count, beneficiaries: result.report.employees.length };
   const companyTotalSpend = monthly.companyAmount;
   const employeeTotalSpend = monthly.employeeAmount;
   const totalMealsEaten = monthly.count;
@@ -156,7 +166,7 @@ export default function StaffMeals() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Staff Welfare • Company Contribution • {todayStr.slice(0, 7)}
+                Staff Welfare • Company Contribution • {month}
               </span>
               <div className="w-10 h-10 rounded-xl bg-[#001f5b]/10 text-[#001f5b] flex items-center justify-center">
                 <UtensilsCrossed className="w-5 h-5" />
@@ -227,6 +237,12 @@ export default function StaffMeals() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-4 rounded-lg border bg-white p-4">
+        <label className="text-sm font-semibold">Meal month <input type="month" value={month} required onChange={e => { if (e.target.value) { setMonth(e.target.value); setSelectedProvider(''); } }} className="ml-2 rounded border px-3 py-2" /></label>
+        <label className="text-sm font-semibold">Provider <select value={selectedProvider} onChange={e => setSelectedProvider(e.target.value)} className="ml-2 rounded border px-3 py-2"><option value="">All providers</option>{result.report.providers.map(provider => <option key={provider.key} value={provider.key}>{provider.name}</option>)}</select></label>
+      </div>
+      {result.error ? <p role="alert" className="text-red-700">{result.error}</p> : <MealSettlementSummary report={result.report} isManager={isManager} userId={user?.id} onProvider={setSelectedProvider} />}
+
       {/* Main Meal Ledger Container */}
       <div className="bg-white border border-slate-200/90 rounded-xl shadow-2xs overflow-hidden">
         <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -242,7 +258,7 @@ export default function StaffMeals() {
           <div className="relative w-full sm:w-72">
             <input 
               type="text" 
-              placeholder="Search employee or platter..."
+              placeholder="Search employee, food or provider..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full px-3.5 py-2 bg-slate-50/70 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 outline-none focus:border-[#001f5b] focus:bg-white placeholder:text-slate-400"
@@ -262,7 +278,7 @@ export default function StaffMeals() {
                   <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
                   <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Employee</th>
                   <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Menu Platter</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Food / Provider</th>
                   <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Rate</th>
                   <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Company Subsidy</th>
                   <th className="px-5 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Employee Share</th>
@@ -285,6 +301,8 @@ export default function StaffMeals() {
                           month: 'short',
                           day: 'numeric'
                         })}
+                        <span className="mt-1 block text-[10px]">Service: {mealServiceTime(m.mealTime)} (Cameroon)</span>
+                        <span className="block text-[10px]">Recorded: {mealRecordedAt(m.createdAt)}</span>
                       </td>
 
                       <td className="px-5 py-3.5 font-bold text-slate-900 text-xs">
@@ -296,16 +314,17 @@ export default function StaffMeals() {
                           "px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border inline-block",
                           m.status === 'ATE' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-600 border-slate-200"
                         )}>
-                          {m.status === 'ATE' ? 'Consumed' : 'Did Not Eat'}
+                          {m.status === 'ATE' ? 'Consumed' : m.status === 'DISPUTED' ? 'Disputed' : 'Did Not Eat'}
                         </span>
                       </td>
 
                       <td className="px-5 py-3.5 text-xs text-slate-700 max-w-xs truncate">
                         {m.mealName || 'Standard Lunch'}
+                        <span className="mt-1 block text-xs font-semibold text-slate-500">{providerName(m.vendor)}</span>
                       </td>
 
                       <td className="px-5 py-3.5 text-xs font-bold text-slate-900">
-                        {m.status === 'ATE' ? fmt(m.price ?? m.totalAmount ?? 1000) : '0 FCFA'}
+                        {m.status === 'ATE' ? fmt(m.totalAmount ?? 1000) : '0 FCFA'}
                       </td>
 
                       <td className="px-5 py-3.5 text-xs font-bold text-emerald-700">
@@ -375,26 +394,7 @@ export default function StaffMeals() {
         )}
       </AnimatePresence>
 
-      {/* Export Ledger Modal (PDF & Excel with Dynamic Months) */}
-      <ExportLedgerModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        title="ENAKO OS • STAFF WELFARE & MEALS REPORT"
-        defaultFileName="Enako_Staff_Meals"
-        monthPicker
-        headers={['Date', 'Employee', 'Status', 'Menu Option', 'Total Price', 'Company Co-Pay', 'Employee Co-Pay']}
-        items={items}
-        getDateStr={(m: any) => m.effectiveDate || m.date || m.createdAt}
-        getRowData={(m: any) => [
-          m.effectiveDate || m.date || (m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'N/A'),
-          m.employee?.fullName || m.userName || 'Staff Member',
-          m.status === 'ATE' ? 'Consumed' : 'Did Not Eat',
-          m.mealName || 'Standard Lunch',
-          m.status === 'ATE' ? fmt(m.price ?? m.totalAmount ?? 1000) : '0 FCFA',
-          m.status === 'ATE' ? fmt(m.companyAmount ?? 500) : '0 FCFA',
-          m.status === 'ATE' ? fmt(m.employeeAmount ?? 500) : '0 FCFA'
-        ]}
-      />
+      {showExportModal && <MealExportModal items={items} month={month} onClose={() => setShowExportModal(false)} />}
     </div>
   );
 }

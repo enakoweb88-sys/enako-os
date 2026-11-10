@@ -1,6 +1,7 @@
 import { apiRequest } from './core';
 
 export const mealsApi = {
+  mealProviders: () => apiRequest<string[]>('/meals/providers'),
   meals: () => apiRequest<{ items: any[]; totals: any }>('/meals'),
   recordMeal: (body: {
     employeeId: string;

@@ -5,12 +5,15 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { toast } from 'sonner';
 import { mealDay } from '../lib/meal-utils';
+import { providerKey } from '../lib/meal-report';
 
 const MEAL_OPTIONS = [
   'Fried Rice',
   'Ndole Plantain/dodo',
   'Corn Fufu and Hunklebery',
-  'Ekwan'
+  'Ekwan',
+  'Eru',
+  'Other'
 ];
 
 const CATERING_VENDORS = [
@@ -30,10 +33,13 @@ export default function LogMealPage() {
   const [mealName, setMealName] = useState(MEAL_OPTIONS[0]);
   const [customMeal, setCustomMeal] = useState('');
   const [vendor, setVendor] = useState(CATERING_VENDORS[0]);
+  const [customVendor, setCustomVendor] = useState('');
+  const [providers, setProviders] = useState(CATERING_VENDORS);
   const [mealTime, setMealTime] = useState('13:00');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [currentLiveTime] = useState(() => new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'medium' }));
+  const providerOptions = [...CATERING_VENDORS, ...providers].filter((name, index, names) => names.findIndex(other => providerKey(other) === providerKey(name)) === index);
 
   useEffect(() => {
     // Load employees for manager selection
@@ -53,6 +59,12 @@ export default function LogMealPage() {
       });
   }, [user]);
 
+  useEffect(() => {
+    let active = true;
+    api.mealProviders().then(names => { if (active && names.length) setProviders(names); }).catch(() => toast.error('Could not load saved providers. You can still enter a provider manually.'));
+    return () => { active = false; };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
@@ -62,8 +74,10 @@ export default function LogMealPage() {
       return;
     }
 
+    const finalMealName = (mealName === 'Other' ? customMeal : mealName).trim();
+    const finalVendor = (vendor === 'Other' ? customVendor : vendor).trim().replace(/\s+/g, ' ');
+    if (status === 'ATE' && (!finalMealName || !finalVendor)) return toast.error('Enter both the food name and catering provider.');
     setSubmitting(true);
-    const finalMealName = mealName === 'Other' ? (customMeal.trim() || 'Custom Meal') : mealName;
 
     const entryTimestamp = new Date().toISOString();
     const payload = {
@@ -74,9 +88,9 @@ export default function LogMealPage() {
       systemRecordedAt: entryTimestamp,
       status,
       price: 1000,
-      mealName: finalMealName,
-      mealTime: mealTime ? new Date(`${date}T${mealTime}:00`).toISOString() : undefined,
-      vendor,
+      mealName: status === 'ATE' ? finalMealName : undefined,
+      mealTime: mealTime ? new Date(`${date}T${mealTime}:00+01:00`).toISOString() : undefined,
+      vendor: status === 'ATE' ? finalVendor : undefined,
       notes: notes.trim() || undefined,
       companyAmount: status === 'ATE' ? 500 : 0,
       employeeAmount: status === 'ATE' ? 500 : 0,
@@ -214,9 +228,9 @@ export default function LogMealPage() {
                   type="button"
                   onClick={() => setStatus('ATE')}
                   className={`flex-1 py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${status === 'ATE'
-                      ? 'border-emerald-600 bg-emerald-600 text-white shadow-2xs font-bold'
-                      : 'border-slate-200 text-slate-700 hover:bg-slate-100'
-                  }`}
+                    ? 'border-emerald-600 bg-emerald-600 text-white shadow-2xs font-bold'
+                    : 'border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
                 >
                   Ate Lunch
                 </button>
@@ -224,9 +238,9 @@ export default function LogMealPage() {
                   type="button"
                   onClick={() => setStatus('DID_NOT_EAT')}
                   className={`flex-1 py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${status === 'DID_NOT_EAT'
-                      ? 'border-slate-800 bg-slate-800 text-white shadow-2xs font-bold'
-                      : 'border-slate-200 text-slate-700 hover:bg-slate-100'
-                  }`}
+                    ? 'border-slate-800 bg-slate-800 text-white shadow-2xs font-bold'
+                    : 'border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
                 >
                   Did Not Eat
                 </button>
@@ -253,9 +267,9 @@ export default function LogMealPage() {
                       key={opt}
                       onClick={() => setMealName(opt)}
                       className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${mealName === opt
-                          ? 'border-[#001f5b] bg-[#001f5b]/5 text-slate-900'
-                          : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                  }`}
+                        ? 'border-[#001f5b] bg-[#001f5b]/5 text-slate-900'
+                        : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                        }`}
                     >
                       <input
                         type="radio"
@@ -268,6 +282,28 @@ export default function LogMealPage() {
                     </label>
                   ))}
                 </div>
+                {mealName === 'Other' && (
+                  <div className="mt-3">
+                    <label
+                      htmlFor="custom-meal"
+                      className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Enter food name
+                    </label>
+                    <input
+                      id="custom-meal"
+                      type="text"
+                      value={customMeal}
+                      onChange={(e) => setCustomMeal(e.target.value)}
+                      placeholder='For example: beans and plantain'
+                      maxLength={150}
+                      required
+                      className="w-full px-3.5 py-2.5 bg-slate-50/60 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-[#001f5b] focus:bg-white"
+                    />
+                    <p className='mt-2 text-xs text-slate-500'>
+                      1,000FCFA - Company: 500; Staff: 500.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -280,12 +316,16 @@ export default function LogMealPage() {
                     onChange={(e) => setVendor(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-50/60 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-[#001f5b] focus:bg-white"
                   >
-                    {CATERING_VENDORS.map((v) => (
+                    {providerOptions.map((v) => (
                       <option key={v} value={v}>
                         {v}
                       </option>
                     ))}
+                    <option value="Other">Other provider / add a name</option>
                   </select>
+                  {vendor === 'Other' && (
+                    <input aria-label="Catering provider name" type="text" value={customVendor} onChange={e => setCustomVendor(e.target.value)} placeholder="Enter catering provider name" maxLength={100} required className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                  )}
                 </div>
 
                 <div>
@@ -354,7 +394,7 @@ export default function LogMealPage() {
         {/* Footer Buttons (No Cards) */}
         <div className="flex items-center justify-between pt-6 border-t border-slate-200">
           <div className="text-xs text-slate-500">
-            Recorded in <strong>ENAKO Staff Welfare Portal</strong> • Auto-payroll reconciled
+            Recorded in <strong>ENAKO Staff Welfare Portal</strong> • Payroll deduction calculated
           </div>
 
           <div className="flex items-center gap-3">
